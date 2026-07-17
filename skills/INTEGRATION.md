@@ -1,9 +1,22 @@
 # Vendored Skills → Where Their Patterns Live
 
 The brief asked to pull four GitHub repos and integrate their patterns. Those repos
-are **Claude Code skills / study docs**, not pip packages, so they are vendored here
-under `skills/` for reference, and their *patterns* are implemented in real code in
-the app. This file maps each pattern to its source and its implementation.
+are **Claude Code skills / study docs**, not pip packages. Rather than vendoring the
+whole repos, we keep only the **skill definitions** (the `SKILL.md` folders and their
+supporting reference/data files) under `skills/`, and their *patterns* are implemented
+in real code in the app. This file maps each pattern to its source and its
+implementation.
+
+## What's vendored (skills only)
+- `skills/superpowers/` — 14 skills from `obra/superpowers` (`skills/` folder only).
+- `skills/ecc/` — the skill catalog from `affaan-m/ECC` (`skills/` folder only).
+- `skills/ui-ux-pro-max/` — 7 design skills from `nextlevelbuilder/ui-ux-pro-max-skill`
+  (`.claude/skills/` folder only, incl. the flagship `ui-ux-pro-max` skill + its data).
+- `skills/system-design-primer/` — README only (this repo is a study guide, not a
+  Claude skill, so there is no `SKILL.md` to extract).
+
+The repos' source code, CLIs, screenshots, images, tests and docs are intentionally
+**not** vendored — only the skill content is kept.
 
 | Source repo | What it actually is | Pattern applied | Implemented in |
 |---|---|---|---|
@@ -13,9 +26,7 @@ the app. This file maps each pattern to its source and its implementation.
 | [`nextlevelbuilder/ui-ux-pro-max-skill`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | Claude Code design-intelligence skill | Consistent API response envelope + clear messaging; consistent UI states (loading/error/empty), accessible components, light/dark tokens | Backend: `backend/app/responses.py`. Frontend: `frontend/src/components/States.jsx`, `frontend/src/styles/index.css`, `frontend/src/api/client.js` |
 
 ## Notes
-- These directories are vendored copies (shallow clones with `.git` removed) so they
-  travel with the repo but do not act as nested git repositories.
-- `system-design-primer` is included for its text/diagrams; it is large — if repo size
-  becomes a concern, its `images/` directory can be pruned without affecting the app.
+- Each `LICENSE` file is retained alongside its skills for attribution (the sources
+  are MIT-licensed).
 - To use any of these as a live Claude Code skill/plugin, install it via its own repo
   instructions (e.g. `/plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill`).
