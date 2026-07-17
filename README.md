@@ -67,7 +67,8 @@ npm run dev                    # http://localhost:5173
 3. **Backend → Web Service**
    - Root Directory: `backend`
    - Build Command: `./build.sh`  (installs deps + runs `alembic upgrade head`)
-   - Start Command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+   - Start Command: `gunicorn main:app -k uvicorn.workers.UvicornWorker --bind=0.0.0.0:$PORT`
+     (or plain `uvicorn main:app --host 0.0.0.0 --port $PORT` for a single process)
    - Environment: set the variables from `backend/.env.example`
      (`DATABASE_URL` = the Internal Database URL, `REDIS_URL`, `GROQ_API_KEY`,
      `GROQ_MODEL`, `APP_SECRET_KEY`, `CORS_ORIGINS` = your frontend URL).
