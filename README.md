@@ -26,14 +26,14 @@ table and password-hash scaffolding are in place to swap in real JWT auth later.
 ```
 backend/    FastAPI app, models, Alembic migrations, tests
 frontend/   React + Vite SPA
-skills/     Vendored reference repos + INTEGRATION.md (patterns → code map)
+claude_skills/  Vendored skill definitions + INTEGRATION.md (patterns → code map)
 ```
 
 The four "skills" repos (`obra/superpowers`, `affaan-m/ECC`,
 `donnemartin/system-design-primer`, `nextlevelbuilder/ui-ux-pro-max-skill`) are
 Claude Code skills / study docs — **not** pip packages. They are vendored under
-`skills/` and their *patterns* are implemented in real code. See
-[`skills/INTEGRATION.md`](skills/INTEGRATION.md).
+`claude_skills/` and their *patterns* are implemented in real code. See
+[`claude_skills/INTEGRATION.md`](claude_skills/INTEGRATION.md).
 
 ## Run locally
 

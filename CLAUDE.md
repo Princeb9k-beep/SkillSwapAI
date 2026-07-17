@@ -40,5 +40,6 @@ cd frontend && npm install && npm run build                        # frontend bu
 ```
 
 ## Vendored skills
-`skills/` holds reference copies of the four source repos. `skills/INTEGRATION.md`
-maps each borrowed pattern to the file that implements it.
+`claude_skills/` holds the skill definitions (not full repos) from the four source
+repos. `claude_skills/INTEGRATION.md` maps each borrowed pattern to the file that
+implements it.
