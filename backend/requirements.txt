@@ -1,9 +1,9 @@
 # SkillSwap AI — backend dependencies
 # NOTE: `superpowers`, `ecc`, and `system-design-primer` are intentionally NOT here.
-# They are Claude Code skills / study docs (vendored under ../skills/), not PyPI
-# packages — installing them by name would fail or pull unrelated projects. Their
-# *patterns* are implemented in real code (see app/concurrency.py, app/resilience.py,
-# app/responses.py, app/skills/). See skills/INTEGRATION.md.
+# They are Claude Code skills / study docs (vendored under ../claude_skills/), not
+# PyPI packages — installing them by name would fail or pull unrelated projects.
+# Their *patterns* are implemented in real code (see app/concurrency.py,
+# app/resilience.py, app/responses.py, app/skills/). See claude_skills/INTEGRATION.md.
 
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
