@@ -3,17 +3,17 @@
 The brief asked to pull four GitHub repos and integrate their patterns. Those repos
 are **Claude Code skills / study docs**, not pip packages. Rather than vendoring the
 whole repos, we keep only the **skill definitions** (the `SKILL.md` folders and their
-supporting reference/data files) under `skills/`, and their *patterns* are implemented
-in real code in the app. This file maps each pattern to its source and its
-implementation.
+supporting reference/data files) under `claude_skills/`, and their *patterns* are
+implemented in real code in the app. This file maps each pattern to its source and
+its implementation.
 
 ## What's vendored (skills only)
-- `skills/superpowers/` — 14 skills from `obra/superpowers` (`skills/` folder only).
-- `skills/ecc/` — the skill catalog from `affaan-m/ECC` (`skills/` folder only).
-- `skills/ui-ux-pro-max/` — 7 design skills from `nextlevelbuilder/ui-ux-pro-max-skill`
+- `claude_skills/superpowers/` — 14 skills from `obra/superpowers` (`skills/` folder only).
+- `claude_skills/ecc/` — the skill catalog from `affaan-m/ECC` (`skills/` folder only).
+- `claude_skills/ui-ux-pro-max/` — 7 design skills from `nextlevelbuilder/ui-ux-pro-max-skill`
   (`.claude/skills/` folder only, incl. the flagship `ui-ux-pro-max` skill + its data).
-- `skills/system-design-primer/` — README only (this repo is a study guide, not a
-  Claude skill, so there is no `SKILL.md` to extract).
+- `claude_skills/system-design-primer/` — README only (this repo is a study guide, not
+  a Claude skill, so there is no `SKILL.md` to extract).
 
 The repos' source code, CLIs, screenshots, images, tests and docs are intentionally
 **not** vendored — only the skill content is kept.
