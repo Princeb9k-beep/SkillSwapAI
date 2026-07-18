@@ -36,8 +36,7 @@ async def suggest(
         session.add(project)
         created.append(project)
     await session.commit()
-    for p in created:
-        await session.refresh(p)
+    # ProjectOut needs no server-generated columns; ids are set on commit.
     return ok(
         data=[ProjectOut.model_validate(p).model_dump() for p in created],
         message=f"Suggested {len(created)} projects",
@@ -68,5 +67,4 @@ async def update_status(
         return error("Project not found.", status_code=404, code="not_found")
     project.status = payload.status
     await session.commit()
-    await session.refresh(project)
     return ok(data=ProjectOut.model_validate(project).model_dump(), message="Status updated")

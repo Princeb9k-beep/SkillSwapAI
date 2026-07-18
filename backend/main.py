@@ -34,14 +34,32 @@ from app.groq_client import init_groq
 from app.redis_client import close_redis, init_redis
 from app.resilience import TokenBucketRateLimiter
 from app.responses import error, ok
-from app.routers import health, interview, lessons, projects, resume, roadmap, users
+from app.routers import (
+    auth,
+    health,
+    interview,
+    lessons,
+    projects,
+    resume,
+    roadmap,
+    users,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("skillswap")
 
 # Protect AI-heavy endpoints: 30 requests/minute per user (fails open if Redis down).
+# Match the exact API paths (not prefixes) so SPA page routes that share a name —
+# /interview, /resume, /lessons — are never rate-limited on navigation.
 ai_rate_limiter = TokenBucketRateLimiter(limit=30, window_seconds=60)
-_AI_PREFIXES = ("/roadmap", "/projects", "/resume", "/interview", "/lessons")
+_AI_PATHS = frozenset({
+    "/roadmap",
+    "/projects/suggest",
+    "/resume/build",
+    "/interview/start",
+    "/interview/answer",
+    "/lessons/daily",
+})
 
 
 @asynccontextmanager
@@ -83,7 +101,7 @@ app.add_middleware(
 @app.middleware("http")
 async def rate_limit_ai(request: Request, call_next):
     """Apply the AI rate limiter to expensive endpoints, keyed by X-User-Id/IP."""
-    if request.url.path.startswith(_AI_PREFIXES):
+    if request.url.path in _AI_PATHS:
         who = request.headers.get("X-User-Id") or (request.client.host if request.client else "anon")
         if not await ai_rate_limiter.allow(f"ai:{who}"):
             return error(
@@ -123,6 +141,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 # --- API routes -----------------------------------------------------------
 # Registered BEFORE the SPA catch-all below so they always take precedence.
 app.include_router(health.router)
+app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(roadmap.router)
 app.include_router(projects.router)

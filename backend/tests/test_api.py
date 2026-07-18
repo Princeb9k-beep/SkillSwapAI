@@ -56,26 +56,58 @@ def test_health(client):
     assert body["data"]["services"]["database"] == "up"
 
 
-def test_user_and_roadmap_flow(client):
-    # create user
-    r = client.post("/users", json={"email": "prince@example.com", "goal": "make $80k"})
-    assert r.status_code == 200
+def test_signup_login_and_roadmap_flow(client):
+    # sign up
+    r = client.post(
+        "/auth/signup",
+        json={"email": "prince@example.com", "password": "supersecret", "name": "Prince"},
+    )
+    assert r.status_code == 201
     body = r.json()
     _assert_envelope(body)
-    user_id = body["data"]["id"]
+    token = body["data"]["token"]
+    assert token and body["data"]["user"]["email"] == "prince@example.com"
+
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # update goal via authenticated profile endpoint
+    r = client.patch("/users/me", json={"goal": "make $80k"}, headers=headers)
+    assert r.status_code == 200
+    assert r.json()["data"]["goal"] == "make $80k"
 
     # generate a roadmap (Groq unconfigured -> fallback content, but real DB write)
-    headers = {"X-User-Id": str(user_id)}
-    r = client.post("/roadmap", json={"goal": "make $80k", "current_skills": []}, headers=headers)
+    r = client.post(
+        "/roadmap", json={"goal": "make $80k", "current_skills": []}, headers=headers
+    )
     assert r.status_code == 200
     body = r.json()
     _assert_envelope(body)
     assert "milestones" in body["data"]["content"]
 
-    # fetch latest roadmap
-    r = client.get("/roadmap", headers=headers)
+    # log in with the same credentials returns a working token
+    r = client.post(
+        "/auth/login", json={"email": "prince@example.com", "password": "supersecret"}
+    )
     assert r.status_code == 200
-    assert r.json()["success"] is True
+    login_token = r.json()["data"]["token"]
+    r = client.get("/users/me", headers={"Authorization": f"Bearer {login_token}"})
+    assert r.status_code == 200
+    assert r.json()["data"]["email"] == "prince@example.com"
+
+
+def test_signup_duplicate_email_conflicts(client):
+    payload = {"email": "dupe@example.com", "password": "supersecret"}
+    assert client.post("/auth/signup", json=payload).status_code == 201
+    r = client.post("/auth/signup", json=payload)
+    assert r.status_code == 409
+    assert r.json()["success"] is False
+
+
+def test_login_bad_credentials(client):
+    r = client.post("/auth/login", json={"email": "nope@example.com", "password": "whatever"})
+    assert r.status_code == 401
+    _assert_envelope(r.json())
+    assert r.json()["success"] is False
 
 
 def test_missing_auth_returns_envelope(client):

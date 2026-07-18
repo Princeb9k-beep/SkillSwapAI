@@ -26,38 +26,49 @@ async def daily(
 ) -> object:
     """
     Return today's lessons, generating and persisting them once per user/day.
-    Progress + the generated set are cached in Redis (daily lesson caching).
+
+    `day` is a friendly 1-based counter (day 1, 2, 3…) derived from how many
+    distinct calendar days the user has studied — not a raw date ordinal. The
+    generated content is cached in Redis keyed by the calendar day so repeat
+    calls don't re-hit Groq.
     """
-    day = (datetime.now(timezone.utc).date().toordinal())
-    cache_key = make_key("lessons", user.id, day)
+    today = datetime.now(timezone.utc).date()
+    cache_key = make_key("lessons", user.id, today.toordinal())
 
-    # If we've already created today's lessons, return them.
+    # Single read of the user's lessons; derive both "today's set" and the
+    # day counter in one pass (no per-row refreshes, no date SQL).
     result = await session.execute(
-        select(Lesson).where(Lesson.user_id == user.id, Lesson.day == day)
+        select(Lesson).where(Lesson.user_id == user.id).order_by(Lesson.id)
     )
-    existing = result.scalars().all()
-    if existing:
-        return ok(data=[LessonOut.model_validate(l).model_dump() for l in existing])
+    lessons = result.scalars().all()
+    study_dates = {l.created_at.date() for l in lessons if l.created_at}
 
+    todays = [l for l in lessons if l.created_at and l.created_at.date() == today]
+    if todays:
+        return ok(
+            data=[LessonOut.model_validate(l).model_dump() for l in todays],
+            message="Today's lessons",
+        )
+
+    day = len(study_dates) + 1
     cached = await cache_get(cache_key)
     generated = cached or await generate_daily_lessons(
         user.goal or "grow my career", day
     )
     await cache_set(cache_key, generated)
 
-    created: list[Lesson] = []
-    for item in generated:
-        lesson = Lesson(
+    created = [
+        Lesson(
             user_id=user.id,
             day=day,
             title=item.get("title", "Lesson"),
             content=item.get("content"),
         )
-        session.add(lesson)
-        created.append(lesson)
+        for item in generated
+    ]
+    session.add_all(created)
     await session.commit()
-    for l in created:
-        await session.refresh(l)
+    # expire_on_commit is False, so ids/values are already populated — no refresh.
     return ok(
         data=[LessonOut.model_validate(l).model_dump() for l in created],
         message="Today's lessons",
@@ -77,5 +88,4 @@ async def complete(
     lesson.completed = True
     lesson.completed_at = datetime.now(timezone.utc)
     await session.commit()
-    await session.refresh(lesson)
     return ok(data=LessonOut.model_validate(lesson).model_dump(), message="Lesson completed")

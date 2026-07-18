@@ -3,26 +3,34 @@
 // The backend always responds with the UX/UI Pro Max envelope
 // { success, data, message, meta }. This wrapper unwraps it, throwing an Error
 // (carrying the human-readable message) on failure so callers/components can
-// render a single, consistent error state. The stubbed auth user id is sent via
-// the X-User-Id header.
+// render a single, consistent error state. Auth is a JWT sent as a Bearer token.
 
 // Default to same-origin ("") so the single-app deploy (FastAPI serving this
 // SPA) just calls /health, /roadmap, etc. on its own host. For split local dev
 // (Vite on :5173, API on :8000), set VITE_API_BASE_URL=http://localhost:8000.
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
-export function getUserId() {
-  return localStorage.getItem("skillswap_user_id");
+const TOKEN_KEY = "skillswap_token";
+
+export function getToken() {
+  return localStorage.getItem(TOKEN_KEY);
 }
 
-export function setUserId(id) {
-  localStorage.setItem("skillswap_user_id", String(id));
+export function setToken(token) {
+  if (token) localStorage.setItem(TOKEN_KEY, token);
+  else localStorage.removeItem(TOKEN_KEY);
 }
 
-async function request(path, { method = "GET", body } = {}) {
+// Optional hook so the app can react to auth expiry (401) globally.
+let onUnauthorized = null;
+export function setUnauthorizedHandler(fn) {
+  onUnauthorized = fn;
+}
+
+async function request(path, { method = "GET", body, auth = true } = {}) {
   const headers = { "Content-Type": "application/json" };
-  const uid = getUserId();
-  if (uid) headers["X-User-Id"] = uid;
+  const token = getToken();
+  if (auth && token) headers["Authorization"] = `Bearer ${token}`;
 
   let res;
   try {
@@ -42,6 +50,10 @@ async function request(path, { method = "GET", body } = {}) {
     throw new Error("Unexpected response from the server.");
   }
 
+  if (res.status === 401 && auth && onUnauthorized) {
+    onUnauthorized();
+  }
+
   if (!res.ok || payload.success === false) {
     throw new Error(payload?.message || "Something went wrong.");
   }
@@ -49,7 +61,12 @@ async function request(path, { method = "GET", body } = {}) {
 }
 
 export const api = {
-  createUser: (data) => request("/users", { method: "POST", body: data }),
+  // auth
+  signup: (data) => request("/auth/signup", { method: "POST", body: data, auth: false }),
+  login: (data) => request("/auth/login", { method: "POST", body: data, auth: false }),
+  me: () => request("/users/me"),
+  updateProfile: (data) => request("/users/me", { method: "PATCH", body: data }),
+  // features
   getRoadmap: () => request("/roadmap"),
   generateRoadmap: (data) => request("/roadmap", { method: "POST", body: data }),
   suggestProjects: (data) => request("/projects/suggest", { method: "POST", body: data }),

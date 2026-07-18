@@ -1,10 +1,10 @@
 // Daily lessons with gamified completion + a simple progress bar.
 
 import { useEffect, useState } from "react";
-import { api, getUserId } from "../api/client.js";
+import { api } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import LessonCard from "../components/LessonCard.jsx";
-import { LoadingState, ErrorBanner, EmptyState } from "../components/States.jsx";
+import { LoadingState, ErrorBanner } from "../components/States.jsx";
 
 export default function Lessons() {
   const { notify } = useApp();
@@ -25,22 +25,19 @@ export default function Lessons() {
   }
 
   useEffect(() => {
-    if (getUserId()) load();
-    else setStatus("noauth");
+    load();
   }, []);
 
   async function complete(id) {
     try {
       await api.completeLesson(id);
       setLessons((ls) => ls.map((l) => (l.id === id ? { ...l, completed: true } : l)));
-      notify("Nice work! Lesson completed 🎉", "success");
+      notify("Nice work! Lesson completed.", "success");
     } catch (err) {
       notify(err.message, "error");
     }
   }
 
-  if (status === "noauth")
-    return <EmptyState title="Set a goal first" hint="Head to the Goal tab to begin." />;
   if (status === "loading") return <LoadingState label="Fetching today's lessons…" />;
   if (status === "error") return <ErrorBanner message={error} onRetry={load} />;
 
@@ -50,7 +47,14 @@ export default function Lessons() {
   return (
     <section>
       <h1>Today's Lessons</h1>
-      <div className="progress" aria-label={`${pct}% complete`}>
+      <div
+        className="progress"
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${pct}% of today's lessons complete`}
+      >
         <div className="progress-bar" style={{ width: `${pct}%` }} />
       </div>
       <p className="muted">

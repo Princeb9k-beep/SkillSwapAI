@@ -27,7 +27,8 @@ async def create_roadmap(
     roadmap = Roadmap(user_id=user.id, goal=payload.goal, content=content)
     session.add(roadmap)
     await session.commit()
-    await session.refresh(roadmap)
+    # id is populated on commit (expire_on_commit=False); response needs no
+    # server-generated columns, so skip an extra refresh round-trip.
     return ok(
         data={"id": roadmap.id, "goal": roadmap.goal, "content": roadmap.content},
         message="Roadmap generated",

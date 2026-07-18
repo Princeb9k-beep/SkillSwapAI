@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, getUserId } from "../api/client.js";
+import { api } from "../api/client.js";
 import { LoadingState, ErrorBanner, EmptyState } from "../components/States.jsx";
 
 export default function Dashboard() {
@@ -31,8 +31,6 @@ export default function Dashboard() {
     load();
   }, []);
 
-  if (!getUserId())
-    return <EmptyState title="Set a goal first" hint="Head to the Goal tab to begin." />;
   if (status === "loading") return <LoadingState label="Loading your roadmap…" />;
   if (status === "error") return <ErrorBanner message={error} onRetry={load} />;
   if (status === "empty")

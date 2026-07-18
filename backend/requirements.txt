@@ -20,6 +20,7 @@ pydantic-settings==2.7.1
 python-dotenv==1.0.1
 groq==0.15.0
 httpx==0.28.1
-werkzeug==3.1.3               # password hashing helpers (auth scaffolding)
+werkzeug==3.1.3               # password hashing helpers (auth)
+pyjwt==2.10.1                # JWT access tokens (auth)
 jinja2==3.1.5                # resume template rendering
 aiosqlite==0.20.0            # async sqlite driver used for local tests/verification

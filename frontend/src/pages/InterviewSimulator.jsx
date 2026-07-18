@@ -65,6 +65,10 @@ export default function InterviewSimulator() {
 
       {phase === "answering" && interview && (
         <form className="card form" onSubmit={submit}>
+          <p className="muted" aria-live="polite">
+            {answers.filter((a) => a.trim()).length} of {interview.questions.length}{" "}
+            answered
+          </p>
           {interview.questions.map((q, i) => (
             <label key={i}>
               {i + 1}. {q}
@@ -86,7 +90,7 @@ export default function InterviewSimulator() {
         <div className="card">
           <h3>Score: {result.score}/100</h3>
           <p>{result.feedback}</p>
-          <button className="btn" onClick={() => setPhase("setup")}>
+          <button type="button" className="btn" onClick={() => setPhase("setup")}>
             Practice again
           </button>
         </div>

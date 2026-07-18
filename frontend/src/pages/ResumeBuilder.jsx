@@ -70,7 +70,7 @@ export default function ResumeBuilder() {
           <textarea rows={3} value={form.experience} onChange={update("experience")} />
         </label>
         {error && <ErrorBanner message={error} />}
-        <button className="btn btn-primary" disabled={busy}>
+        <button className="btn btn-primary" disabled={busy} aria-busy={busy}>
           {busy ? "Writing your resume…" : "Generate resume"}
         </button>
       </form>
@@ -80,7 +80,9 @@ export default function ResumeBuilder() {
           <div className="row-between">
             <h3>Your resume</h3>
             <button
+              type="button"
               className="btn"
+              aria-label="Copy resume to clipboard"
               onClick={() => {
                 navigator.clipboard.writeText(resume);
                 notify("Copied to clipboard", "success");
