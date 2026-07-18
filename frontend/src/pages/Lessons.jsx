@@ -33,7 +33,7 @@ export default function Lessons() {
     try {
       await api.completeLesson(id);
       setLessons((ls) => ls.map((l) => (l.id === id ? { ...l, completed: true } : l)));
-      notify("Nice work! Lesson completed 🎉", "success");
+      notify("Nice work! Lesson completed.", "success");
     } catch (err) {
       notify(err.message, "error");
     }
@@ -50,7 +50,14 @@ export default function Lessons() {
   return (
     <section>
       <h1>Today's Lessons</h1>
-      <div className="progress" aria-label={`${pct}% complete`}>
+      <div
+        className="progress"
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${pct}% of today's lessons complete`}
+      >
         <div className="progress-bar" style={{ width: `${pct}%` }} />
       </div>
       <p className="muted">

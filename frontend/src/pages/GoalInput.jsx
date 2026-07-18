@@ -44,10 +44,15 @@ export default function GoalInput() {
           <input
             type="email"
             required
+            autoComplete="email"
             value={email}
             placeholder="you@example.com"
+            aria-describedby="email-hint"
             onChange={(e) => setEmail(e.target.value)}
           />
+          <span id="email-hint" className="field-hint">
+            We use this only to save your progress.
+          </span>
         </label>
         <label>
           Your goal
@@ -55,11 +60,15 @@ export default function GoalInput() {
             type="text"
             required
             value={goal}
+            aria-describedby="goal-hint"
             onChange={(e) => setGoal(e.target.value)}
           />
+          <span id="goal-hint" className="field-hint">
+            e.g. "I want to make $80k as a backend engineer"
+          </span>
         </label>
         {error && <ErrorBanner message={error} />}
-        <button className="btn btn-primary" disabled={busy}>
+        <button className="btn btn-primary" disabled={busy} aria-busy={busy}>
           {busy ? "Building your plan…" : "Start learning"}
         </button>
       </form>

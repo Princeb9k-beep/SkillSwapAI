@@ -10,8 +10,10 @@ const LINKS = [
 
 export default function Nav() {
   return (
-    <nav className="nav">
-      <span className="brand">SkillSwap<span className="brand-ai">AI</span></span>
+    <nav className="nav" aria-label="Main navigation">
+      <NavLink to="/" end className="brand" aria-label="SkillSwap AI home">
+        SkillSwap<span className="brand-ai">AI</span>
+      </NavLink>
       <div className="nav-links">
         {LINKS.map((l) => (
           <NavLink key={l.to} to={l.to} end={l.end} className="nav-link">

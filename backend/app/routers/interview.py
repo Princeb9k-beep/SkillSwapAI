@@ -26,7 +26,7 @@ async def start(
     interview = Interview(user_id=user.id, role=payload.role, questions=questions)
     session.add(interview)
     await session.commit()
-    await session.refresh(interview)
+    # id is set on commit; response carries no server-generated columns.
     return ok(
         data={"interview_id": interview.id, "role": interview.role, "questions": questions},
         message="Interview started",

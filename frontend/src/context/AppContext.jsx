@@ -24,7 +24,15 @@ export function AppProvider({ children }) {
   return (
     <AppContext.Provider value={{ userId, login, notify }}>
       {children}
-      {toast && <div className={`toast toast-${toast.type}`}>{toast.message}</div>}
+      {toast && (
+        <div
+          className={`toast toast-${toast.type}`}
+          role={toast.type === "error" ? "alert" : "status"}
+          aria-live={toast.type === "error" ? "assertive" : "polite"}
+        >
+          {toast.message}
+        </div>
+      )}
     </AppContext.Provider>
   );
 }
