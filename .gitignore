@@ -15,8 +15,10 @@ frontend/.env
 
 # Node / frontend
 node_modules/
-frontend/dist/
 frontend/dist-ssr/
+# NOTE: frontend/dist/ is intentionally committed so the single-app deploy
+# (FastAPI serving the built SPA) works on Render's Python runtime without Node.
+# Rebuild it with `npm run build` in frontend/ after changing the frontend.
 
 # Editor / OS
 .DS_Store

@@ -6,7 +6,10 @@
 // render a single, consistent error state. The stubbed auth user id is sent via
 // the X-User-Id header.
 
-const BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+// Default to same-origin ("") so the single-app deploy (FastAPI serving this
+// SPA) just calls /health, /roadmap, etc. on its own host. For split local dev
+// (Vite on :5173, API on :8000), set VITE_API_BASE_URL=http://localhost:8000.
+const BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
 export function getUserId() {
   return localStorage.getItem("skillswap_user_id");
