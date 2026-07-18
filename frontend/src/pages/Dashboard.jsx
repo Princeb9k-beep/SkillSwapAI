@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import { LoadingState, ErrorBanner, EmptyState } from "../components/States.jsx";
+import LearningCalendar from "../components/LearningCalendar.jsx";
 
 export default function Dashboard() {
   const [roadmap, setRoadmap] = useState(null);
@@ -70,6 +71,9 @@ export default function Dashboard() {
           </article>
         ))}
       </div>
+
+      <LearningCalendar milestones={milestones} />
+
       <p className="muted">
         Keep going with your <Link to="/lessons">daily lessons →</Link>
       </p>

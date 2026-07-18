@@ -307,6 +307,70 @@ a:focus-visible {
   overflow-x: auto;
 }
 
+/* Learning calendar */
+.calendar-section {
+  margin-top: 2rem;
+}
+.cal-summary {
+  font-size: 0.85rem;
+}
+.calendar {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.cal-week {
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  gap: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+}
+.cal-week.current {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary) inset;
+}
+.cal-date {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.cal-weeknum {
+  font-weight: 700;
+}
+.cal-date time {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.cal-now {
+  align-self: flex-start;
+  margin-top: 0.15rem;
+}
+.cal-body ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+}
+.cal-body li {
+  margin-bottom: 0.2rem;
+}
+@media (max-width: 560px) {
+  .cal-week {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  .cal-date {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}
+
 /* Progress */
 .progress {
   height: 10px;
