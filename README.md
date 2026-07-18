@@ -53,31 +53,46 @@ cd backend && pip install pytest && pytest -q
 ```
 
 ### Frontend
-```bash
-cd frontend
-npm install
-cp .env.example .env          # set VITE_API_BASE_URL
-npm run dev                    # http://localhost:5173
-```
+Two options locally:
 
-## Deploy to Render (no Docker / no render.yaml)
+- **Single app** (matches production): `cd frontend && npm run build`, then run the
+  backend — FastAPI serves the SPA at http://localhost:8000 alongside the API.
+- **Split dev** (hot reload): run the backend on :8000, then
+  ```bash
+  cd frontend
+  npm install
+  echo "VITE_API_BASE_URL=http://localhost:8000" > .env   # point the SPA at the API
+  npm run dev                                              # http://localhost:5173
+  ```
+  (Without `VITE_API_BASE_URL` the SPA calls its own origin, which is correct for
+  the single-app build but not for the split Vite dev server.)
+
+## Deploy to Render (single app, no Docker / no render.yaml)
+
+The FastAPI backend **serves the built React SPA** from the same process, so the
+whole thing is **one Render Web Service** at one URL — the API lives under
+`/health`, `/roadmap`, … and the React app is served at `/` (deep links fall back
+to `index.html`). No separate frontend service and no CORS needed.
+
+The built frontend (`frontend/dist/`) is committed to the repo, so it works even on
+Render's Python runtime (which has no Node). `build.sh` refreshes it automatically
+when Node *is* available.
 
 1. **PostgreSQL** — create a Render Postgres instance; copy its *Internal Database URL*.
-2. **Redis** — create a Render Key Value (Redis) instance; copy its URL.
-3. **Backend → Web Service**
-   - Root Directory: `backend`
-   - Build Command: `./build.sh`  (installs deps + runs `alembic upgrade head`)
-   - Start Command: `gunicorn main:app -k uvicorn.workers.UvicornWorker --bind=0.0.0.0:$PORT`
-     (or plain `uvicorn main:app --host 0.0.0.0 --port $PORT` for a single process)
-   - Environment: set the variables from `backend/.env.example`
-     (`DATABASE_URL` = the Internal Database URL, `REDIS_URL`, `GROQ_API_KEY`,
-     `GROQ_MODEL`, `APP_SECRET_KEY`, `CORS_ORIGINS` = your frontend URL).
-     The app auto-rewrites Render's `postgres://` URL to the async driver.
-4. **Frontend → Static Site**
-   - Root Directory: `frontend`
-   - Build Command: `npm ci && npm run build`
-   - Publish Directory: `dist`
-   - Environment: `VITE_API_BASE_URL` = your backend service URL.
+2. **Redis** *(optional)* — create a Render Key Value (Redis) instance; copy its URL.
+3. **Web Service** (this repo)
+   - Root Directory: *(leave blank — repo root)*
+   - Build Command: `./build.sh`
+     (pip install + `alembic upgrade head`, and rebuilds the frontend if Node is present)
+   - Start Command: `gunicorn --chdir backend main:app -k uvicorn.workers.UvicornWorker --bind=0.0.0.0:$PORT`
+   - **Environment Variables** (add each individually — *not* a Secret File):
+     `DATABASE_URL` = the Internal Database URL, plus `REDIS_URL`, `GROQ_API_KEY`,
+     `GROQ_MODEL`, `APP_SECRET_KEY`, `APP_ENV=production`. Leave `VITE_API_BASE_URL`
+     unset so the SPA calls its own origin. The app auto-rewrites Render's
+     `postgres://` URL to the async driver.
+
+> **After changing frontend code**, rebuild and commit the bundle:
+> `cd frontend && npm run build`, then commit `frontend/dist/`.
 
 ## API overview
 

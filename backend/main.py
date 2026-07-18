@@ -19,10 +19,13 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.config import get_settings
@@ -117,7 +120,8 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     )
 
 
-# --- Routes ---------------------------------------------------------------
+# --- API routes -----------------------------------------------------------
+# Registered BEFORE the SPA catch-all below so they always take precedence.
 app.include_router(health.router)
 app.include_router(users.router)
 app.include_router(roadmap.router)
@@ -127,9 +131,33 @@ app.include_router(interview.router)
 app.include_router(lessons.router)
 
 
-@app.get("/")
-async def root() -> object:
-    return ok(
-        data={"name": "SkillSwap AI", "docs": "/docs", "health": "/health"},
-        message="Welcome to SkillSwap AI",
-    )
+# --- Serve the built React frontend (single-app deployment) ---------------
+# One process serves both the API (above) and the SPA. When frontend/dist
+# exists (produced by `npm run build`), its assets are mounted and every
+# non-API path returns index.html so React Router can handle client-side
+# routes (deep links like /dashboard). If dist is absent (API-only dev),
+# we fall back to a small JSON welcome at /.
+FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+
+if FRONTEND_DIST.is_dir():
+    assets_dir = FRONTEND_DIST / "assets"
+    if assets_dir.is_dir():
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str) -> FileResponse:
+        # Serve real files that exist (serviceWorker.js, icons, etc.);
+        # otherwise return index.html for the SPA to route.
+        candidate = FRONTEND_DIST / full_path
+        if full_path and candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(FRONTEND_DIST / "index.html")
+
+else:
+
+    @app.get("/")
+    async def root() -> object:
+        return ok(
+            data={"name": "SkillSwap AI", "docs": "/docs", "health": "/health"},
+            message="Welcome to SkillSwap AI (frontend not built)",
+        )
