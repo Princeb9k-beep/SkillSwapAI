@@ -1,10 +1,10 @@
 // Daily lessons with gamified completion + a simple progress bar.
 
 import { useEffect, useState } from "react";
-import { api, getUserId } from "../api/client.js";
+import { api } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import LessonCard from "../components/LessonCard.jsx";
-import { LoadingState, ErrorBanner, EmptyState } from "../components/States.jsx";
+import { LoadingState, ErrorBanner } from "../components/States.jsx";
 
 export default function Lessons() {
   const { notify } = useApp();
@@ -25,8 +25,7 @@ export default function Lessons() {
   }
 
   useEffect(() => {
-    if (getUserId()) load();
-    else setStatus("noauth");
+    load();
   }, []);
 
   async function complete(id) {
@@ -39,8 +38,6 @@ export default function Lessons() {
     }
   }
 
-  if (status === "noauth")
-    return <EmptyState title="Set a goal first" hint="Head to the Goal tab to begin." />;
   if (status === "loading") return <LoadingState label="Fetching today's lessons…" />;
   if (status === "error") return <ErrorBanner message={error} onRetry={load} />;
 

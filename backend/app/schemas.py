@@ -7,9 +7,20 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
-# --- Users ----------------------------------------------------------------
-class UserUpsert(BaseModel):
+# --- Auth -----------------------------------------------------------------
+class SignupRequest(BaseModel):
     email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+    name: str | None = None
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=1, max_length=128)
+
+
+# --- Users ----------------------------------------------------------------
+class ProfileUpdate(BaseModel):
     name: str | None = None
     goal: str | None = Field(default=None, examples=["I want to make $80k"])
     target_income: int | None = Field(default=None, examples=[80000])

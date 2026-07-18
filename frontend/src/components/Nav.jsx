@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { useApp } from "../context/AppContext.jsx";
 
 const LINKS = [
   { to: "/", label: "Goal", end: true },
@@ -9,6 +10,13 @@ const LINKS = [
 ];
 
 export default function Nav() {
+  const { user, logout, notify } = useApp();
+
+  function signOut() {
+    logout();
+    notify("Signed out", "info");
+  }
+
   return (
     <nav className="nav" aria-label="Main navigation">
       <NavLink to="/" end className="brand" aria-label="SkillSwap AI home">
@@ -20,6 +28,16 @@ export default function Nav() {
             {l.label}
           </NavLink>
         ))}
+      </div>
+      <div className="nav-user">
+        {user?.name || user?.email ? (
+          <span className="nav-who muted" title={user.email}>
+            {user.name || user.email}
+          </span>
+        ) : null}
+        <button type="button" className="btn nav-signout" onClick={signOut}>
+          Sign out
+        </button>
       </div>
     </nav>
   );

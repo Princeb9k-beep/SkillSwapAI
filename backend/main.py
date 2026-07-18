@@ -34,7 +34,16 @@ from app.groq_client import init_groq
 from app.redis_client import close_redis, init_redis
 from app.resilience import TokenBucketRateLimiter
 from app.responses import error, ok
-from app.routers import health, interview, lessons, projects, resume, roadmap, users
+from app.routers import (
+    auth,
+    health,
+    interview,
+    lessons,
+    projects,
+    resume,
+    roadmap,
+    users,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("skillswap")
@@ -132,6 +141,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 # --- API routes -----------------------------------------------------------
 # Registered BEFORE the SPA catch-all below so they always take precedence.
 app.include_router(health.router)
+app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(roadmap.router)
 app.include_router(projects.router)
