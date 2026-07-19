@@ -55,6 +55,7 @@ from app.routers import (
     resume,
     roadmap,
     scanner,
+    translate,
     twin,
     skills,
     users,
@@ -78,6 +79,7 @@ _AI_PATHS = frozenset({
     "/coach/chat",
     "/scanner/analyze",
     "/challenges/today",
+    "/translate",
 })
 
 
@@ -174,6 +176,7 @@ app.include_router(coach.router)
 app.include_router(scanner.router)
 app.include_router(challenges.router)
 app.include_router(twin.router)
+app.include_router(translate.router)
 app.include_router(roadmap.router)
 app.include_router(projects.router)
 app.include_router(resume.router)

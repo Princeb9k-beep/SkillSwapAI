@@ -473,6 +473,20 @@ def test_ai_twin_train_chat_quiz(client):
     assert client.post(f"/twin/{nid}/chat", json={"message": "x"}, headers=learner).status_code == 404
 
 
+def test_translation(client):
+    hdr = _auth(client, "tom@example.com", "Tom")
+    langs = client.get("/translate/languages", headers=hdr).json()["data"]
+    assert "Spanish" in langs
+
+    # Groq unconfigured -> graceful fallback returns the original + a stable shape
+    r = client.post(
+        "/translate", json={"text": "Hello, friend", "target_language": "Spanish"}, headers=hdr
+    )
+    assert r.status_code == 200
+    data = r.json()["data"]
+    assert data["target_language"] == "Spanish" and isinstance(data["translation"], str)
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401
