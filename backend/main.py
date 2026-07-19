@@ -18,10 +18,14 @@ This module wires everything together:
 from __future__ import annotations
 
 import logging
+import mimetypes
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request, status
+
+# Serve the PWA manifest with the correct content type.
+mimetypes.add_type("application/manifest+json", ".webmanifest")
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse

@@ -5,6 +5,7 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import Nav from "./components/Nav.jsx";
+import InstallPrompt from "./components/InstallPrompt.jsx";
 import { AppProvider, useApp } from "./context/AppContext.jsx";
 import { LoadingState } from "./components/States.jsx";
 
@@ -68,6 +69,7 @@ export default function App() {
     <AppProvider>
       <BrowserRouter>
         <Shell />
+        <InstallPrompt />
       </BrowserRouter>
     </AppProvider>
   );
