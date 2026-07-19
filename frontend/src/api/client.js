@@ -74,6 +74,16 @@ export const api = {
   // gamification
   getProgress: () => request("/progress"),
   getLeaderboard: () => request("/leaderboard"),
+  // communities
+  getCommunities: () => request("/communities"),
+  createCommunity: (data) => request("/communities", { method: "POST", body: data }),
+  getCommunity: (id) => request(`/communities/${id}`),
+  joinCommunity: (id) => request(`/communities/${id}/join`, { method: "POST" }),
+  leaveCommunity: (id) => request(`/communities/${id}/leave`, { method: "POST" }),
+  postToCommunity: (id, body) =>
+    request(`/communities/${id}/posts`, { method: "POST", body: { body } }),
+  deletePost: (id, postId) =>
+    request(`/communities/${id}/posts/${postId}`, { method: "DELETE" }),
   // features
   getRoadmap: () => request("/roadmap"),
   generateRoadmap: (data) => request("/roadmap", { method: "POST", body: data }),
