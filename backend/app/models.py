@@ -9,10 +9,11 @@ up their data. Indexes back every foreign key and common lookup column.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     Boolean,
+    Date,
     DateTime,
     ForeignKey,
     Integer,
@@ -36,10 +37,18 @@ class User(Base):
     goal: Mapped[str | None] = mapped_column(Text, nullable=True)
     target_income: Mapped[int | None] = mapped_column(Integer, nullable=True)
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # --- Gamification ---
+    xp: Mapped[int] = mapped_column(Integer, default=0, server_default="0", index=True)
+    level: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    streak: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    last_active_on: Mapped[date | None] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
 
+    achievements: Mapped[list["Achievement"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
     skills: Mapped[list["Skill"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
@@ -167,3 +176,21 @@ class Interview(Base):
     )
 
     user: Mapped[User] = relationship(back_populates="interviews")
+
+
+class Achievement(Base):
+    __tablename__ = "achievements"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    # stable machine code, unique per user (e.g. "first_lesson", "streak_7")
+    code: Mapped[str] = mapped_column(String(60), index=True)
+    title: Mapped[str] = mapped_column(String(120))
+    description: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    earned_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    user: Mapped[User] = relationship(back_populates="achievements")

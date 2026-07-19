@@ -40,6 +40,7 @@ from app.routers import (
     interview,
     lessons,
     matches,
+    progress,
     projects,
     resume,
     roadmap,
@@ -147,6 +148,7 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(skills.router)
 app.include_router(matches.router)
+app.include_router(progress.router)
 app.include_router(roadmap.router)
 app.include_router(projects.router)
 app.include_router(resume.router)

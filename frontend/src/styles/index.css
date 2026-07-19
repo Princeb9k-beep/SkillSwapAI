@@ -321,6 +321,53 @@ a:focus-visible {
   overflow-x: auto;
 }
 
+/* Gamification / progress */
+.stat-grid {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  margin: 1rem 0;
+}
+.stat {
+  text-align: center;
+  padding: 1.25rem 1rem;
+}
+.stat-num {
+  display: block;
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--primary);
+  line-height: 1.1;
+}
+.xp-hint {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+.achievement h3 {
+  margin: 0.5rem 0 0.25rem;
+}
+.lb-card {
+  overflow-x: auto;
+}
+.leaderboard {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.leaderboard th,
+.leaderboard td {
+  text-align: left;
+  padding: 0.55rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+.leaderboard th {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.leaderboard tbody tr:last-child td {
+  border-bottom: none;
+}
+
 /* Skill matching */
 .match-editors {
   margin-top: 1rem;

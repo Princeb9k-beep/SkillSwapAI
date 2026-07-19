@@ -48,6 +48,23 @@ class MatchOut(BaseModel):
     reason: str
 
 
+# --- Gamification ---------------------------------------------------------
+class AchievementOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    code: str
+    title: str
+    description: str | None
+    earned_at: datetime
+
+
+class LeaderboardEntry(BaseModel):
+    rank: int
+    user_id: int
+    name: str
+    xp: int
+    level: int
+
+
 # --- Users ----------------------------------------------------------------
 class ProfileUpdate(BaseModel):
     name: str | None = None

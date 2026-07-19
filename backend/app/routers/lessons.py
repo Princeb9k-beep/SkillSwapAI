@@ -14,6 +14,7 @@ from ..deps import get_current_user
 from ..models import Lesson, User
 from ..responses import error, ok
 from ..schemas import LessonOut
+from ..skills.gamification import record_activity
 from ..skills.lessons import generate_daily_lessons
 
 router = APIRouter(prefix="/lessons", tags=["lessons"])
@@ -81,11 +82,28 @@ async def complete(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> object:
-    """Mark a lesson complete (gamification progress)."""
+    """Mark a lesson complete and award gamification XP/streak/achievements."""
     lesson = await session.get(Lesson, lesson_id)
     if lesson is None or lesson.user_id != user.id:
         return error("Lesson not found.", status_code=404, code="not_found")
+
+    already_done = lesson.completed
     lesson.completed = True
     lesson.completed_at = datetime.now(timezone.utc)
+
+    earned = []
+    if not already_done:  # only award XP the first time
+        new_achievements = await record_activity(session, user, xp=20)
+        earned = [a.title for a in new_achievements]
+
     await session.commit()
-    return ok(data=LessonOut.model_validate(lesson).model_dump(), message="Lesson completed")
+    return ok(
+        data={
+            **LessonOut.model_validate(lesson).model_dump(),
+            "xp": user.xp,
+            "level": user.level,
+            "streak": user.streak,
+            "new_achievements": earned,
+        },
+        message="Lesson completed",
+    )
