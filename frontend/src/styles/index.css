@@ -323,6 +323,20 @@ a:focus-visible {
   overflow-x: auto;
 }
 
+/* Verification status badges */
+.status-verified {
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: #15803d;
+}
+.status-pending {
+  background: color-mix(in srgb, #b45309 15%, transparent);
+  color: #b45309;
+}
+.status-rejected {
+  background: color-mix(in srgb, var(--error) 15%, transparent);
+  color: var(--error);
+}
+
 /* Communities */
 .community-card {
   display: flex;

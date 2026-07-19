@@ -78,6 +78,8 @@ class Skill(Base):
     name_normalized: Mapped[str] = mapped_column(String(255), index=True, default="")
     # "have" (skills the user can teach) | "want" (skills the user wants to learn)
     kind: Mapped[str] = mapped_column(String(10), default="have", index=True)
+    # peer-verified (spec §2.5) — set true when a verification request passes
+    verified: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     category: Mapped[str | None] = mapped_column(String(120), nullable=True)
     # beginner | intermediate | advanced
     level: Mapped[str] = mapped_column(String(40), default="beginner")
@@ -176,6 +178,47 @@ class Interview(Base):
     )
 
     user: Mapped[User] = relationship(back_populates="interviews")
+
+
+class VerificationRequest(Base):
+    __tablename__ = "verification_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    skill_name: Mapped[str] = mapped_column(String(255))
+    skill_normalized: Mapped[str] = mapped_column(String(255), index=True, default="")
+    evidence_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # pending | verified | rejected
+    status: Mapped[str] = mapped_column(String(20), default="pending", index=True)
+    approvals: Mapped[int] = mapped_column(Integer, default=0)
+    rejections: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    decided_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class VerificationReview(Base):
+    __tablename__ = "verification_reviews"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    request_id: Mapped[int] = mapped_column(
+        ForeignKey("verification_requests.id", ondelete="CASCADE"), index=True
+    )
+    reviewer_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    # approve | reject
+    vote: Mapped[str] = mapped_column(String(10))
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
 
 class Community(Base):
