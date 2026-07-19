@@ -99,6 +99,8 @@ export const api = {
   coachHistory: () => request("/coach/history"),
   coachChat: (message) => request("/coach/chat", { method: "POST", body: { message } }),
   clearCoach: () => request("/coach/history", { method: "DELETE" }),
+  // ai skill scanner
+  scanSkills: (text) => request("/scanner/analyze", { method: "POST", body: { text } }),
   // marketplace
   getListings: () => request("/marketplace/listings"),
   myListings: () => request("/marketplace/listings/mine"),

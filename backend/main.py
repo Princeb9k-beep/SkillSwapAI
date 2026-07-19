@@ -49,6 +49,7 @@ from app.routers import (
     reputation,
     resume,
     roadmap,
+    scanner,
     skills,
     users,
     verification,
@@ -69,6 +70,7 @@ _AI_PATHS = frozenset({
     "/interview/answer",
     "/lessons/daily",
     "/coach/chat",
+    "/scanner/analyze",
 })
 
 
@@ -162,6 +164,7 @@ app.include_router(portfolio.router)
 app.include_router(reputation.router)
 app.include_router(marketplace.router)
 app.include_router(coach.router)
+app.include_router(scanner.router)
 app.include_router(roadmap.router)
 app.include_router(projects.router)
 app.include_router(resume.router)
