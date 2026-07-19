@@ -53,9 +53,7 @@ h1 {
 .nav {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.75rem;
-  flex-wrap: wrap;
   /* honor the notch/safe areas on mobile */
   padding: 0.9rem max(1.25rem, env(safe-area-inset-right))
     0.9rem max(1.25rem, env(safe-area-inset-left));
@@ -64,7 +62,54 @@ h1 {
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 20;
+}
+/* Hamburger toggle — shown on mobile, hidden on desktop (see media query) */
+.nav-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-left: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.nav-toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+/* Collapsible menu — a dropdown panel on mobile */
+.nav-menu {
+  display: none;
+}
+.nav-menu.open {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 0.75rem max(1.25rem, env(safe-area-inset-left)) 1rem;
+}
+.nav-menu.open .nav-links {
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.nav-menu.open .nav-link {
+  width: 100%;
+}
+.nav-menu.open .nav-user {
+  margin: 0.5rem 0 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
 }
 .brand {
   font-weight: 800;
@@ -84,6 +129,37 @@ h1 {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+/* Desktop: horizontal bar (hamburger hidden, menu inline) */
+@media (min-width: 900px) {
+  .nav-toggle {
+    display: none;
+  }
+  .nav-menu,
+  .nav-menu.open {
+    display: flex;
+    flex: 1;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+    position: static;
+    inset: auto;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+    background: none;
+  }
+  .nav-menu .nav-links {
+    flex-direction: row;
+  }
+  .nav-menu.open .nav-link {
+    width: auto;
+  }
+  .nav-menu .nav-user {
+    margin: 0 0 0 auto;
+    padding-top: 0;
+    border-top: none;
+  }
 }
 .nav-link {
   display: inline-flex;
