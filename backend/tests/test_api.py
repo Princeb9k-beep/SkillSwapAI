@@ -110,6 +110,53 @@ def test_login_bad_credentials(client):
     assert r.json()["success"] is False
 
 
+def _auth(client, email, name):
+    r = client.post(
+        "/auth/signup", json={"email": email, "password": "supersecret", "name": name}
+    )
+    assert r.status_code == 201
+    return {"Authorization": f"Bearer {r.json()['data']['token']}"}
+
+
+def test_skill_matching_complementary_pair(client):
+    # Ana can teach Python, wants Guitar. Ben can teach Guitar, wants Python.
+    ana = _auth(client, "ana@example.com", "Ana")
+    ben = _auth(client, "ben@example.com", "Ben")
+
+    client.post("/skills", json={"name": "Python", "kind": "have"}, headers=ana)
+    client.post("/skills", json={"name": "Guitar", "kind": "want"}, headers=ana)
+    client.post("/skills", json={"name": "Guitar", "kind": "have"}, headers=ben)
+    client.post("/skills", json={"name": "Python", "kind": "want"}, headers=ben)
+
+    r = client.get("/matches", headers=ana)
+    assert r.status_code == 200
+    data = r.json()["data"]
+    assert len(data) == 1
+    m = data[0]
+    assert m["name"] == "Ben"
+    assert m["mutual"] is True
+    assert m["they_teach_you"] == ["guitar"]
+    assert m["you_teach_them"] == ["python"]
+    assert m["compatibility"] == 100  # full two-way coverage
+
+
+def test_matching_normalizes_case_and_dedupes(client):
+    hdr = _auth(client, "cara@example.com", "Cara")
+    # duplicate (case-insensitive) add returns the same skill, not a second row
+    client.post("/skills", json={"name": "React", "kind": "have"}, headers=hdr)
+    client.post("/skills", json={"name": "  react ", "kind": "have"}, headers=hdr)
+    r = client.get("/skills", headers=hdr)
+    haves = [s for s in r.json()["data"] if s["kind"] == "have"]
+    assert len(haves) == 1
+
+
+def test_matches_empty_without_skills(client):
+    hdr = _auth(client, "dan@example.com", "Dan")
+    r = client.get("/matches", headers=hdr)
+    assert r.status_code == 200
+    assert r.json()["data"] == []
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401

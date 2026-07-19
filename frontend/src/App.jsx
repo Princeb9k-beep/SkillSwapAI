@@ -10,6 +10,7 @@ import { LoadingState } from "./components/States.jsx";
 
 const Auth = lazy(() => import("./pages/Auth.jsx"));
 const GoalInput = lazy(() => import("./pages/GoalInput.jsx"));
+const Matches = lazy(() => import("./pages/Matches.jsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
 const Lessons = lazy(() => import("./pages/Lessons.jsx"));
 const ResumeBuilder = lazy(() => import("./pages/ResumeBuilder.jsx"));
@@ -23,6 +24,7 @@ function AuthedApp() {
         <Suspense fallback={<LoadingState />}>
           <Routes>
             <Route path="/" element={<GoalInput />} />
+            <Route path="/matches" element={<Matches />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/lessons" element={<Lessons />} />
             <Route path="/resume" element={<ResumeBuilder />} />

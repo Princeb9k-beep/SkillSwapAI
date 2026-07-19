@@ -39,9 +39,11 @@ from app.routers import (
     health,
     interview,
     lessons,
+    matches,
     projects,
     resume,
     roadmap,
+    skills,
     users,
 )
 
@@ -143,6 +145,8 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(skills.router)
+app.include_router(matches.router)
 app.include_router(roadmap.router)
 app.include_router(projects.router)
 app.include_router(resume.router)
