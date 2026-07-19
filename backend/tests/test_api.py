@@ -415,6 +415,27 @@ def test_skill_scanner_returns_structure(client):
     assert client.post("/scanner/analyze", json={"text": "hi"}, headers=hdr).status_code == 422
 
 
+def test_daily_challenge_completion_awards_xp(client):
+    hdr = _auth(client, "cleo@example.com", "Cleo")
+
+    # today's challenge generated once and stable across calls
+    first = client.get("/challenges/today", headers=hdr).json()["data"]
+    assert first["title"] and first["completed"] is False
+    again = client.get("/challenges/today", headers=hdr).json()["data"]
+    assert again["id"] == first["id"]
+
+    # complete -> XP + streak
+    done = client.post(f"/challenges/{first['id']}/complete", headers=hdr).json()["data"]
+    assert done["completed"] is True and done["xp"] == 15 and done["streak"] == 1
+
+    # completing again does not double-award
+    again2 = client.post(f"/challenges/{first['id']}/complete", headers=hdr).json()["data"]
+    assert again2["xp"] == 15
+
+    prog = client.get("/progress", headers=hdr).json()["data"]
+    assert prog["xp"] == 15
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401

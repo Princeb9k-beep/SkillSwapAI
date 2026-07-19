@@ -36,6 +36,7 @@ from app.resilience import TokenBucketRateLimiter
 from app.responses import error, ok
 from app.routers import (
     auth,
+    challenges,
     coach,
     communities,
     health,
@@ -71,6 +72,7 @@ _AI_PATHS = frozenset({
     "/lessons/daily",
     "/coach/chat",
     "/scanner/analyze",
+    "/challenges/today",
 })
 
 
@@ -165,6 +167,7 @@ app.include_router(reputation.router)
 app.include_router(marketplace.router)
 app.include_router(coach.router)
 app.include_router(scanner.router)
+app.include_router(challenges.router)
 app.include_router(roadmap.router)
 app.include_router(projects.router)
 app.include_router(resume.router)
