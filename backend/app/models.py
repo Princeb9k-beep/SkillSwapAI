@@ -180,6 +180,49 @@ class Interview(Base):
     user: Mapped[User] = relationship(back_populates="interviews")
 
 
+class MarketplaceListing(Base):
+    __tablename__ = "marketplace_listings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    seller_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    title: Mapped[str] = mapped_column(String(200))
+    # tutoring | coaching | course | template
+    kind: Mapped[str] = mapped_column(String(20), index=True, default="tutoring")
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    price_cents: Mapped[int] = mapped_column(Integer, default=0)
+    currency: Mapped[str] = mapped_column(String(3), default="USD")
+    active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class MarketplaceOrder(Base):
+    __tablename__ = "marketplace_orders"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    listing_id: Mapped[int] = mapped_column(
+        ForeignKey("marketplace_listings.id", ondelete="CASCADE"), index=True
+    )
+    buyer_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    seller_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    price_cents: Mapped[int] = mapped_column(Integer, default=0)
+    commission_cents: Mapped[int] = mapped_column(Integer, default=0)
+    # requested | confirmed | completed | cancelled
+    status: Mapped[str] = mapped_column(String(20), default="requested", index=True)
+    # set true by the (future) payment webhook — no fake payments here
+    paid: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
 class ReputationReview(Base):
     __tablename__ = "reputation_reviews"
 

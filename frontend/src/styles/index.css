@@ -323,6 +323,45 @@ a:focus-visible {
   overflow-x: auto;
 }
 
+/* Marketplace */
+.notice {
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
+  font-size: 0.9rem;
+}
+.listing-card {
+  display: flex;
+  flex-direction: column;
+}
+.listing-price {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--primary);
+  margin: 0.25rem 0;
+}
+.listing-card .btn {
+  margin-top: auto;
+}
+.order-row {
+  margin-bottom: 0.75rem;
+}
+.status-requested {
+  background: color-mix(in srgb, #b45309 15%, transparent);
+  color: #b45309;
+}
+.status-confirmed {
+  background: color-mix(in srgb, var(--primary) 15%, transparent);
+  color: var(--primary);
+}
+.status-completed {
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: #15803d;
+}
+.status-cancelled {
+  background: color-mix(in srgb, var(--error) 12%, transparent);
+  color: var(--error);
+}
+
 /* Career sub-tabs */
 .subtabs {
   display: flex;

@@ -14,6 +14,7 @@ const Matches = lazy(() => import("./pages/Matches.jsx"));
 const Progress = lazy(() => import("./pages/Progress.jsx"));
 const Communities = lazy(() => import("./pages/Communities.jsx"));
 const Verify = lazy(() => import("./pages/Verify.jsx"));
+const Marketplace = lazy(() => import("./pages/Marketplace.jsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
 const Lessons = lazy(() => import("./pages/Lessons.jsx"));
 const Career = lazy(() => import("./pages/Career.jsx"));
@@ -30,6 +31,7 @@ function AuthedApp() {
             <Route path="/progress" element={<Progress />} />
             <Route path="/community" element={<Communities />} />
             <Route path="/verify" element={<Verify />} />
+            <Route path="/market" element={<Marketplace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/lessons" element={<Lessons />} />
             <Route path="/career" element={<Career initialTab="portfolio" />} />
