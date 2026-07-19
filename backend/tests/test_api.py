@@ -436,6 +436,43 @@ def test_daily_challenge_completion_awards_xp(client):
     assert prog["xp"] == 15
 
 
+def test_ai_twin_train_chat_quiz(client):
+    owner = _auth(client, "tara@example.com", "Tara")
+    learner = _auth(client, "leo@example.com", "Leo")
+
+    # owner has a skill and trains their twin
+    client.post("/skills", json={"name": "Guitar", "kind": "have"}, headers=owner)
+    assert client.get("/twin/me", headers=owner).json()["data"]["trained"] is False
+    trained = client.post(
+        "/twin/train",
+        json={"samples": "I teach guitar with simple analogies and lots of encouragement."},
+        headers=owner,
+    )
+    assert trained.status_code == 200 and trained.json()["data"]["trained"] is True
+
+    owner_id = client.get("/users/me", headers=owner).json()["data"]["id"]
+
+    # the owner's twin appears in the learner's available list
+    avail = client.get("/twin/available", headers=learner).json()["data"]
+    assert any(t["owner_id"] == owner_id and "Guitar" in t["skills"] for t in avail)
+
+    # learner chats with the twin -> reply (fallback without Groq), history persists
+    r = client.post(f"/twin/{owner_id}/chat", json={"message": "How do I start?"}, headers=learner)
+    assert r.status_code == 200 and r.json()["data"]["reply"]
+    hist = client.get(f"/twin/{owner_id}/history", headers=learner).json()["data"]
+    assert [m["role"] for m in hist] == ["user", "assistant"]
+
+    # quiz in the twin's style
+    q = client.post(f"/twin/{owner_id}/quiz", json={"topic": "chords"}, headers=learner)
+    assert q.status_code == 200 and len(q.json()["data"]["questions"]) >= 1
+
+    # untrained twin isn't chattable
+    assert client.post(f"/twin/{owner_id}/chat", json={"message": "x"}, headers=owner).status_code in (200, 404)
+    fresh = _auth(client, "nooo@example.com", "Noo")
+    nid = client.get("/users/me", headers=fresh).json()["data"]["id"]
+    assert client.post(f"/twin/{nid}/chat", json={"message": "x"}, headers=learner).status_code == 404
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401

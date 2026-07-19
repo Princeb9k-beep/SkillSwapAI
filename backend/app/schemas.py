@@ -59,6 +59,19 @@ class ScanRequest(BaseModel):
     text: str = Field(min_length=20, max_length=20000)
 
 
+# --- AI Twin --------------------------------------------------------------
+class TwinTrain(BaseModel):
+    samples: str = Field(min_length=20, max_length=8000)
+
+
+class TwinChat(BaseModel):
+    message: str = Field(min_length=1, max_length=4000)
+
+
+class TwinQuiz(BaseModel):
+    topic: str = Field(min_length=1, max_length=200)
+
+
 # --- Marketplace ----------------------------------------------------------
 class ListingCreate(BaseModel):
     title: str = Field(min_length=2, max_length=200)

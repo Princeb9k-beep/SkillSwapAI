@@ -332,6 +332,44 @@ class CommunityPost(Base):
     )
 
 
+class AITwin(Base):
+    """A user's AI Twin — a distilled profile of how they teach (spec §4)."""
+
+    __tablename__ = "ai_twins"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True
+    )
+    style_prompt: Mapped[str] = mapped_column(Text, default="")
+    trained: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class TwinMessage(Base):
+    """A learner's conversation with a partner's AI Twin (session memory)."""
+
+    __tablename__ = "twin_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    twin_owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    learner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    role: Mapped[str] = mapped_column(String(10))  # user | assistant
+    content: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
 class Challenge(Base):
     __tablename__ = "challenges"
 
