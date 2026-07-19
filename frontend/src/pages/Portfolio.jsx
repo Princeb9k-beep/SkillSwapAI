@@ -82,8 +82,13 @@ export default function Portfolio() {
           <span className="muted">Verified skills</span>
         </div>
         <div className="card stat">
-          <span className="stat-num">{p.streak}</span>
-          <span className="muted">Day streak</span>
+          <span className="stat-num">
+            {p.reputation?.score ?? "—"}
+          </span>
+          <span className="muted">
+            Reputation
+            {p.reputation?.count ? ` (${p.reputation.count})` : ""}
+          </span>
         </div>
       </div>
 

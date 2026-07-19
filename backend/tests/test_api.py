@@ -295,6 +295,49 @@ def test_portfolio_aggregates_profile(client):
     assert p["verified_count"] == 0
 
 
+def test_reputation_scoring(client):
+    subject = _auth(client, "quinn@example.com", "Quinn")
+    r1 = _auth(client, "raj@example.com", "Raj")
+
+    # get subject id via a review flow — reviewer needs subject's id from a match?
+    # simplest: subject has no reviews yet -> score None
+    sid = client.get("/users/me", headers=subject).json()["data"]["id"]
+    empty = client.get(f"/reputation/{sid}", headers=r1).json()["data"]
+    assert empty["score"] is None and empty["count"] == 0
+
+    # can't review self
+    assert client.post(
+        f"/reputation/{sid}/review",
+        json={"teaching_quality": 5, "reliability": 5, "response_time": 5},
+        headers=subject,
+    ).status_code == 403
+
+    # a top review -> score 100
+    top = client.post(
+        f"/reputation/{sid}/review",
+        json={"teaching_quality": 5, "reliability": 5, "response_time": 5, "completed": True,
+              "comment": "Fantastic teacher"},
+        headers=r1,
+    )
+    assert top.status_code == 201
+    assert top.json()["data"]["score"] == 100 and top.json()["data"]["count"] == 1
+
+    # a weak review pulls the average down
+    r2 = _auth(client, "sam@example.com", "Sam")
+    client.post(
+        f"/reputation/{sid}/review",
+        json={"teaching_quality": 1, "reliability": 1, "response_time": 1, "completed": False},
+        headers=r2,
+    )
+    summary = client.get(f"/reputation/{sid}", headers=r1).json()["data"]
+    assert 0 < summary["score"] < 100 and summary["count"] == 2
+    assert any(rv["comment"] == "Fantastic teacher" for rv in summary["reviews"])
+
+    # portfolio surfaces reputation
+    port = client.get("/portfolio", headers=subject).json()["data"]
+    assert port["reputation"]["count"] == 2
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401

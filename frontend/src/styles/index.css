@@ -522,6 +522,46 @@ a:focus-visible {
   background: color-mix(in srgb, var(--success) 15%, transparent);
   color: #15803d;
 }
+.match-rep {
+  font-size: 0.85rem;
+  margin: 0.15rem 0 0.5rem;
+}
+.rate-btn {
+  min-height: 38px;
+  padding: 0.35rem 0.8rem;
+  margin-top: 0.5rem;
+}
+.rate-form {
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.rate-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.rate-row select {
+  width: 72px;
+  margin-top: 0;
+}
+.rate-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.rate-check input {
+  width: auto;
+  margin-top: 0;
+}
 
 /* Learning calendar */
 .calendar-section {

@@ -180,6 +180,27 @@ class Interview(Base):
     user: Mapped[User] = relationship(back_populates="interviews")
 
 
+class ReputationReview(Base):
+    __tablename__ = "reputation_reviews"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    # the user being rated
+    subject_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    reviewer_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    teaching_quality: Mapped[int] = mapped_column(Integer)  # 1-5
+    reliability: Mapped[int] = mapped_column(Integer)       # 1-5
+    response_time: Mapped[int] = mapped_column(Integer)     # 1-5
+    completed: Mapped[bool] = mapped_column(Boolean, default=True)
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
 class VerificationRequest(Base):
     __tablename__ = "verification_requests"
 
