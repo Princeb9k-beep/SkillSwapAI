@@ -95,6 +95,14 @@ export const api = {
   getReputation: (userId) => request(`/reputation/${userId}`),
   reviewReputation: (userId, data) =>
     request(`/reputation/${userId}/review`, { method: "POST", body: data }),
+  // marketplace
+  getListings: () => request("/marketplace/listings"),
+  myListings: () => request("/marketplace/listings/mine"),
+  createListing: (data) => request("/marketplace/listings", { method: "POST", body: data }),
+  bookListing: (id) => request(`/marketplace/listings/${id}/book`, { method: "POST" }),
+  getOrders: () => request("/marketplace/orders"),
+  updateOrder: (id, status) =>
+    request(`/marketplace/orders/${id}`, { method: "PATCH", body: { status } }),
   // features
   getRoadmap: () => request("/roadmap"),
   generateRoadmap: (data) => request("/roadmap", { method: "POST", body: data }),

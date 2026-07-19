@@ -338,6 +338,44 @@ def test_reputation_scoring(client):
     assert port["reputation"]["count"] == 2
 
 
+def test_marketplace_listing_booking_and_commission(client):
+    seller = _auth(client, "tess@example.com", "Tess")
+    buyer = _auth(client, "uri@example.com", "Uri")
+
+    # seller creates a $50.00 tutoring listing
+    lst = client.post(
+        "/marketplace/listings",
+        json={"title": "Python tutoring", "kind": "tutoring", "price_cents": 5000},
+        headers=seller,
+    )
+    assert lst.status_code == 201
+    lid = lst.json()["data"]["id"]
+
+    # it appears for the buyer, not for the seller (own listings excluded)
+    assert any(l["id"] == lid for l in client.get("/marketplace/listings", headers=buyer).json()["data"])
+    assert all(l["id"] != lid for l in client.get("/marketplace/listings", headers=seller).json()["data"])
+
+    # seller can't book own listing
+    assert client.post(f"/marketplace/listings/{lid}/book", headers=seller).status_code == 403
+
+    # buyer books -> order with 15% commission ($7.50)
+    order = client.post(f"/marketplace/listings/{lid}/book", headers=buyer)
+    assert order.status_code == 201
+    od = order.json()["data"]
+    oid = od["id"]
+    assert od["price_cents"] == 5000 and od["commission_cents"] == 750
+    assert od["seller_net_cents"] == 4250 and od["status"] == "requested" and od["paid"] is False
+
+    # buyer can't confirm (seller-only); seller confirms
+    assert client.patch(f"/marketplace/orders/{oid}", json={"status": "confirmed"}, headers=buyer).status_code == 403
+    assert client.patch(f"/marketplace/orders/{oid}", json={"status": "confirmed"}, headers=seller).json()["data"]["status"] == "confirmed"
+
+    # orders show up on both sides
+    seller_orders = client.get("/marketplace/orders", headers=seller).json()["data"]
+    buyer_orders = client.get("/marketplace/orders", headers=buyer).json()["data"]
+    assert len(seller_orders["as_seller"]) == 1 and len(buyer_orders["as_buyer"]) == 1
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401

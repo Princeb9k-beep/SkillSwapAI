@@ -40,6 +40,7 @@ from app.routers import (
     health,
     interview,
     lessons,
+    marketplace,
     matches,
     portfolio,
     progress,
@@ -157,6 +158,7 @@ app.include_router(communities.router)
 app.include_router(verification.router)
 app.include_router(portfolio.router)
 app.include_router(reputation.router)
+app.include_router(marketplace.router)
 app.include_router(roadmap.router)
 app.include_router(projects.router)
 app.include_router(resume.router)

@@ -49,6 +49,18 @@ class MatchOut(BaseModel):
     reason: str
 
 
+# --- Marketplace ----------------------------------------------------------
+class ListingCreate(BaseModel):
+    title: str = Field(min_length=2, max_length=200)
+    kind: str = Field(default="tutoring", pattern="^(tutoring|coaching|course|template)$")
+    description: str | None = Field(default=None, max_length=4000)
+    price_cents: int = Field(ge=0, le=10_000_00, examples=[5000])
+
+
+class OrderStatusUpdate(BaseModel):
+    status: str = Field(pattern="^(confirmed|completed|cancelled)$")
+
+
 # --- Reputation -----------------------------------------------------------
 class ReputationReviewCreate(BaseModel):
     teaching_quality: int = Field(ge=1, le=5)
