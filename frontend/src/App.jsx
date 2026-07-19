@@ -11,6 +11,7 @@ import { LoadingState } from "./components/States.jsx";
 const Auth = lazy(() => import("./pages/Auth.jsx"));
 const GoalInput = lazy(() => import("./pages/GoalInput.jsx"));
 const Matches = lazy(() => import("./pages/Matches.jsx"));
+const Coach = lazy(() => import("./pages/Coach.jsx"));
 const Progress = lazy(() => import("./pages/Progress.jsx"));
 const Communities = lazy(() => import("./pages/Communities.jsx"));
 const Verify = lazy(() => import("./pages/Verify.jsx"));
@@ -28,6 +29,7 @@ function AuthedApp() {
           <Routes>
             <Route path="/" element={<GoalInput />} />
             <Route path="/matches" element={<Matches />} />
+            <Route path="/coach" element={<Coach />} />
             <Route path="/progress" element={<Progress />} />
             <Route path="/community" element={<Communities />} />
             <Route path="/verify" element={<Verify />} />

@@ -95,6 +95,38 @@ async def generate(
     return text
 
 
+async def chat(
+    messages: list[dict],
+    *,
+    system: str = "You are SkillSwap AI, a supportive learning coach.",
+    temperature: float = 0.7,
+    max_tokens: int = 800,
+) -> str:
+    """
+    Multi-turn completion for conversational features (AI Coach). `messages` is a
+    list of {role: "user"|"assistant", content}. Not cached (context-dependent);
+    retried on transient errors. Raises AIUnavailableError if Groq isn't configured.
+    """
+    client = get_groq()
+    if client is None:
+        raise AIUnavailableError(
+            "AI is not configured on the server (missing GROQ_API_KEY)."
+        )
+    settings = get_settings()
+    full = [{"role": "system", "content": system}, *messages]
+
+    async def _call() -> str:
+        completion = await client.chat.completions.create(
+            model=settings.groq_model,
+            messages=full,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        return completion.choices[0].message.content or ""
+
+    return await retry_with_backoff(_call, retries=3, base_delay=0.5)
+
+
 async def generate_json(
     prompt: str,
     *,

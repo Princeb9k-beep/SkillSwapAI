@@ -5,6 +5,7 @@ import { useApp } from "../context/AppContext.jsx";
 const LINKS = [
   { to: "/", label: "Goal", end: true },
   { to: "/matches", label: "Matches" },
+  { to: "/coach", label: "Coach" },
   { to: "/verify", label: "Verify" },
   { to: "/dashboard", label: "Dashboard" },
   { to: "/lessons", label: "Lessons" },

@@ -95,6 +95,10 @@ export const api = {
   getReputation: (userId) => request(`/reputation/${userId}`),
   reviewReputation: (userId, data) =>
     request(`/reputation/${userId}/review`, { method: "POST", body: data }),
+  // ai coach
+  coachHistory: () => request("/coach/history"),
+  coachChat: (message) => request("/coach/chat", { method: "POST", body: { message } }),
+  clearCoach: () => request("/coach/history", { method: "DELETE" }),
   // marketplace
   getListings: () => request("/marketplace/listings"),
   myListings: () => request("/marketplace/listings/mine"),
