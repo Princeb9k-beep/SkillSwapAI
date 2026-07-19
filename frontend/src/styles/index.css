@@ -399,6 +399,24 @@ a:focus-visible {
   overflow-x: auto;
 }
 
+/* AI Twin */
+.twin-open {
+  margin-top: 0.75rem;
+}
+.twin-quiz-form {
+  margin-top: 1rem;
+}
+.twin-quiz {
+  margin: 0.75rem 0 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.twin-quiz li p {
+  margin: 0.3rem 0 0;
+}
+
 /* Daily challenge */
 .challenge-card h2 {
   margin: 0.5rem 0;

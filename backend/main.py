@@ -51,6 +51,7 @@ from app.routers import (
     resume,
     roadmap,
     scanner,
+    twin,
     skills,
     users,
     verification,
@@ -168,6 +169,7 @@ app.include_router(marketplace.router)
 app.include_router(coach.router)
 app.include_router(scanner.router)
 app.include_router(challenges.router)
+app.include_router(twin.router)
 app.include_router(roadmap.router)
 app.include_router(projects.router)
 app.include_router(resume.router)

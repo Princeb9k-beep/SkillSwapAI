@@ -104,6 +104,15 @@ export const api = {
   // daily challenges
   todayChallenge: () => request("/challenges/today"),
   completeChallenge: (id) => request(`/challenges/${id}/complete`, { method: "POST" }),
+  // ai twin
+  myTwin: () => request("/twin/me"),
+  trainTwin: (samples) => request("/twin/train", { method: "POST", body: { samples } }),
+  availableTwins: () => request("/twin/available"),
+  twinHistory: (ownerId) => request(`/twin/${ownerId}/history`),
+  twinChat: (ownerId, message) =>
+    request(`/twin/${ownerId}/chat`, { method: "POST", body: { message } }),
+  twinQuiz: (ownerId, topic) =>
+    request(`/twin/${ownerId}/quiz`, { method: "POST", body: { topic } }),
   // marketplace
   getListings: () => request("/marketplace/listings"),
   myListings: () => request("/marketplace/listings/mine"),
