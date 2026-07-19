@@ -157,6 +157,47 @@ def test_matches_empty_without_skills(client):
     assert r.json()["data"] == []
 
 
+def test_gamification_awards_xp_and_achievement(client):
+    hdr = _auth(client, "gwen@example.com", "Gwen")
+
+    # start at zero
+    r = client.get("/progress", headers=hdr)
+    assert r.status_code == 200
+    assert r.json()["data"]["xp"] == 0
+
+    # generate today's lessons, then complete one -> XP + streak + achievement
+    lessons = client.get("/lessons/daily", headers=hdr).json()["data"]
+    assert lessons
+    done = client.post(f"/lessons/{lessons[0]['id']}/complete", headers=hdr)
+    assert done.status_code == 200
+    body = done.json()["data"]
+    assert body["xp"] == 20
+    assert body["streak"] == 1
+    assert "First Steps" in body["new_achievements"]
+
+    # completing the same lesson again does not double-award
+    again = client.post(f"/lessons/{lessons[0]['id']}/complete", headers=hdr).json()["data"]
+    assert again["xp"] == 20
+
+    prog = client.get("/progress", headers=hdr).json()["data"]
+    assert prog["xp"] == 20 and prog["streak"] == 1
+    assert any(a["code"] == "first_steps" for a in prog["achievements"])
+
+
+def test_leaderboard_ranks_by_xp(client):
+    hdr = _auth(client, "hank@example.com", "Hank")
+    lessons = client.get("/lessons/daily", headers=hdr).json()["data"]
+    client.post(f"/lessons/{lessons[0]['id']}/complete", headers=hdr)
+
+    r = client.get("/leaderboard", headers=hdr)
+    assert r.status_code == 200
+    board = r.json()["data"]
+    assert board and board[0]["rank"] == 1
+    assert all(
+        board[i]["xp"] >= board[i + 1]["xp"] for i in range(len(board) - 1)
+    )
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401

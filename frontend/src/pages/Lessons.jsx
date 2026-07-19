@@ -31,9 +31,12 @@ export default function Lessons() {
 
   async function complete(id) {
     try {
-      await api.completeLesson(id);
+      const res = await api.completeLesson(id);
       setLessons((ls) => ls.map((l) => (l.id === id ? { ...l, completed: true } : l)));
-      notify("Nice work! Lesson completed.", "success");
+      const badge = res.new_achievements?.length
+        ? ` Badge unlocked: ${res.new_achievements.join(", ")}!`
+        : "";
+      notify(`+20 XP · level ${res.level} · ${res.streak}-day streak.${badge}`, "success");
     } catch (err) {
       notify(err.message, "error");
     }

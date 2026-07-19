@@ -71,6 +71,9 @@ export const api = {
   addSkill: (data) => request("/skills", { method: "POST", body: data }),
   deleteSkill: (id) => request(`/skills/${id}`, { method: "DELETE" }),
   getMatches: () => request("/matches"),
+  // gamification
+  getProgress: () => request("/progress"),
+  getLeaderboard: () => request("/leaderboard"),
   // features
   getRoadmap: () => request("/roadmap"),
   generateRoadmap: (data) => request("/roadmap", { method: "POST", body: data }),
