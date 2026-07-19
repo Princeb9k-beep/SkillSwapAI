@@ -35,7 +35,11 @@ export default function Nav() {
             {user.name || user.email}
           </span>
         ) : null}
-        <button type="button" className="btn nav-signout" onClick={signOut}>
+        <button
+          type="button"
+          className="btn btn-danger nav-signout"
+          onClick={signOut}
+        >
           Sign out
         </button>
       </div>

@@ -88,7 +88,18 @@ export default function InterviewSimulator() {
 
       {phase === "done" && result && (
         <div className="card">
-          <h3>Score: {result.score}/100</h3>
+          <h3
+            className={`score ${
+              result.score >= 70
+                ? "score-good"
+                : result.score >= 40
+                  ? "score-mid"
+                  : "score-low"
+            }`}
+          >
+            {result.score}
+            <span className="score-max">/100</span>
+          </h3>
           <p>{result.feedback}</p>
           <button type="button" className="btn" onClick={() => setPhase("setup")}>
             Practice again

@@ -70,6 +70,7 @@ export default function Auth() {
           <input
             type="email"
             required
+            inputMode="email"
             autoComplete="email"
             value={form.email}
             placeholder="you@example.com"

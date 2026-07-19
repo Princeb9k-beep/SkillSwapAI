@@ -7,6 +7,13 @@ A full-stack AI career app: FastAPI + async PostgreSQL + Redis + Groq backend, a
 React (Vite) SPA frontend. Features: roadmap generation, project suggestions, resume
 builder, interview practice, daily lessons.
 
+## Product vision & roadmap
+The full target vision — AI skill matching, video practice rooms, AI coach, skill
+verification, gamification, marketplace, the AI Twin differentiator, and the strict
+build-priority order — is specified in [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md).
+It is broader than what currently ships; follow its §6 priority sequence for new
+feature work.
+
 ## Architecture (backend)
 - `backend/main.py` — app entry: lifespan initializes DB/Redis/Groq, CORS, an AI
   rate-limit middleware, a uniform error-envelope handler, and mounts routers.
