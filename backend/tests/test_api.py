@@ -398,6 +398,23 @@ def test_ai_coach_chat_persists_and_degrades(client):
     assert client.get("/coach/history", headers=hdr).json()["data"] == []
 
 
+def test_skill_scanner_returns_structure(client):
+    hdr = _auth(client, "sid@example.com", "Sid")
+    r = client.post(
+        "/scanner/analyze",
+        json={"text": "Backend engineer with 5 years of Python, FastAPI and PostgreSQL."},
+        headers=hdr,
+    )
+    assert r.status_code == 200
+    data = r.json()["data"]
+    # Groq unconfigured in tests -> graceful fallback, but the shape is stable
+    assert set(["summary", "strengths", "missing", "next_steps"]).issubset(data)
+    assert isinstance(data["strengths"], list) and isinstance(data["next_steps"], list)
+
+    # too-short input is rejected by validation
+    assert client.post("/scanner/analyze", json={"text": "hi"}, headers=hdr).status_code == 422
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401

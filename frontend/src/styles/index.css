@@ -399,6 +399,27 @@ a:focus-visible {
   overflow-x: auto;
 }
 
+/* Skill scanner — add-skill button inside a tag */
+.skill-add-btn {
+  border: none;
+  background: none;
+  color: var(--primary);
+  font-weight: 800;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.15rem;
+}
+.skill-add-btn:disabled {
+  color: var(--success);
+  cursor: default;
+}
+.skill-add-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+
 /* AI Coach chat */
 .coach-thread {
   display: flex;

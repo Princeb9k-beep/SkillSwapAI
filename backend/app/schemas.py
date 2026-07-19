@@ -54,6 +54,11 @@ class CoachChat(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
 
 
+# --- AI Skill Scanner -----------------------------------------------------
+class ScanRequest(BaseModel):
+    text: str = Field(min_length=20, max_length=20000)
+
+
 # --- Marketplace ----------------------------------------------------------
 class ListingCreate(BaseModel):
     title: str = Field(min_length=2, max_length=200)
