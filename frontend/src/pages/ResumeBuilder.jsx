@@ -46,24 +46,39 @@ export default function ResumeBuilder() {
       <form className="card form" onSubmit={submit}>
         <label>
           Full name
-          <input required value={form.name} onChange={update("name")} />
+          <input
+            required
+            type="text"
+            autoComplete="name"
+            placeholder="Jane Doe"
+            value={form.name}
+            onChange={update("name")}
+          />
         </label>
         <label>
           Target role
           <input
             required
+            type="text"
+            autoComplete="organization-title"
             value={form.target_role}
             placeholder="Backend Engineer"
             onChange={update("target_role")}
           />
         </label>
         <label>
-          Skills (comma-separated)
+          Skills
           <input
+            type="text"
+            autoComplete="off"
             value={form.skills}
             placeholder="Python, FastAPI, SQL"
+            aria-describedby="skills-hint"
             onChange={update("skills")}
           />
+          <span id="skills-hint" className="field-hint">
+            Separate skills with commas.
+          </span>
         </label>
         <label>
           Experience notes

@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { api } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import LessonCard from "../components/LessonCard.jsx";
-import { LoadingState, ErrorBanner } from "../components/States.jsx";
+import { ErrorBanner } from "../components/States.jsx";
+import { SkeletonPage } from "../components/Skeleton.jsx";
 
 export default function Lessons() {
   const { notify } = useApp();
@@ -38,7 +39,7 @@ export default function Lessons() {
     }
   }
 
-  if (status === "loading") return <LoadingState label="Fetching today's lessons…" />;
+  if (status === "loading") return <SkeletonPage cards={3} label="Fetching today's lessons…" />;
   if (status === "error") return <ErrorBanner message={error} onRetry={load} />;
 
   const done = lessons.filter((l) => l.completed).length;

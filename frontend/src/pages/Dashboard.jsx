@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
-import { LoadingState, ErrorBanner, EmptyState } from "../components/States.jsx";
+import { ErrorBanner, EmptyState } from "../components/States.jsx";
+import { SkeletonPage } from "../components/Skeleton.jsx";
 import LearningCalendar from "../components/LearningCalendar.jsx";
 
 export default function Dashboard() {
@@ -32,7 +33,7 @@ export default function Dashboard() {
     load();
   }, []);
 
-  if (status === "loading") return <LoadingState label="Loading your roadmap…" />;
+  if (status === "loading") return <SkeletonPage cards={3} label="Loading your roadmap…" />;
   if (status === "error") return <ErrorBanner message={error} onRetry={load} />;
   if (status === "empty")
     return (
