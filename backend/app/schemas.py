@@ -32,6 +32,7 @@ class SkillOut(BaseModel):
     id: int
     name: str
     kind: str
+    verified: bool
     category: str | None
     level: str
 
@@ -46,6 +47,18 @@ class MatchOut(BaseModel):
     they_teach_you: list[str]   # skills they have that you want
     you_teach_them: list[str]   # skills you have that they want
     reason: str
+
+
+# --- Skill verification ---------------------------------------------------
+class VerificationCreate(BaseModel):
+    skill_name: str = Field(min_length=1, max_length=255)
+    evidence_url: str | None = Field(default=None, max_length=500)
+    description: str | None = Field(default=None, max_length=2000)
+
+
+class ReviewCreate(BaseModel):
+    vote: str = Field(pattern="^(approve|reject)$")
+    comment: str | None = Field(default=None, max_length=1000)
 
 
 # --- Communities ----------------------------------------------------------

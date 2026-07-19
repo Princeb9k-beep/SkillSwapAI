@@ -47,6 +47,7 @@ from app.routers import (
     roadmap,
     skills,
     users,
+    verification,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -151,6 +152,7 @@ app.include_router(skills.router)
 app.include_router(matches.router)
 app.include_router(progress.router)
 app.include_router(communities.router)
+app.include_router(verification.router)
 app.include_router(roadmap.router)
 app.include_router(projects.router)
 app.include_router(resume.router)

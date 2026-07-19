@@ -242,6 +242,43 @@ def test_community_create_post_and_moderation(client):
     assert detail["posts"] == []
 
 
+def test_skill_verification_peer_review(client):
+    owner = _auth(client, "vera@example.com", "Vera")
+    r1 = _auth(client, "rob@example.com", "Rob")
+    r2 = _auth(client, "sue@example.com", "Sue")
+
+    # owner has the skill and requests verification
+    client.post("/skills", json={"name": "Rust", "kind": "have"}, headers=owner)
+    req = client.post(
+        "/verifications", json={"skill_name": "Rust", "description": "5y experience"}, headers=owner
+    )
+    assert req.status_code == 201
+    rid = req.json()["data"]["id"]
+
+    # owner can't review own request
+    assert client.post(f"/verifications/{rid}/review", json={"vote": "approve"}, headers=owner).status_code == 403
+
+    # it appears in a peer's queue
+    q = client.get("/verifications/queue", headers=r1).json()["data"]
+    assert any(item["id"] == rid for item in q)
+
+    # first approval -> still pending (threshold 2)
+    a1 = client.post(f"/verifications/{rid}/review", json={"vote": "approve"}, headers=r1)
+    assert a1.json()["data"]["status"] == "pending"
+    # double review blocked
+    assert client.post(f"/verifications/{rid}/review", json={"vote": "approve"}, headers=r1).status_code == 409
+
+    # second approval -> verified
+    a2 = client.post(f"/verifications/{rid}/review", json={"vote": "approve"}, headers=r2)
+    assert a2.json()["data"]["status"] == "verified"
+
+    # the owner's skill is now flagged verified + badge awarded
+    my_skills = client.get("/skills", headers=owner).json()["data"]
+    assert any(s["name"] == "Rust" and s["verified"] for s in my_skills)
+    prog = client.get("/progress", headers=owner).json()["data"]
+    assert any(a["code"] == "verified_skill" for a in prog["achievements"])
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401

@@ -84,6 +84,12 @@ export const api = {
     request(`/communities/${id}/posts`, { method: "POST", body: { body } }),
   deletePost: (id, postId) =>
     request(`/communities/${id}/posts/${postId}`, { method: "DELETE" }),
+  // skill verification
+  requestVerification: (data) => request("/verifications", { method: "POST", body: data }),
+  myVerifications: () => request("/verifications/mine"),
+  verificationQueue: () => request("/verifications/queue"),
+  reviewVerification: (id, data) =>
+    request(`/verifications/${id}/review`, { method: "POST", body: data }),
   // features
   getRoadmap: () => request("/roadmap"),
   generateRoadmap: (data) => request("/roadmap", { method: "POST", body: data }),
