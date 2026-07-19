@@ -42,7 +42,7 @@ export default function ResumeBuilder() {
 
   return (
     <section>
-      <h1>Resume Builder</h1>
+      <h2>Resume Builder</h2>
       <form className="card form" onSubmit={submit}>
         <label>
           Full name

@@ -323,6 +323,50 @@ a:focus-visible {
   overflow-x: auto;
 }
 
+/* Career sub-tabs */
+.subtabs {
+  display: flex;
+  gap: 0.4rem;
+  border-bottom: 1px solid var(--border);
+  margin: 0.5rem 0 1.25rem;
+  overflow-x: auto;
+}
+.subtab {
+  border: none;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 600;
+  padding: 0.6rem 0.9rem;
+  min-height: 44px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.subtab:hover {
+  color: var(--text);
+}
+.subtab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+.subtab:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+.want-head {
+  margin-top: 1rem;
+}
+.verified-tick {
+  color: var(--success);
+  font-weight: 800;
+}
+.achievement-pill {
+  font-size: 0.8rem;
+}
+
 /* Verification status badges */
 .status-verified {
   background: color-mix(in srgb, var(--success) 15%, transparent);
