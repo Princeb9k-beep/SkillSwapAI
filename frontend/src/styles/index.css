@@ -399,6 +399,69 @@ a:focus-visible {
   overflow-x: auto;
 }
 
+/* AI Coach chat */
+.coach-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 320px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin: 0.5rem 0 0.75rem;
+}
+.coach-empty {
+  margin: auto;
+  text-align: center;
+}
+.coach-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  max-width: 420px;
+}
+.chip {
+  min-height: 40px;
+  font-size: 0.9rem;
+}
+.bubble {
+  max-width: 80%;
+  padding: 0.6rem 0.85rem;
+  border-radius: 14px;
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+.bubble-user {
+  align-self: flex-end;
+  background: var(--primary);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.bubble-assistant {
+  align-self: flex-start;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+}
+.bubble-typing {
+  color: var(--muted);
+  letter-spacing: 2px;
+}
+.coach-input {
+  display: flex;
+  gap: 0.5rem;
+}
+.coach-input input {
+  margin-top: 0;
+}
+.coach-input .btn {
+  flex-shrink: 0;
+}
+
 /* Marketplace */
 .notice {
   background: color-mix(in srgb, var(--primary) 8%, var(--surface));

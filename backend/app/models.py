@@ -332,6 +332,20 @@ class CommunityPost(Base):
     )
 
 
+class CoachMessage(Base):
+    __tablename__ = "coach_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    role: Mapped[str] = mapped_column(String(10))  # user | assistant
+    content: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
 class Achievement(Base):
     __tablename__ = "achievements"
 

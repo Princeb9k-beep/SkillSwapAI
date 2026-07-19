@@ -376,6 +376,28 @@ def test_marketplace_listing_booking_and_commission(client):
     assert len(seller_orders["as_seller"]) == 1 and len(buyer_orders["as_buyer"]) == 1
 
 
+def test_ai_coach_chat_persists_and_degrades(client):
+    hdr = _auth(client, "cora@example.com", "Cora")
+
+    # empty history to start
+    assert client.get("/coach/history", headers=hdr).json()["data"] == []
+
+    # chat -> reply (Groq unconfigured in tests -> graceful fallback, not a crash)
+    r = client.post("/coach/chat", json={"message": "How do I learn Python?"}, headers=hdr)
+    assert r.status_code == 200
+    reply = r.json()["data"]["reply"]
+    assert isinstance(reply, str) and reply
+
+    # history now has the user turn + assistant turn, in order
+    hist = client.get("/coach/history", headers=hdr).json()["data"]
+    assert [m["role"] for m in hist] == ["user", "assistant"]
+    assert hist[0]["content"] == "How do I learn Python?"
+
+    # clear
+    assert client.delete("/coach/history", headers=hdr).status_code == 200
+    assert client.get("/coach/history", headers=hdr).json()["data"] == []
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401

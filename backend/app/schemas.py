@@ -49,6 +49,11 @@ class MatchOut(BaseModel):
     reason: str
 
 
+# --- AI Coach -------------------------------------------------------------
+class CoachChat(BaseModel):
+    message: str = Field(min_length=1, max_length=4000)
+
+
 # --- Marketplace ----------------------------------------------------------
 class ListingCreate(BaseModel):
     title: str = Field(min_length=2, max_length=200)
