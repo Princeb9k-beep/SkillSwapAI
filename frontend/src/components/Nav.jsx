@@ -10,6 +10,7 @@ const LINKS = [
   { to: "/verify", label: "Verify" },
   { to: "/dashboard", label: "Dashboard" },
   { to: "/lessons", label: "Lessons" },
+  { to: "/challenges", label: "Challenges" },
   { to: "/progress", label: "Progress" },
   { to: "/community", label: "Community" },
   { to: "/market", label: "Market" },

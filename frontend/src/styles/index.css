@@ -399,6 +399,14 @@ a:focus-visible {
   overflow-x: auto;
 }
 
+/* Daily challenge */
+.challenge-card h2 {
+  margin: 0.5rem 0;
+}
+.challenge-card.done {
+  border-color: color-mix(in srgb, var(--success) 40%, var(--border));
+}
+
 /* Skill scanner — add-skill button inside a tag */
 .skill-add-btn {
   border: none;

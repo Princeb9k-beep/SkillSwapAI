@@ -332,6 +332,25 @@ class CommunityPost(Base):
     )
 
 
+class Challenge(Base):
+    __tablename__ = "challenges"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    day: Mapped[date] = mapped_column(Date, index=True)  # one per user per calendar day
+    title: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
 class CoachMessage(Base):
     __tablename__ = "coach_messages"
 
