@@ -49,6 +49,15 @@ class MatchOut(BaseModel):
     reason: str
 
 
+# --- Reputation -----------------------------------------------------------
+class ReputationReviewCreate(BaseModel):
+    teaching_quality: int = Field(ge=1, le=5)
+    reliability: int = Field(ge=1, le=5)
+    response_time: int = Field(ge=1, le=5)
+    completed: bool = True
+    comment: str | None = Field(default=None, max_length=1000)
+
+
 # --- Skill verification ---------------------------------------------------
 class VerificationCreate(BaseModel):
     skill_name: str = Field(min_length=1, max_length=255)

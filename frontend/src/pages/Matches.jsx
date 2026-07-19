@@ -61,12 +61,49 @@ function SkillEditor({ kind, title, hint, skills, onAdd, onRemove }) {
 function MatchCard({ m }) {
   const cls =
     m.compatibility >= 70 ? "score-good" : m.compatibility >= 40 ? "score-mid" : "score-low";
+  const { notify } = useApp();
+  const [rating, setRating] = useState(false);
+  const [rep, setRep] = useState({
+    score: m.reputation_score,
+    count: m.reputation_count,
+  });
+  const [form, setForm] = useState({
+    teaching_quality: 5,
+    reliability: 5,
+    response_time: 5,
+    completed: true,
+    comment: "",
+  });
+
+  async function submitReview(e) {
+    e.preventDefault();
+    try {
+      const res = await api.reviewReputation(m.user_id, form);
+      setRep({ score: res.score, count: res.count });
+      setRating(false);
+      notify("Review submitted", "success");
+    } catch (err) {
+      notify(err.message, "error");
+    }
+  }
+
+  const dims = [
+    ["teaching_quality", "Teaching"],
+    ["reliability", "Reliability"],
+    ["response_time", "Response time"],
+  ];
+
   return (
     <article className="card match-card">
       <div className="row-between">
         <h3>{m.name}</h3>
         <span className={`match-score ${cls}`}>{m.compatibility}%</span>
       </div>
+      <p className="muted match-rep">
+        {rep.score === null || rep.score === undefined
+          ? "No reputation yet"
+          : `Reputation ${rep.score}/100 · ${rep.count} review${rep.count === 1 ? "" : "s"}`}
+      </p>
       {m.mutual && <span className="badge match-mutual">Two-way swap</span>}
       {m.goal && <p className="muted">Goal: {m.goal}</p>}
       {m.they_teach_you.length > 0 && (
@@ -78,6 +115,54 @@ function MatchCard({ m }) {
         <p>
           <strong>You teach them:</strong> {m.you_teach_them.join(", ")}
         </p>
+      )}
+
+      {rating ? (
+        <form className="rate-form" onSubmit={submitReview}>
+          {dims.map(([key, label]) => (
+            <label key={key} className="rate-row">
+              {label}
+              <select
+                value={form[key]}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, [key]: Number(e.target.value) }))
+                }
+              >
+                {[5, 4, 3, 2, 1].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+          <label className="rate-check">
+            <input
+              type="checkbox"
+              checked={form.completed}
+              onChange={(e) => setForm((f) => ({ ...f, completed: e.target.checked }))}
+            />
+            Session completed
+          </label>
+          <input
+            type="text"
+            placeholder="Comment (optional)"
+            value={form.comment}
+            onChange={(e) => setForm((f) => ({ ...f, comment: e.target.value }))}
+          />
+          <div className="community-actions">
+            <button type="submit" className="btn btn-primary">
+              Submit
+            </button>
+            <button type="button" className="btn" onClick={() => setRating(false)}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button type="button" className="btn rate-btn" onClick={() => setRating(true)}>
+          Rate partner
+        </button>
       )}
     </article>
   );

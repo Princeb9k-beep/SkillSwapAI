@@ -44,6 +44,7 @@ from app.routers import (
     portfolio,
     progress,
     projects,
+    reputation,
     resume,
     roadmap,
     skills,
@@ -155,6 +156,7 @@ app.include_router(progress.router)
 app.include_router(communities.router)
 app.include_router(verification.router)
 app.include_router(portfolio.router)
+app.include_router(reputation.router)
 app.include_router(roadmap.router)
 app.include_router(projects.router)
 app.include_router(resume.router)

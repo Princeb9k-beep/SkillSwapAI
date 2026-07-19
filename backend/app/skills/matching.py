@@ -142,6 +142,15 @@ async def find_matches(
             }
         )
 
+    # Attach each candidate's reputation summary (one batch query).
+    from .reputation import scores_for  # local import avoids a cycle
+
+    reputations = await scores_for(session, [m["user_id"] for m in matches])
+    for m in matches:
+        rep = reputations.get(m["user_id"], {"score": None, "count": 0})
+        m["reputation_score"] = rep["score"]
+        m["reputation_count"] = rep["count"]
+
     # Rank: mutual swaps first, then by compatibility, then by breadth of overlap.
     matches.sort(
         key=lambda m: (

@@ -13,6 +13,7 @@ from ..database import get_session
 from ..deps import get_current_user
 from ..models import Achievement, Project, Skill, User
 from ..responses import ok
+from ..skills.reputation import score_for
 
 router = APIRouter(prefix="/portfolio", tags=["portfolio"])
 
@@ -47,6 +48,7 @@ async def portfolio(
         if s.kind == "have"
     ]
     want = [s.name for s in skills if s.kind == "want"]
+    reputation = await score_for(session, user.id)
 
     return ok(
         data={
@@ -56,6 +58,7 @@ async def portfolio(
             "level": user.level,
             "xp": user.xp,
             "streak": user.streak,
+            "reputation": reputation,
             "verified_count": sum(1 for s in have if s["verified"]),
             "skills_have": have,
             "skills_want": want,
