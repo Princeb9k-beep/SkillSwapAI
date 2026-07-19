@@ -19,6 +19,35 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=128)
 
 
+# --- Skills ---------------------------------------------------------------
+class SkillCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255, examples=["FastAPI"])
+    kind: str = Field(default="have", pattern="^(have|want)$")
+    category: str | None = None
+    level: str = Field(default="beginner")
+
+
+class SkillOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    name: str
+    kind: str
+    category: str | None
+    level: str
+
+
+# --- Matching -------------------------------------------------------------
+class MatchOut(BaseModel):
+    user_id: int
+    name: str
+    goal: str | None
+    compatibility: int          # 0-100
+    mutual: bool                # two-way swap (each can teach the other)
+    they_teach_you: list[str]   # skills they have that you want
+    you_teach_them: list[str]   # skills you have that they want
+    reason: str
+
+
 # --- Users ----------------------------------------------------------------
 class ProfileUpdate(BaseModel):
     name: str | None = None

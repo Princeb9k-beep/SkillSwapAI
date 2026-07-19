@@ -66,6 +66,11 @@ export const api = {
   login: (data) => request("/auth/login", { method: "POST", body: data, auth: false }),
   me: () => request("/users/me"),
   updateProfile: (data) => request("/users/me", { method: "PATCH", body: data }),
+  // skills + matching
+  getSkills: () => request("/skills"),
+  addSkill: (data) => request("/skills", { method: "POST", body: data }),
+  deleteSkill: (id) => request(`/skills/${id}`, { method: "DELETE" }),
+  getMatches: () => request("/matches"),
   // features
   getRoadmap: () => request("/roadmap"),
   generateRoadmap: (data) => request("/roadmap", { method: "POST", body: data }),

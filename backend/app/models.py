@@ -65,6 +65,10 @@ class Skill(Base):
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
     name: Mapped[str] = mapped_column(String(255))
+    # Lowercased, trimmed `name` for exact-match joins in the matching engine.
+    name_normalized: Mapped[str] = mapped_column(String(255), index=True, default="")
+    # "have" (skills the user can teach) | "want" (skills the user wants to learn)
+    kind: Mapped[str] = mapped_column(String(10), default="have", index=True)
     category: Mapped[str | None] = mapped_column(String(120), nullable=True)
     # beginner | intermediate | advanced
     level: Mapped[str] = mapped_column(String(40), default="beginner")
