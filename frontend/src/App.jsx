@@ -16,8 +16,7 @@ const Communities = lazy(() => import("./pages/Communities.jsx"));
 const Verify = lazy(() => import("./pages/Verify.jsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
 const Lessons = lazy(() => import("./pages/Lessons.jsx"));
-const ResumeBuilder = lazy(() => import("./pages/ResumeBuilder.jsx"));
-const InterviewSimulator = lazy(() => import("./pages/InterviewSimulator.jsx"));
+const Career = lazy(() => import("./pages/Career.jsx"));
 
 function AuthedApp() {
   return (
@@ -33,8 +32,10 @@ function AuthedApp() {
             <Route path="/verify" element={<Verify />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/lessons" element={<Lessons />} />
-            <Route path="/resume" element={<ResumeBuilder />} />
-            <Route path="/interview" element={<InterviewSimulator />} />
+            <Route path="/career" element={<Career initialTab="portfolio" />} />
+            {/* Back-compat deep links open the matching Career sub-tab */}
+            <Route path="/resume" element={<Career initialTab="resume" />} />
+            <Route path="/interview" element={<Career initialTab="interview" />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

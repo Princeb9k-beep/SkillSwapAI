@@ -50,7 +50,7 @@ export default function InterviewSimulator() {
 
   return (
     <section>
-      <h1>Interview Simulator</h1>
+      <h2>Interview Simulator</h2>
 
       {phase === "setup" && (
         <form className="card form" onSubmit={start}>

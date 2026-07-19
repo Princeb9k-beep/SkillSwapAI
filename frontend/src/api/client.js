@@ -90,6 +90,8 @@ export const api = {
   verificationQueue: () => request("/verifications/queue"),
   reviewVerification: (id, data) =>
     request(`/verifications/${id}/review`, { method: "POST", body: data }),
+  // portfolio
+  getPortfolio: () => request("/portfolio"),
   // features
   getRoadmap: () => request("/roadmap"),
   generateRoadmap: (data) => request("/roadmap", { method: "POST", body: data }),

@@ -279,6 +279,22 @@ def test_skill_verification_peer_review(client):
     assert any(a["code"] == "verified_skill" for a in prog["achievements"])
 
 
+def test_portfolio_aggregates_profile(client):
+    hdr = _auth(client, "pat@example.com", "Pat")
+    client.patch("/users/me", json={"goal": "make $80k"}, headers=hdr)
+    client.post("/skills", json={"name": "Go", "kind": "have"}, headers=hdr)
+    client.post("/skills", json={"name": "Kubernetes", "kind": "want"}, headers=hdr)
+
+    r = client.get("/portfolio", headers=hdr)
+    assert r.status_code == 200
+    p = r.json()["data"]
+    assert p["name"] == "Pat" and p["goal"] == "make $80k"
+    assert p["level"] == 1 and "xp" in p
+    assert [s["name"] for s in p["skills_have"]] == ["Go"]
+    assert p["skills_want"] == ["Kubernetes"]
+    assert p["verified_count"] == 0
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401

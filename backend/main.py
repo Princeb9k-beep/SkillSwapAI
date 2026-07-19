@@ -41,6 +41,7 @@ from app.routers import (
     interview,
     lessons,
     matches,
+    portfolio,
     progress,
     projects,
     resume,
@@ -153,6 +154,7 @@ app.include_router(matches.router)
 app.include_router(progress.router)
 app.include_router(communities.router)
 app.include_router(verification.router)
+app.include_router(portfolio.router)
 app.include_router(roadmap.router)
 app.include_router(projects.router)
 app.include_router(resume.router)
