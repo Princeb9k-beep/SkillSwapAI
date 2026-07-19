@@ -36,6 +36,7 @@ from app.resilience import TokenBucketRateLimiter
 from app.responses import error, ok
 from app.routers import (
     auth,
+    communities,
     health,
     interview,
     lessons,
@@ -149,6 +150,7 @@ app.include_router(users.router)
 app.include_router(skills.router)
 app.include_router(matches.router)
 app.include_router(progress.router)
+app.include_router(communities.router)
 app.include_router(roadmap.router)
 app.include_router(projects.router)
 app.include_router(resume.router)

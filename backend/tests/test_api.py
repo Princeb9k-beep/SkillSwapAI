@@ -198,6 +198,50 @@ def test_leaderboard_ranks_by_xp(client):
     )
 
 
+def test_community_create_post_and_moderation(client):
+    owner = _auth(client, "olive@example.com", "Olive")
+    member = _auth(client, "milo@example.com", "Milo")
+
+    # create -> creator auto-joins, counts reflect it
+    r = client.post(
+        "/communities",
+        json={"name": "Python Nerds", "topic": "Coding", "description": "We love snakes"},
+        headers=owner,
+    )
+    assert r.status_code == 201
+    cid = r.json()["data"]["id"]
+    assert r.json()["data"]["joined"] is True and r.json()["data"]["member_count"] == 1
+
+    # duplicate name conflicts
+    dupe = client.post("/communities", json={"name": "python nerds", "topic": "Coding"}, headers=owner)
+    assert dupe.status_code == 409
+
+    # member posts (auto-joins)
+    p = client.post(f"/communities/{cid}/posts", json={"body": "Hello!"}, headers=member)
+    assert p.status_code == 201
+    post_id = p.json()["data"]["id"]
+
+    # list now shows 2 members, 1 post, joined for member
+    listing = client.get("/communities", headers=member).json()["data"]
+    row = next(c for c in listing if c["id"] == cid)
+    assert row["member_count"] == 2 and row["post_count"] == 1 and row["joined"] is True
+
+    # a third user cannot delete the member's post
+    other = _auth(client, "nia@example.com", "Nia")
+    forbidden = client.request(
+        "DELETE", f"/communities/{cid}/posts/{post_id}", headers=other
+    )
+    assert forbidden.status_code == 403
+
+    # community creator CAN delete it (moderation)
+    modded = client.request(
+        "DELETE", f"/communities/{cid}/posts/{post_id}", headers=owner
+    )
+    assert modded.status_code == 200
+    detail = client.get(f"/communities/{cid}", headers=owner).json()["data"]
+    assert detail["posts"] == []
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401

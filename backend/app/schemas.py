@@ -48,6 +48,35 @@ class MatchOut(BaseModel):
     reason: str
 
 
+# --- Communities ----------------------------------------------------------
+class CommunityCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=120)
+    topic: str = Field(min_length=1, max_length=60, examples=["Coding"])
+    description: str | None = Field(default=None, max_length=2000)
+
+
+class CommunityOut(BaseModel):
+    id: int
+    name: str
+    topic: str
+    description: str | None
+    member_count: int
+    post_count: int
+    joined: bool
+
+
+class PostCreate(BaseModel):
+    body: str = Field(min_length=1, max_length=4000)
+
+
+class PostOut(BaseModel):
+    id: int
+    user_name: str
+    body: str
+    created_at: datetime
+    can_delete: bool
+
+
 # --- Gamification ---------------------------------------------------------
 class AchievementOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
