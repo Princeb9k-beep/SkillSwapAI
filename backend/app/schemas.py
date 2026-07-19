@@ -59,6 +59,12 @@ class ScanRequest(BaseModel):
     text: str = Field(min_length=20, max_length=20000)
 
 
+# --- Live translation -----------------------------------------------------
+class TranslateRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=8000)
+    target_language: str = Field(min_length=2, max_length=40)
+
+
 # --- AI Twin --------------------------------------------------------------
 class TwinTrain(BaseModel):
     samples: str = Field(min_length=20, max_length=8000)

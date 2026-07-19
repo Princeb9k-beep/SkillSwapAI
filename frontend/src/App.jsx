@@ -14,6 +14,7 @@ const GoalInput = lazy(() => import("./pages/GoalInput.jsx"));
 const Matches = lazy(() => import("./pages/Matches.jsx"));
 const Coach = lazy(() => import("./pages/Coach.jsx"));
 const Scanner = lazy(() => import("./pages/Scanner.jsx"));
+const Translate = lazy(() => import("./pages/Translate.jsx"));
 const Challenges = lazy(() => import("./pages/Challenges.jsx"));
 const Twin = lazy(() => import("./pages/Twin.jsx"));
 const Progress = lazy(() => import("./pages/Progress.jsx"));
@@ -35,6 +36,7 @@ function AuthedApp() {
             <Route path="/matches" element={<Matches />} />
             <Route path="/coach" element={<Coach />} />
             <Route path="/scanner" element={<Scanner />} />
+            <Route path="/translate" element={<Translate />} />
             <Route path="/challenges" element={<Challenges />} />
             <Route path="/twin" element={<Twin />} />
             <Route path="/progress" element={<Progress />} />

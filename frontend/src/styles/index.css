@@ -399,6 +399,13 @@ a:focus-visible {
   overflow-x: auto;
 }
 
+/* Translation output */
+.translation-out {
+  white-space: pre-wrap;
+  margin: 0.5rem 0 0;
+  font-size: 1.05rem;
+}
+
 /* PWA install banner */
 .install-banner {
   position: fixed;

@@ -101,6 +101,10 @@ export const api = {
   clearCoach: () => request("/coach/history", { method: "DELETE" }),
   // ai skill scanner
   scanSkills: (text) => request("/scanner/analyze", { method: "POST", body: { text } }),
+  // live translation
+  translateLanguages: () => request("/translate/languages"),
+  translate: (text, target_language) =>
+    request("/translate", { method: "POST", body: { text, target_language } }),
   // daily challenges
   todayChallenge: () => request("/challenges/today"),
   completeChallenge: (id) => request(`/challenges/${id}/complete`, { method: "POST" }),

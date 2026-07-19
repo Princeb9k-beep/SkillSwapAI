@@ -8,6 +8,7 @@ const LINKS = [
   { to: "/coach", label: "Coach" },
   { to: "/twin", label: "AI Twin" },
   { to: "/scanner", label: "Scanner" },
+  { to: "/translate", label: "Translate" },
   { to: "/verify", label: "Verify" },
   { to: "/dashboard", label: "Dashboard" },
   { to: "/lessons", label: "Lessons" },
