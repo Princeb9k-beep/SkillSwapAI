@@ -419,3 +419,72 @@ class Achievement(Base):
     )
 
     user: Mapped[User] = relationship(back_populates="achievements")
+
+
+class PracticeRoom(Base):
+    """A live video practice room (spec §2.3). Peers connect via WebRTC; this row
+    is the persisted session record and the lobby entry others join by `code`."""
+
+    __tablename__ = "practice_rooms"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    # Short shareable join code (unguessable enough for a lobby).
+    code: Mapped[str] = mapped_column(String(12), unique=True, index=True)
+    title: Mapped[str] = mapped_column(String(120))
+    topic: Mapped[str] = mapped_column(String(60), index=True, default="General")
+    host_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    # Shared notes persist across the session (collaborative scratchpad).
+    notes: Mapped[str] = mapped_column(Text, default="", server_default="")
+    is_open: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default="1", index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    closed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class RoomParticipant(Base):
+    """Join/leave audit for a practice room — powers the live participant count."""
+
+    __tablename__ = "room_participants"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    room_id: Mapped[int] = mapped_column(
+        ForeignKey("practice_rooms.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    joined_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    left_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class Message(Base):
+    """A 1:1 direct message between two users (spec §2.3). Conversations are
+    derived by pairing sender/recipient; unread state powers thread badges."""
+
+    __tablename__ = "messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    sender_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    recipient_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    body: Mapped[str] = mapped_column(Text)
+    read: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="0", index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )

@@ -487,6 +487,91 @@ def test_translation(client):
     assert data["target_language"] == "Spanish" and isinstance(data["translation"], str)
 
 
+def test_practice_rooms_lobby(client):
+    host = _auth(client, "roomhost@example.com", "Room Host")
+    guest = _auth(client, "roomguest@example.com", "Room Guest")
+
+    # Create a room.
+    r = client.post("/rooms", json={"title": "Mock interview", "topic": "Careers"}, headers=host)
+    assert r.status_code == 201
+    room = r.json()["data"]
+    code = room["code"]
+    assert room["title"] == "Mock interview" and room["is_open"] is True
+
+    # It shows up in the open lobby.
+    listed = client.get("/rooms", headers=guest).json()["data"]
+    assert any(x["code"] == code for x in listed)
+
+    # Detail carries shared notes.
+    detail = client.get(f"/rooms/{code}", headers=guest).json()["data"]
+    assert detail["code"] == code and "notes" in detail
+
+    # Notes persist.
+    assert client.put(f"/rooms/{code}/notes", json={"notes": "agenda"}, headers=host).status_code == 200
+    assert client.get(f"/rooms/{code}", headers=host).json()["data"]["notes"] == "agenda"
+
+    # Only the host can close it.
+    assert client.post(f"/rooms/{code}/close", headers=guest).status_code == 403
+    assert client.post(f"/rooms/{code}/close", headers=host).status_code == 200
+
+    # Closed rooms drop out of the lobby.
+    listed_after = client.get("/rooms", headers=host).json()["data"]
+    assert all(x["code"] != code for x in listed_after)
+
+
+def test_practice_room_signaling(client):
+    host = _auth(client, "sig1@example.com", "Sig One")
+    uid = client.get("/users/me", headers=host).json()["data"]["id"]
+    code = client.post("/rooms", json={"title": "Pairing"}, headers=host).json()["data"]["code"]
+
+    # The signaling socket greets a peer with a welcome + the current peer list.
+    with client.websocket_connect(f"/rooms/ws/{code}?uid={uid}") as ws:
+        hello = ws.receive_json()
+        assert hello["type"] == "welcome"
+        assert isinstance(hello["peers"], list) and "peer_id" in hello
+
+
+def test_practice_room_signaling_rejects_unauthenticated(client):
+    host = _auth(client, "sig2@example.com", "Sig Two")
+    code = client.post("/rooms", json={"title": "Locked"}, headers=host).json()["data"]["code"]
+    with client.websocket_connect(f"/rooms/ws/{code}") as ws:
+        msg = ws.receive_json()
+        assert msg["type"] == "error"
+
+
+def test_direct_messaging_flow(client):
+    alice = _auth(client, "msgalice@example.com", "Msg Alice")
+    bob = _auth(client, "msgbob@example.com", "Msg Bob")
+    alice_id = client.get("/users/me", headers=alice).json()["data"]["id"]
+    bob_id = client.get("/users/me", headers=bob).json()["data"]["id"]
+
+    # Alice messages Bob.
+    r = client.post(f"/messages/{bob_id}", json={"body": "hi Bob"}, headers=alice)
+    assert r.status_code == 201 and r.json()["data"]["mine"] is True
+
+    # Bob sees one unread thread from Alice.
+    threads = client.get("/messages/threads", headers=bob).json()["data"]
+    assert len(threads) == 1
+    t = threads[0]
+    assert t["partner_id"] == alice_id and t["unread"] == 1 and t["last_message"] == "hi Bob"
+    assert client.get("/messages/unread/count", headers=bob).json()["data"]["unread"] == 1
+
+    # Opening the conversation marks it read.
+    convo = client.get(f"/messages/{alice_id}", headers=bob).json()["data"]
+    assert convo["partner_name"] == "Msg Alice"
+    assert [m["body"] for m in convo["messages"]] == ["hi Bob"]
+    assert client.get("/messages/unread/count", headers=bob).json()["data"]["unread"] == 0
+
+    # Bob replies; Alice's view shows both, ordered oldest-first.
+    client.post(f"/messages/{alice_id}", json={"body": "hey Alice"}, headers=bob)
+    convo_a = client.get(f"/messages/{bob_id}", headers=alice).json()["data"]
+    assert [m["body"] for m in convo_a["messages"]] == ["hi Bob", "hey Alice"]
+
+    # Guardrails: no self-messaging, unknown recipient 404.
+    assert client.post(f"/messages/{alice_id}", json={"body": "me"}, headers=alice).status_code == 400
+    assert client.post("/messages/999999", json={"body": "ghost"}, headers=alice).status_code == 404
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401

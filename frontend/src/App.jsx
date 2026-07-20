@@ -5,6 +5,7 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import Nav from "./components/Nav.jsx";
+import BottomNav from "./components/BottomNav.jsx";
 import InstallPrompt from "./components/InstallPrompt.jsx";
 import { AppProvider, useApp } from "./context/AppContext.jsx";
 import { LoadingState } from "./components/States.jsx";
@@ -15,6 +16,8 @@ const Matches = lazy(() => import("./pages/Matches.jsx"));
 const Coach = lazy(() => import("./pages/Coach.jsx"));
 const Scanner = lazy(() => import("./pages/Scanner.jsx"));
 const Translate = lazy(() => import("./pages/Translate.jsx"));
+const Rooms = lazy(() => import("./pages/Rooms.jsx"));
+const Messages = lazy(() => import("./pages/Messages.jsx"));
 const Challenges = lazy(() => import("./pages/Challenges.jsx"));
 const Twin = lazy(() => import("./pages/Twin.jsx"));
 const Progress = lazy(() => import("./pages/Progress.jsx"));
@@ -37,6 +40,8 @@ function AuthedApp() {
             <Route path="/coach" element={<Coach />} />
             <Route path="/scanner" element={<Scanner />} />
             <Route path="/translate" element={<Translate />} />
+            <Route path="/rooms" element={<Rooms />} />
+            <Route path="/messages" element={<Messages />} />
             <Route path="/challenges" element={<Challenges />} />
             <Route path="/twin" element={<Twin />} />
             <Route path="/progress" element={<Progress />} />
@@ -53,6 +58,7 @@ function AuthedApp() {
           </Routes>
         </Suspense>
       </main>
+      <BottomNav />
     </>
   );
 }

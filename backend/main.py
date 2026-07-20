@@ -48,12 +48,14 @@ from app.routers import (
     lessons,
     marketplace,
     matches,
+    messages,
     portfolio,
     progress,
     projects,
     reputation,
     resume,
     roadmap,
+    rooms,
     scanner,
     translate,
     twin,
@@ -166,6 +168,7 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(skills.router)
 app.include_router(matches.router)
+app.include_router(messages.router)
 app.include_router(progress.router)
 app.include_router(communities.router)
 app.include_router(verification.router)
@@ -177,6 +180,7 @@ app.include_router(scanner.router)
 app.include_router(challenges.router)
 app.include_router(twin.router)
 app.include_router(translate.router)
+app.include_router(rooms.router)
 app.include_router(roadmap.router)
 app.include_router(projects.router)
 app.include_router(resume.router)
