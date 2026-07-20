@@ -19,6 +19,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -543,4 +544,33 @@ class PushSubscription(Base):
     auth: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class MatchSignal(Base):
+    """A learner's feedback on a suggested match — the data-moat signal that lets
+    ranking improve over time. One row per (user, partner); latest signal wins.
+    'dismissed' hides the partner; 'interested' boosts them (mutual interest =
+    both marked interested = top of the list)."""
+
+    __tablename__ = "match_signals"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    partner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    # "interested" | "dismissed" | "connected"
+    signal: Mapped[str] = mapped_column(String(12), index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "partner_id", name="uq_match_signal_pair"),
     )

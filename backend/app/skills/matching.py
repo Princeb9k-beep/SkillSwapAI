@@ -24,7 +24,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..cache import cache_get, cache_set, make_key
-from ..models import Skill, User
+from ..models import MatchSignal, Skill, User
 
 # Weight the value you gain slightly above what you give — you're the one searching.
 _W_GAIN = 0.6
@@ -51,6 +51,31 @@ async def _load_skills(session: AsyncSession, user_id: int) -> tuple[set[str], s
     for name, kind in result.all():
         (want if kind == "want" else have).add(name)
     return have, want
+
+
+async def _load_my_signals(session: AsyncSession, user_id: int) -> dict[int, str]:
+    """partner_id -> signal for feedback this user has given ('dismissed'/'interested')."""
+    rows = await session.execute(
+        select(MatchSignal.partner_id, MatchSignal.signal).where(
+            MatchSignal.user_id == user_id
+        )
+    )
+    return {pid: sig for pid, sig in rows.all()}
+
+
+async def _load_inbound_interested(session: AsyncSession, user_id: int) -> set[int]:
+    """Users who marked *this* user as 'interested' — enables mutual-interest boosts."""
+    rows = await session.execute(
+        select(MatchSignal.user_id).where(
+            MatchSignal.partner_id == user_id, MatchSignal.signal == "interested"
+        )
+    )
+    return {r[0] for r in rows.all()}
+
+
+def _signals_fingerprint(my_signals: dict[int, str]) -> str:
+    raw = ",".join(f"{pid}:{sig}" for pid, sig in sorted(my_signals.items()))
+    return hashlib.sha256(raw.encode()).hexdigest()[:12]
 
 
 def _score(my_want, my_have, their_have, their_want):
@@ -83,7 +108,19 @@ async def find_matches(
     if not my_have and not my_want:
         return []
 
-    fp = _fingerprint(my_have, my_want)
+    # Data-moat signals: my feedback (hide dismissed, boost interested) and who
+    # has expressed interest in me (mutual interest ranks highest).
+    my_signals = await _load_my_signals(session, user.id)
+    interested_in_me = await _load_inbound_interested(session, user.id)
+
+    # Fold both my signals AND who's interested in me into the cache key, so
+    # feedback (mine or a partner's) takes effect on the next fetch.
+    inbound = ",".join(str(i) for i in sorted(interested_in_me))
+    fp = (
+        _fingerprint(my_have, my_want)
+        + ":" + _signals_fingerprint(my_signals)
+        + ":" + hashlib.sha256(inbound.encode()).hexdigest()[:8]
+    )
     cache_key = make_key("matches", user.id, fp)
     cached = await cache_get(cache_key)
     if cached is not None:
@@ -122,6 +159,8 @@ async def find_matches(
         cand = users.get(cid)
         if cand is None:
             continue
+        if my_signals.get(cid) == "dismissed":
+            continue  # respect the user's "not for me"
         their_have, their_want = await _load_skills(session, cid)
         score, mutual, they_teach, you_teach = _score(
             my_want, my_have, their_have, their_want
@@ -129,6 +168,8 @@ async def find_matches(
         if score <= 0:
             continue
         display_name = cand.name or f"Learner #{cand.id}"
+        i_am_interested = my_signals.get(cid) == "interested"
+        mutual_interest = i_am_interested and cid in interested_in_me
         matches.append(
             {
                 "user_id": cand.id,
@@ -139,6 +180,8 @@ async def find_matches(
                 "they_teach_you": they_teach,
                 "you_teach_them": you_teach,
                 "reason": _reason(display_name, they_teach, you_teach, mutual),
+                "interested": i_am_interested,
+                "mutual_interest": mutual_interest,
             }
         )
 
@@ -150,12 +193,14 @@ async def find_matches(
         rep = reputations.get(m["user_id"], {"score": None, "count": 0})
         m["reputation_score"] = rep["score"]
         m["reputation_count"] = rep["count"]
+        m["match_score"] = _blended_score(m)
 
-    # Rank: mutual swaps first, then by compatibility, then by breadth of overlap.
+    # Rank: mutual-interest pairs first (both said "interested"), then by the
+    # blended score (skill fit + reputation + interest signals), then breadth.
     matches.sort(
         key=lambda m: (
-            m["mutual"],
-            m["compatibility"],
+            m["mutual_interest"],
+            m["match_score"],
             len(m["they_teach_you"]) + len(m["you_teach_them"]),
         ),
         reverse=True,
@@ -163,3 +208,36 @@ async def find_matches(
 
     await cache_set(cache_key, matches, ttl=_CACHE_TTL)
     return matches[:limit]
+
+
+def _blended_score(m: dict) -> int:
+    """Rank score = skill compatibility, nudged by partner reputation and
+    interest signals. This is the compounding 'data moat': the more feedback and
+    reviews accumulate, the better ranking gets."""
+    score = float(m["compatibility"])
+    rep = m.get("reputation_score")
+    if rep is not None:
+        # Reputation 0-100 -> up to +/-8 around the neutral midpoint (50).
+        score += (rep - 50) / 50 * 8
+    if m.get("mutual_interest"):
+        score += 15  # both marked interested — strongest signal
+    elif m.get("interested"):
+        score += 5   # I saved them
+    return round(max(0, score))
+
+
+async def record_signal(
+    session: AsyncSession, user_id: int, partner_id: int, signal: str
+) -> None:
+    """Upsert a match signal (latest wins). No commit — caller commits."""
+    existing = (
+        await session.execute(
+            select(MatchSignal).where(
+                MatchSignal.user_id == user_id, MatchSignal.partner_id == partner_id
+            )
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        existing.signal = signal
+    else:
+        session.add(MatchSignal(user_id=user_id, partner_id=partner_id, signal=signal))

@@ -667,6 +667,38 @@ def test_onboarding_flag(client):
     assert client.get("/users/me", headers=hdr).json()["data"]["onboarded"] is True
 
 
+def test_match_signals_dismiss_and_mutual_interest(client):
+    # Ana and Ben are a complementary pair.
+    ana = _auth(client, "sigana@example.com", "Sig Ana")
+    ben = _auth(client, "sigben@example.com", "Sig Ben")
+    ana_id = client.get("/users/me", headers=ana).json()["data"]["id"]
+    ben_id = client.get("/users/me", headers=ben).json()["data"]["id"]
+
+    client.post("/skills", json={"name": "Python", "kind": "have"}, headers=ana)
+    client.post("/skills", json={"name": "Guitar", "kind": "want"}, headers=ana)
+    client.post("/skills", json={"name": "Guitar", "kind": "have"}, headers=ben)
+    client.post("/skills", json={"name": "Python", "kind": "want"}, headers=ben)
+
+    # Ana sees Ben.
+    assert any(m["user_id"] == ben_id for m in client.get("/matches", headers=ana).json()["data"])
+
+    # Both mark each other interested -> mutual interest surfaces for Ana.
+    assert client.post(f"/matches/{ben_id}/feedback", json={"signal": "interested"}, headers=ana).status_code == 200
+    client.post(f"/matches/{ana_id}/feedback", json={"signal": "interested"}, headers=ben)
+    ana_view = [m for m in client.get("/matches", headers=ana).json()["data"] if m["user_id"] == ben_id][0]
+    assert ana_view["interested"] is True and ana_view["mutual_interest"] is True
+    assert "match_score" in ana_view
+
+    # Ana dismisses Ben -> Ben disappears from Ana's matches.
+    assert client.post(f"/matches/{ben_id}/feedback", json={"signal": "dismissed"}, headers=ana).status_code == 200
+    assert all(m["user_id"] != ben_id for m in client.get("/matches", headers=ana).json()["data"])
+
+    # Guardrails.
+    assert client.post(f"/matches/{ana_id}/feedback", json={"signal": "interested"}, headers=ana).status_code == 400
+    assert client.post("/matches/999999/feedback", json={"signal": "interested"}, headers=ana).status_code == 404
+    assert client.post(f"/matches/{ben_id}/feedback", json={"signal": "nope"}, headers=ana).status_code == 422
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401

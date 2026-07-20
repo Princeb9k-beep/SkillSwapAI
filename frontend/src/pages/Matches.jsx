@@ -59,11 +59,32 @@ function SkillEditor({ kind, title, hint, skills, onAdd, onRemove }) {
   );
 }
 
-function MatchCard({ m }) {
+function MatchCard({ m, onDismiss }) {
   const cls =
     m.compatibility >= 70 ? "score-good" : m.compatibility >= 40 ? "score-mid" : "score-low";
   const { notify } = useApp();
   const [rating, setRating] = useState(false);
+  const [interested, setInterested] = useState(!!m.interested);
+
+  async function markInterested() {
+    setInterested(true);
+    try {
+      await api.matchFeedback(m.user_id, "interested");
+      notify("Saved — we'll prioritize similar matches", "success");
+    } catch (err) {
+      setInterested(false);
+      notify(err.message, "error");
+    }
+  }
+
+  async function dismiss() {
+    try {
+      await api.matchFeedback(m.user_id, "dismissed");
+      onDismiss(m.user_id);
+    } catch (err) {
+      notify(err.message, "error");
+    }
+  }
   const [rep, setRep] = useState({
     score: m.reputation_score,
     count: m.reputation_count,
@@ -105,7 +126,13 @@ function MatchCard({ m }) {
           ? "No reputation yet"
           : `Reputation ${rep.score}/100 · ${rep.count} review${rep.count === 1 ? "" : "s"}`}
       </p>
-      {m.mutual && <span className="badge match-mutual">Two-way swap</span>}
+      <div className="match-badges">
+        {m.mutual_interest && <span className="badge match-itsamatch">✨ It's a match!</span>}
+        {m.mutual && <span className="badge match-mutual">Two-way swap</span>}
+        {interested && !m.mutual_interest && (
+          <span className="badge match-saved">Saved</span>
+        )}
+      </div>
       {m.goal && <p className="muted">Goal: {m.goal}</p>}
       {m.they_teach_you.length > 0 && (
         <p>
@@ -168,8 +195,19 @@ function MatchCard({ m }) {
           >
             Message
           </Link>
+          <button
+            type="button"
+            className="btn"
+            onClick={markInterested}
+            disabled={interested}
+          >
+            {interested ? "Interested ✓" : "Interested"}
+          </button>
           <button type="button" className="btn rate-btn" onClick={() => setRating(true)}>
-            Rate partner
+            Rate
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={dismiss}>
+            Not for me
           </button>
         </div>
       )}
@@ -277,7 +315,11 @@ export default function Matches() {
       {matches.length > 0 && (
         <div className="grid match-results">
           {matches.map((m) => (
-            <MatchCard key={m.user_id} m={m} />
+            <MatchCard
+              key={m.user_id}
+              m={m}
+              onDismiss={(id) => setMatches((list) => list.filter((x) => x.user_id !== id))}
+            />
           ))}
         </div>
       )}

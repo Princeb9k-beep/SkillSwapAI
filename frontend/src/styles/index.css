@@ -1358,6 +1358,27 @@ a:focus-visible {
   background: color-mix(in srgb, var(--success) 15%, transparent);
   color: #15803d;
 }
+.match-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.15rem 0;
+}
+.match-itsamatch {
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  color: var(--primary);
+}
+.match-saved {
+  background: color-mix(in srgb, var(--muted) 18%, transparent);
+  color: var(--text);
+}
+.btn-ghost {
+  background: none;
+  color: var(--muted);
+}
+.btn-ghost:hover {
+  color: var(--error);
+}
 .match-rep {
   font-size: 0.85rem;
   margin: 0.15rem 0 0.5rem;
