@@ -39,6 +39,8 @@ async def update_me(
         user.notify_achievements = payload.notify_achievements
     if payload.notify_product is not None:
         user.notify_product = payload.notify_product
+    if payload.onboarded is not None:
+        user.onboarded = payload.onboarded
     await session.commit()
     return ok(
         data=UserOut.model_validate(user).model_dump(mode="json"),

@@ -190,6 +190,7 @@ class ProfileUpdate(BaseModel):
     notify_messages: bool | None = None
     notify_achievements: bool | None = None
     notify_product: bool | None = None
+    onboarded: bool | None = None
 
 
 class UserOut(BaseModel):
@@ -202,6 +203,7 @@ class UserOut(BaseModel):
     notify_messages: bool
     notify_achievements: bool
     notify_product: bool
+    onboarded: bool
     created_at: datetime
 
 

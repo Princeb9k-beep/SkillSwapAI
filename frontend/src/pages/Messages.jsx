@@ -3,7 +3,7 @@
 // the "Message" button on Matches) opens a conversation directly.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import { ErrorBanner, EmptyState } from "../components/States.jsx";
@@ -94,8 +94,12 @@ export default function Messages() {
           {threads.length === 0 ? (
             <EmptyState
               title="No conversations yet"
-              hint="Open a match and tap Message to say hello."
-            />
+              hint="Find a partner and say hello to start chatting."
+            >
+              <Link className="btn btn-primary" to="/matches">
+                Find matches
+              </Link>
+            </EmptyState>
           ) : (
             threads.map((t) => (
               <button

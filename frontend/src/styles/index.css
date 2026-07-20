@@ -464,6 +464,68 @@ a:focus-visible {
   flex: 1;
 }
 
+/* Empty-state call-to-action */
+.state-action {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Onboarding wizard */
+.onboarding {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem calc(1.5rem + env(safe-area-inset-bottom));
+  background: var(--bg);
+}
+.onboarding-card {
+  width: 100%;
+  max-width: 520px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 1.75rem;
+}
+.onboarding-progress {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+}
+.onboarding-dot {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background 0.2s ease;
+}
+.onboarding-dot.on {
+  background: var(--primary);
+}
+.onboarding-step h1,
+.onboarding-step h2 {
+  margin: 0 0 0.5rem;
+}
+.onboarding-label {
+  display: block;
+  font-weight: 600;
+  margin: 1rem 0 0.4rem;
+}
+.onboarding-step input[type="text"],
+.onboarding-step input[type="number"] {
+  width: 100%;
+}
+.onboarding-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+
 /* Notification bell */
 .bell-wrap {
   position: relative;

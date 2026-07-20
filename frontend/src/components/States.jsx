@@ -29,11 +29,12 @@ export function ErrorBanner({ message, onRetry }) {
   );
 }
 
-export function EmptyState({ title, hint }) {
+export function EmptyState({ title, hint, children }) {
   return (
     <div className="state">
       <h3>{title}</h3>
       {hint && <p className="muted">{hint}</p>}
+      {children && <div className="state-action">{children}</div>}
     </div>
   );
 }

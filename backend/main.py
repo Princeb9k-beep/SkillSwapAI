@@ -200,6 +200,29 @@ app.include_router(lessons.router)
 # we fall back to a small JSON welcome at /.
 FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
+# Doc/JSON endpoints that must keep serving their own HTML/JSON, not the SPA.
+_SPA_EXCLUDE_EXACT = frozenset({"/docs", "/redoc", "/openapi.json"})
+
+
+@app.middleware("http")
+async def spa_navigation_fallback(request: Request, call_next):
+    """Serve the SPA shell for browser navigations (Accept: text/html) so
+    client-side routes like /matches, /rooms, /progress survive a reload or
+    bookmark instead of hitting the same-named API endpoint. The SPA's own
+    fetch/XHR calls send Accept: */*, so they still reach the API untouched."""
+    if (
+        FRONTEND_DIST.is_dir()
+        and request.method == "GET"
+        and "text/html" in request.headers.get("accept", "")
+        and request.url.path not in _SPA_EXCLUDE_EXACT
+        and not request.url.path.startswith("/assets/")
+        # Skip real files (they have an extension: .js, .png, .webmanifest…).
+        and "." not in request.url.path.rsplit("/", 1)[-1]
+    ):
+        return FileResponse(FRONTEND_DIST / "index.html")
+    return await call_next(request)
+
+
 if FRONTEND_DIST.is_dir():
     assets_dir = FRONTEND_DIST / "assets"
     if assets_dir.is_dir():

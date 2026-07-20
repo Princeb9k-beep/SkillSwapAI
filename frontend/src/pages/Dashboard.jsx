@@ -39,8 +39,12 @@ export default function Dashboard() {
     return (
       <EmptyState
         title="No roadmap yet"
-        hint="Create one from the Goal tab to see your milestones here."
-      />
+        hint="Tell us your goal and we'll build a personalized learning plan."
+      >
+        <Link className="btn btn-primary" to="/">
+          Create my roadmap
+        </Link>
+      </EmptyState>
     );
 
   const milestones = roadmap?.content?.milestones || [];
