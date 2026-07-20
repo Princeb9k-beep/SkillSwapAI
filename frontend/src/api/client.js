@@ -75,6 +75,13 @@ export const api = {
   login: (data) => request("/auth/login", { method: "POST", body: data, auth: false }),
   me: () => request("/users/me"),
   updateProfile: (data) => request("/users/me", { method: "PATCH", body: data }),
+  deleteAccount: () => request("/users/me", { method: "DELETE" }),
+  verifyEmail: (token) => request("/auth/verify-email", { method: "POST", body: { token }, auth: false }),
+  resendVerification: () => request("/auth/resend-verification", { method: "POST" }),
+  forgotPassword: (email) =>
+    request("/auth/forgot-password", { method: "POST", body: { email }, auth: false }),
+  resetPassword: (token, password) =>
+    request("/auth/reset-password", { method: "POST", body: { token, password }, auth: false }),
   // skills + matching
   getSkills: () => request("/skills"),
   addSkill: (data) => request("/skills", { method: "POST", body: data }),

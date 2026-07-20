@@ -127,6 +127,43 @@ export default function Settings() {
     notify("Signed out", "info");
   }
 
+  const [verifying, setVerifying] = useState(false);
+  async function verifyEmail() {
+    setVerifying(true);
+    try {
+      const res = await api.resendVerification();
+      if (res?.dev_token) {
+        // No email provider configured (dev) — complete verification inline.
+        await api.verifyEmail(res.dev_token);
+        updateUser({ email_verified: true });
+        notify("Email verified", "success");
+      } else {
+        notify("Verification email sent", "success");
+      }
+    } catch (err) {
+      notify(err.message, "error");
+    } finally {
+      setVerifying(false);
+    }
+  }
+
+  async function deleteAccount() {
+    if (
+      !window.confirm(
+        "Delete your account permanently? This removes all your data and can't be undone.",
+      )
+    ) {
+      return;
+    }
+    try {
+      await api.deleteAccount();
+      logout();
+      notify("Your account has been deleted.", "info");
+    } catch (err) {
+      notify(err.message, "error");
+    }
+  }
+
   const memberSince = user?.created_at
     ? new Date(user.created_at).toLocaleDateString(undefined, {
         year: "numeric",
@@ -156,7 +193,23 @@ export default function Settings() {
         <label>
           Email
           <input type="email" value={user?.email || ""} disabled readOnly />
-          <span className="field-hint">Email can't be changed.</span>
+          <span className="field-hint email-status">
+            {user?.email_verified ? (
+              <span className="verified-ok">Verified ✓</span>
+            ) : (
+              <>
+                Not verified.{" "}
+                <button
+                  type="button"
+                  className="link-btn"
+                  onClick={verifyEmail}
+                  disabled={verifying}
+                >
+                  {verifying ? "Verifying…" : "Verify email"}
+                </button>
+              </>
+            )}
+          </span>
         </label>
         <label>
           Goal
@@ -256,9 +309,14 @@ export default function Settings() {
       <div className="card settings-card settings-account">
         <h3>Account</h3>
         <p className="field-hint">You'll need to sign in again to return.</p>
-        <button type="button" className="btn btn-danger settings-signout" onClick={signOut}>
-          Sign out
-        </button>
+        <div className="account-actions">
+          <button type="button" className="btn settings-signout" onClick={signOut}>
+            Sign out
+          </button>
+          <button type="button" className="btn btn-danger" onClick={deleteAccount}>
+            Delete account
+          </button>
+        </div>
       </div>
     </section>
   );

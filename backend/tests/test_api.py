@@ -770,6 +770,57 @@ def test_partnerships_flow(client):
     assert my2["my_status"] == "accepted"
 
 
+def test_email_verification_flow(client):
+    r = client.post(
+        "/auth/signup",
+        json={"email": "verifyme@example.com", "password": "supersecret123", "name": "V"},
+    )
+    assert r.status_code == 201
+    data = r.json()["data"]
+    assert data["user"]["email_verified"] is False
+    token = data["dev_token"]  # returned outside production
+    hdr = {"Authorization": f"Bearer {token}"}
+
+    # A verification token can't be used as an access token.
+    assert client.get("/users/me", headers=hdr).status_code == 401
+
+    # Verify with the token.
+    assert client.post("/auth/verify-email", json={"token": token}).status_code == 200
+    access = {"Authorization": f"Bearer {data['token']}"}
+    assert client.get("/users/me", headers=access).json()["data"]["email_verified"] is True
+
+    # Bad token is rejected.
+    assert client.post("/auth/verify-email", json={"token": "garbage"}).status_code == 400
+
+
+def test_password_reset_flow(client):
+    email = "resetme@example.com"
+    client.post("/auth/signup", json={"email": email, "password": "originalpass1", "name": "R"})
+
+    # Forgot for an unknown email still returns 200 (no account enumeration).
+    assert client.post("/auth/forgot-password", json={"email": "nobody@example.com"}).status_code == 200
+
+    reset_token = client.post("/auth/forgot-password", json={"email": email}).json()["data"]["dev_token"]
+    # Reset the password.
+    assert client.post("/auth/reset-password", json={"token": reset_token, "password": "brandnewpass2"}).status_code == 200
+    # Old password no longer works; new one does.
+    assert client.post("/auth/login", json={"email": email, "password": "originalpass1"}).status_code == 401
+    assert client.post("/auth/login", json={"email": email, "password": "brandnewpass2"}).status_code == 200
+
+
+def test_delete_account(client):
+    hdr = _auth(client, "deleteme@example.com", "Delete Me")
+    # Add some data that should cascade away.
+    client.post("/skills", json={"name": "Rust", "kind": "have"}, headers=hdr)
+    assert client.delete("/users/me", headers=hdr).status_code == 200
+    # The token no longer resolves to a user.
+    assert client.get("/users/me", headers=hdr).status_code == 401
+    # Re-signup with the same email now succeeds (account is gone).
+    assert client.post(
+        "/auth/signup", json={"email": "deleteme@example.com", "password": "supersecret123"}
+    ).status_code == 201
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401

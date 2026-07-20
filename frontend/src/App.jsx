@@ -3,7 +3,7 @@
 // When signed out, only the Auth screen is reachable — the app tabs are gated.
 
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, Link } from "react-router-dom";
 import Nav from "./components/Nav.jsx";
 import BottomNav from "./components/BottomNav.jsx";
 import InstallPrompt from "./components/InstallPrompt.jsx";
@@ -46,6 +46,12 @@ function AuthedApp() {
   return (
     <>
       <Nav />
+      {user && user.email_verified === false && (
+        <div className="verify-banner">
+          <span>Verify your email to secure your account.</span>
+          <Link to="/settings">Verify now</Link>
+        </div>
+      )}
       <main className="container">
         {/* Skeleton (not a spinner) while a tab's lazy chunk loads — reserves
             layout and reads as faster when switching tabs. */}

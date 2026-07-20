@@ -47,6 +47,36 @@ def decode_access_token(token: str) -> int | None:
         payload = jwt.decode(
             token, get_settings().app_secret_key, algorithms=[_ALGORITHM]
         )
+        # Reject purpose-scoped tokens (verify/reset) as access tokens.
+        if payload.get("purpose") is not None:
+            return None
+        return int(payload["sub"])
+    except (jwt.InvalidTokenError, KeyError, ValueError):
+        return None
+
+
+# Purpose-scoped, short-lived JWTs for email verification and password reset.
+# Stateless (no token table); short expiry limits replay. Signed with the same
+# app secret but carry a `purpose` claim so they can't be used as access tokens.
+def create_scoped_token(user_id: int, purpose: str, ttl_minutes: int = 60) -> str:
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": str(user_id),
+        "purpose": purpose,
+        "iat": now,
+        "exp": now + timedelta(minutes=ttl_minutes),
+    }
+    return jwt.encode(payload, get_settings().app_secret_key, algorithm=_ALGORITHM)
+
+
+def decode_scoped_token(token: str, purpose: str) -> int | None:
+    """Return the user id if the token is valid AND matches `purpose`, else None."""
+    try:
+        payload = jwt.decode(
+            token, get_settings().app_secret_key, algorithms=[_ALGORITHM]
+        )
+        if payload.get("purpose") != purpose:
+            return None
         return int(payload["sub"])
     except (jwt.InvalidTokenError, KeyError, ValueError):
         return None

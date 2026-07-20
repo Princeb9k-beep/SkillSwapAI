@@ -19,6 +19,19 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=128)
 
 
+class VerifyEmailRequest(BaseModel):
+    token: str = Field(min_length=1, max_length=2000)
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=1, max_length=2000)
+    password: str = Field(min_length=8, max_length=128)
+
+
 # --- Skills ---------------------------------------------------------------
 class SkillCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255, examples=["FastAPI"])
@@ -240,6 +253,7 @@ class UserOut(BaseModel):
     notify_achievements: bool
     notify_product: bool
     onboarded: bool
+    email_verified: bool
     created_at: datetime
 
 
