@@ -80,6 +80,8 @@ export const api = {
   addSkill: (data) => request("/skills", { method: "POST", body: data }),
   deleteSkill: (id) => request(`/skills/${id}`, { method: "DELETE" }),
   getMatches: () => request("/matches"),
+  matchFeedback: (partnerId, signal) =>
+    request(`/matches/${partnerId}/feedback`, { method: "POST", body: { signal } }),
   // gamification
   getProgress: () => request("/progress"),
   getLeaderboard: () => request("/leaderboard"),

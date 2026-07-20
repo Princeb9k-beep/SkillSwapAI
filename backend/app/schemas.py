@@ -49,6 +49,10 @@ class MatchOut(BaseModel):
     reason: str
 
 
+class MatchFeedback(BaseModel):
+    signal: str = Field(pattern="^(interested|dismissed)$")
+
+
 # --- AI Coach -------------------------------------------------------------
 class CoachChat(BaseModel):
     message: str = Field(min_length=1, max_length=4000)

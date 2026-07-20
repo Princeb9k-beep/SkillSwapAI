@@ -8,8 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..database import get_session
 from ..deps import get_current_user
 from ..models import User
-from ..responses import ok
-from ..skills.matching import find_matches
+from ..responses import error, ok
+from ..schemas import MatchFeedback
+from ..skills.matching import find_matches, record_signal
 
 router = APIRouter(prefix="/matches", tags=["matches"])
 
@@ -31,3 +32,22 @@ async def matches(
         else f"Found {len(results)} match(es)."
     )
     return ok(data=results, message=msg, meta={"count": len(results)})
+
+
+@router.post("/{partner_id}/feedback")
+async def match_feedback(
+    partner_id: int,
+    payload: MatchFeedback,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> object:
+    """Record feedback on a match ('interested' or 'dismissed'). Dismissed
+    partners are hidden; interest (mutual especially) boosts ranking."""
+    if partner_id == user.id:
+        return error("You can't rate yourself.", status_code=400, code="invalid")
+    partner = await session.get(User, partner_id)
+    if partner is None:
+        return error("User not found.", status_code=404, code="not_found")
+    await record_signal(session, user.id, partner_id, payload.signal)
+    await session.commit()
+    return ok(message="Thanks — we'll tune your matches.")
