@@ -1,10 +1,23 @@
 // Settings: profile, appearance (theme), notification preferences, and account.
 // The Sign out button lives here, pinned to the bottom of the page.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import { getTheme, setTheme, THEMES } from "../theme.js";
+import {
+  pushSupported,
+  permission,
+  getExistingSubscription,
+  enablePush,
+  disablePush,
+} from "../push.js";
+
+const PUSH_REASONS = {
+  unsupported: "This browser doesn't support push notifications.",
+  "server-unconfigured": "Push isn't configured on the server yet.",
+  denied: "Notifications are blocked — allow them in your browser settings.",
+};
 
 const THEME_LABELS = { system: "System", light: "Light", dark: "Dark" };
 
@@ -35,6 +48,37 @@ export default function Settings() {
   });
   const [saving, setSaving] = useState(false);
   const [theme, setThemeState] = useState(getTheme());
+
+  // Browser push state for this device.
+  const [pushOn, setPushOn] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushMsg, setPushMsg] = useState(null);
+  const supported = pushSupported();
+
+  useEffect(() => {
+    if (!supported) return;
+    getExistingSubscription()
+      .then((sub) => setPushOn(!!sub))
+      .catch(() => {});
+  }, [supported]);
+
+  async function togglePush(v) {
+    setPushBusy(true);
+    setPushMsg(null);
+    try {
+      const res = v ? await enablePush() : await disablePush();
+      if (res.ok) {
+        setPushOn(v);
+        notify(v ? "Push notifications on" : "Push notifications off", "success");
+      } else {
+        setPushMsg(PUSH_REASONS[res.reason] || "Couldn't enable push notifications.");
+      }
+    } catch (err) {
+      setPushMsg(err.message);
+    } finally {
+      setPushBusy(false);
+    }
+  }
 
   // Notification prefs are real, server-backed settings on the user.
   const notif = {
@@ -179,6 +223,26 @@ export default function Settings() {
           onChange={(v) => setPref("notify_product", v)}
         />
         <p className="field-hint">Message and achievement alerts control your in-app notifications.</p>
+
+        <div className="setting-row" style={{ borderTop: "1px solid var(--border)" }}>
+          <span className="setting-row-text">
+            <span className="setting-row-label">Browser push on this device</span>
+            <span className="setting-row-hint muted">
+              Get message alerts even when the app is closed.
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            className="switch"
+            disabled={!supported || pushBusy}
+            checked={pushOn}
+            onChange={(e) => togglePush(e.target.checked)}
+          />
+        </div>
+        {permission() === "denied" && supported && (
+          <p className="field-hint">Notifications are blocked in your browser settings.</p>
+        )}
+        {pushMsg && <p className="field-hint">{pushMsg}</p>}
       </div>
 
       {/* About */}

@@ -50,6 +50,7 @@ from app.routers import (
     matches,
     messages,
     notifications,
+    push,
     portfolio,
     progress,
     projects,
@@ -171,6 +172,7 @@ app.include_router(skills.router)
 app.include_router(matches.router)
 app.include_router(messages.router)
 app.include_router(notifications.router)
+app.include_router(push.router)
 app.include_router(progress.router)
 app.include_router(communities.router)
 app.include_router(verification.router)

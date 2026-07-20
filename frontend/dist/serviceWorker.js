@@ -24,6 +24,44 @@ const API_PREFIXES = [
   "/resume", "/interview", "/lessons", "/docs", "/openapi.json",
 ];
 
+// --- Web Push -------------------------------------------------------------
+// Show a notification when a push arrives (even if the app/tab is closed).
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = { title: "SkillSwap AI", body: event.data ? event.data.text() : "" };
+  }
+  const title = payload.title || "SkillSwap AI";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: payload.body || "",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      data: { link: payload.link || "/" },
+    })
+  );
+});
+
+// Focus an existing tab (or open one) at the notification's link when clicked.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const link = (event.notification.data && event.notification.data.link) || "/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ("focus" in client) {
+          client.focus();
+          if ("navigate" in client) client.navigate(link).catch(() => {});
+          return;
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(link);
+    })
+  );
+});
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);

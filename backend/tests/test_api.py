@@ -611,6 +611,51 @@ def test_notification_read_forbidden_for_other_user(client):
     assert client.post(f"/notifications/{nid}/read", headers=ana).status_code == 404
 
 
+def test_push_subscription_management(client):
+    hdr = _auth(client, "pushuser@example.com", "Push User")
+
+    # VAPID unconfigured in tests -> public key is null (push disabled, degrades).
+    key = client.get("/push/vapid-public-key", headers=hdr).json()["data"]["public_key"]
+    assert key is None
+
+    sub = {
+        "endpoint": "https://push.example.com/sub/abc",
+        "keys": {"p256dh": "BPa...key", "auth": "authsecret"},
+    }
+    assert client.post("/push/subscribe", json=sub, headers=hdr).status_code == 201
+    # Re-subscribing the same endpoint is idempotent (update, not error).
+    assert client.post("/push/subscribe", json=sub, headers=hdr).status_code == 201
+
+    # Missing encryption keys -> 422.
+    bad = {"endpoint": "https://push.example.com/sub/bad", "keys": {}}
+    assert client.post("/push/subscribe", json=bad, headers=hdr).status_code == 422
+
+    # Unsubscribe removes it.
+    r = client.post(
+        "/push/unsubscribe", json={"endpoint": sub["endpoint"]}, headers=hdr
+    )
+    assert r.status_code == 200
+
+
+def test_message_send_survives_push_when_unconfigured(client):
+    ana = _auth(client, "pushana@example.com", "Push Ana")
+    bob = _auth(client, "pushbob@example.com", "Push Bob")
+    bob_id = client.get("/users/me", headers=bob).json()["data"]["id"]
+
+    # Bob has a push subscription, but VAPID is unconfigured -> push is a no-op
+    # and sending the message must still succeed.
+    client.post(
+        "/push/subscribe",
+        json={
+            "endpoint": "https://push.example.com/sub/bob",
+            "keys": {"p256dh": "BPa...key", "auth": "authsecret"},
+        },
+        headers=bob,
+    )
+    r = client.post(f"/messages/{bob_id}", json={"body": "ping"}, headers=ana)
+    assert r.status_code == 201
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401

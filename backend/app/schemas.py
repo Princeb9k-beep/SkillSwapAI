@@ -80,6 +80,16 @@ class MessageCreate(BaseModel):
     body: str = Field(min_length=1, max_length=4000)
 
 
+# --- Web Push -------------------------------------------------------------
+class PushSubscribe(BaseModel):
+    endpoint: str = Field(min_length=1, max_length=500)
+    keys: dict[str, str] = Field(default_factory=dict)
+
+
+class PushUnsubscribe(BaseModel):
+    endpoint: str = Field(min_length=1, max_length=500)
+
+
 # --- AI Twin --------------------------------------------------------------
 class TwinTrain(BaseModel):
     samples: str = Field(min_length=20, max_length=8000)
