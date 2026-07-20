@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { useApp } from "../context/AppContext.jsx";
 import { NAV_GROUPS } from "./navGroups.jsx";
+import NotificationBell from "./NotificationBell.jsx";
 
 // Flat list (desktop top bar) is derived from the same grouped source of truth
 // the mobile BottomNav uses, so the two navigations never drift apart.
@@ -10,12 +11,7 @@ const LINKS = [
 ];
 
 export default function Nav() {
-  const { user, logout, notify } = useApp();
-
-  function signOut() {
-    logout();
-    notify("Signed out", "info");
-  }
+  const { user } = useApp();
 
   return (
     <nav className="nav" aria-label="Main navigation">
@@ -32,18 +28,12 @@ export default function Nav() {
           ))}
         </div>
         <div className="nav-user">
+          <NotificationBell />
           {user?.name || user?.email ? (
-            <span className="nav-who muted" title={user.email}>
+            <NavLink to="/settings" className="nav-who muted" title="Settings">
               {user.name || user.email}
-            </span>
+            </NavLink>
           ) : null}
-          <button
-            type="button"
-            className="btn btn-danger nav-signout"
-            onClick={signOut}
-          >
-            Sign out
-          </button>
         </div>
       </div>
     </nav>

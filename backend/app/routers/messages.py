@@ -9,6 +9,8 @@ store of record.
 
 from __future__ import annotations
 
+from urllib.parse import quote
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +20,7 @@ from ..deps import get_current_user
 from ..models import Message, User
 from ..responses import error, ok
 from ..schemas import MessageCreate
+from ..skills.notifications import create_notification
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 
@@ -142,6 +145,19 @@ async def send_message(
 
     message = Message(sender_id=user.id, recipient_id=partner_id, body=payload.body.strip())
     session.add(message)
+
+    # Notify the recipient (if they haven't muted message alerts).
+    if partner.notify_messages:
+        sender_name = user.name or f"Learner #{user.id}"
+        create_notification(
+            session,
+            partner_id,
+            type="message",
+            title=f"New message from {sender_name}",
+            body=message.body,
+            link=f"/messages?to={user.id}&name={quote(sender_name)}",
+        )
+
     await session.commit()
     return ok(data=_msg_dict(message, user.id), message="Sent", status_code=201)
 

@@ -177,6 +177,9 @@ class ProfileUpdate(BaseModel):
     name: str | None = None
     goal: str | None = Field(default=None, examples=["I want to make $80k"])
     target_income: int | None = Field(default=None, examples=[80000])
+    notify_messages: bool | None = None
+    notify_achievements: bool | None = None
+    notify_product: bool | None = None
 
 
 class UserOut(BaseModel):
@@ -186,6 +189,9 @@ class UserOut(BaseModel):
     name: str | None
     goal: str | None
     target_income: int | None
+    notify_messages: bool
+    notify_achievements: bool
+    notify_product: bool
     created_at: datetime
 
 

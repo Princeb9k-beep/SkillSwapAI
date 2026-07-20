@@ -15,8 +15,9 @@
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.04);
 }
 
+/* Dark tokens shared by "system dark" and an explicit dark choice. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #0f1117;
     --surface: #171a23;
     --text: #e8eaf0;
@@ -24,6 +25,23 @@
     --border: #262b36;
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
   }
+}
+/* Explicit choice from Settings wins over the OS preference. */
+:root[data-theme="dark"] {
+  --bg: #0f1117;
+  --surface: #171a23;
+  --text: #e8eaf0;
+  --muted: #9aa1ad;
+  --border: #262b36;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+:root[data-theme="light"] {
+  --bg: #f7f8fb;
+  --surface: #ffffff;
+  --text: #1a1c25;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.04);
 }
 
 * {
@@ -444,6 +462,228 @@ a:focus-visible {
 }
 .chat-input input {
   flex: 1;
+}
+
+/* Notification bell */
+.bell-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.bell-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.bell-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.bell-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--error);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+.bell-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: min(340px, calc(100vw - 2rem));
+  max-height: 70vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+.bell-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+}
+.bell-empty {
+  padding: 1rem 0.8rem;
+  margin: 0;
+}
+.bell-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.bell-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.6rem 0.8rem;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+}
+.bell-item:hover {
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
+}
+.bell-item.unread {
+  background: color-mix(in srgb, var(--primary) 9%, transparent);
+}
+.bell-item-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.bell-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+.bell-item-body {
+  font-size: 0.82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bell-item-time {
+  font-size: 0.72rem;
+}
+
+/* Settings */
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  /* Let the Account card sink to the bottom of the viewport. */
+  min-height: calc(100vh - 220px);
+}
+.settings-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.settings-card h3 {
+  margin: 0;
+}
+.setting-about {
+  margin: 0;
+}
+/* Appearance segmented control */
+.theme-options {
+  display: inline-flex;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  width: fit-content;
+}
+.theme-option {
+  min-width: 84px;
+  min-height: 40px;
+  padding: 0.4rem 0.9rem;
+  border: none;
+  border-radius: 9px;
+  background: none;
+  color: var(--muted);
+  font-weight: 600;
+  cursor: pointer;
+}
+.theme-option.active {
+  background: var(--primary);
+  color: #fff;
+}
+.theme-option:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+/* Setting rows with a switch */
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--border);
+}
+.setting-row:first-of-type {
+  border-top: none;
+}
+.setting-row-text {
+  display: flex;
+  flex-direction: column;
+}
+.setting-row-label {
+  font-weight: 600;
+}
+.setting-row-hint {
+  font-size: 0.82rem;
+}
+/* Accessible on/off switch built on a checkbox */
+.switch {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--border);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s ease;
+}
+.switch:checked {
+  background: var(--primary);
+}
+.switch:checked::after {
+  transform: translateX(18px);
+}
+.switch:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.settings-account {
+  margin-top: auto;
+}
+.settings-signout {
+  align-self: flex-start;
 }
 
 /* Direct messaging */

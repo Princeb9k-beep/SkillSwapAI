@@ -134,6 +134,11 @@ export const api = {
   getOrders: () => request("/marketplace/orders"),
   updateOrder: (id, status) =>
     request(`/marketplace/orders/${id}`, { method: "PATCH", body: { status } }),
+  // notifications
+  notifications: () => request("/notifications"),
+  notificationsUnread: () => request("/notifications/unread/count"),
+  readNotification: (id) => request(`/notifications/${id}/read`, { method: "POST" }),
+  readAllNotifications: () => request("/notifications/read-all", { method: "POST" }),
   // direct messaging
   messageThreads: () => request("/messages/threads"),
   conversation: (partnerId) => request(`/messages/${partnerId}`),

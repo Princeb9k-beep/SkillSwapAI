@@ -572,6 +572,45 @@ def test_direct_messaging_flow(client):
     assert client.post("/messages/999999", json={"body": "ghost"}, headers=alice).status_code == 404
 
 
+def test_notifications_welcome_and_message_and_prefs(client):
+    ana = _auth(client, "notifana@example.com", "Notif Ana")
+    bob = _auth(client, "notifbob@example.com", "Notif Bob")
+    ana_id = client.get("/users/me", headers=ana).json()["data"]["id"]
+    bob_id = client.get("/users/me", headers=bob).json()["data"]["id"]
+
+    # Signup seeds a welcome notification.
+    notes = client.get("/notifications", headers=bob).json()
+    assert notes["meta"]["unread"] == 1
+    assert notes["data"][0]["type"] == "welcome"
+
+    # A message to Bob creates a notification for him.
+    client.post(f"/messages/{bob_id}", json={"body": "hello"}, headers=ana)
+    assert client.get("/notifications/unread/count", headers=bob).json()["data"]["unread"] == 2
+    top = client.get("/notifications", headers=bob).json()["data"][0]
+    assert top["type"] == "message" and "Notif Ana" in top["title"]
+    assert top["link"] == f"/messages?to={ana_id}&name=Notif%20Ana"
+
+    # Mark one read, then mark all read.
+    assert client.post(f"/notifications/{top['id']}/read", headers=bob).status_code == 200
+    assert client.get("/notifications/unread/count", headers=bob).json()["data"]["unread"] == 1
+    assert client.post("/notifications/read-all", headers=bob).status_code == 200
+    assert client.get("/notifications/unread/count", headers=bob).json()["data"]["unread"] == 0
+
+    # Muting message alerts suppresses new message notifications.
+    client.patch("/users/me", json={"notify_messages": False}, headers=bob)
+    assert client.get("/users/me", headers=bob).json()["data"]["notify_messages"] is False
+    client.post(f"/messages/{bob_id}", json={"body": "again"}, headers=ana)
+    assert client.get("/notifications/unread/count", headers=bob).json()["data"]["unread"] == 0
+
+
+def test_notification_read_forbidden_for_other_user(client):
+    ana = _auth(client, "notifx@example.com", "Notif X")
+    bob = _auth(client, "notify@example.com", "Notif Y")
+    # Bob has a welcome notification; Ana can't mark it read.
+    nid = client.get("/notifications", headers=bob).json()["data"][0]["id"]
+    assert client.post(f"/notifications/{nid}/read", headers=ana).status_code == 404
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401

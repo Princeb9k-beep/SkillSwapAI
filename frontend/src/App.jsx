@@ -9,6 +9,7 @@ import BottomNav from "./components/BottomNav.jsx";
 import InstallPrompt from "./components/InstallPrompt.jsx";
 import { AppProvider, useApp } from "./context/AppContext.jsx";
 import { LoadingState } from "./components/States.jsx";
+import { SkeletonPage } from "./components/Skeleton.jsx";
 
 const Auth = lazy(() => import("./pages/Auth.jsx"));
 const GoalInput = lazy(() => import("./pages/GoalInput.jsx"));
@@ -27,13 +28,16 @@ const Marketplace = lazy(() => import("./pages/Marketplace.jsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
 const Lessons = lazy(() => import("./pages/Lessons.jsx"));
 const Career = lazy(() => import("./pages/Career.jsx"));
+const Settings = lazy(() => import("./pages/Settings.jsx"));
 
 function AuthedApp() {
   return (
     <>
       <Nav />
       <main className="container">
-        <Suspense fallback={<LoadingState />}>
+        {/* Skeleton (not a spinner) while a tab's lazy chunk loads — reserves
+            layout and reads as faster when switching tabs. */}
+        <Suspense fallback={<SkeletonPage label="Loading page…" />}>
           <Routes>
             <Route path="/" element={<GoalInput />} />
             <Route path="/matches" element={<Matches />} />
@@ -42,6 +46,7 @@ function AuthedApp() {
             <Route path="/translate" element={<Translate />} />
             <Route path="/rooms" element={<Rooms />} />
             <Route path="/messages" element={<Messages />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/challenges" element={<Challenges />} />
             <Route path="/twin" element={<Twin />} />
             <Route path="/progress" element={<Progress />} />
