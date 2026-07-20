@@ -86,6 +86,7 @@ export const NAV_GROUPS = [
     Icon: ConnectIcon,
     links: [
       { to: "/matches", label: "Matches" },
+      { to: "/messages", label: "Messages" },
       { to: "/rooms", label: "Rooms" },
       { to: "/community", label: "Community" },
     ],

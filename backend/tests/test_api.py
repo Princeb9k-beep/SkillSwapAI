@@ -539,6 +539,39 @@ def test_practice_room_signaling_rejects_unauthenticated(client):
         assert msg["type"] == "error"
 
 
+def test_direct_messaging_flow(client):
+    alice = _auth(client, "msgalice@example.com", "Msg Alice")
+    bob = _auth(client, "msgbob@example.com", "Msg Bob")
+    alice_id = client.get("/users/me", headers=alice).json()["data"]["id"]
+    bob_id = client.get("/users/me", headers=bob).json()["data"]["id"]
+
+    # Alice messages Bob.
+    r = client.post(f"/messages/{bob_id}", json={"body": "hi Bob"}, headers=alice)
+    assert r.status_code == 201 and r.json()["data"]["mine"] is True
+
+    # Bob sees one unread thread from Alice.
+    threads = client.get("/messages/threads", headers=bob).json()["data"]
+    assert len(threads) == 1
+    t = threads[0]
+    assert t["partner_id"] == alice_id and t["unread"] == 1 and t["last_message"] == "hi Bob"
+    assert client.get("/messages/unread/count", headers=bob).json()["data"]["unread"] == 1
+
+    # Opening the conversation marks it read.
+    convo = client.get(f"/messages/{alice_id}", headers=bob).json()["data"]
+    assert convo["partner_name"] == "Msg Alice"
+    assert [m["body"] for m in convo["messages"]] == ["hi Bob"]
+    assert client.get("/messages/unread/count", headers=bob).json()["data"]["unread"] == 0
+
+    # Bob replies; Alice's view shows both, ordered oldest-first.
+    client.post(f"/messages/{alice_id}", json={"body": "hey Alice"}, headers=bob)
+    convo_a = client.get(f"/messages/{bob_id}", headers=alice).json()["data"]
+    assert [m["body"] for m in convo_a["messages"]] == ["hi Bob", "hey Alice"]
+
+    # Guardrails: no self-messaging, unknown recipient 404.
+    assert client.post(f"/messages/{alice_id}", json={"body": "me"}, headers=alice).status_code == 400
+    assert client.post("/messages/999999", json={"body": "ghost"}, headers=alice).status_code == 404
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401

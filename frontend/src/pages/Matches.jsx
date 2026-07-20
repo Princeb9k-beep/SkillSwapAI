@@ -2,6 +2,7 @@
 // complementary learning partners ranked by compatibility.
 
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import { ErrorBanner, EmptyState } from "../components/States.jsx";
@@ -160,9 +161,17 @@ function MatchCard({ m }) {
           </div>
         </form>
       ) : (
-        <button type="button" className="btn rate-btn" onClick={() => setRating(true)}>
-          Rate partner
-        </button>
+        <div className="match-actions">
+          <Link
+            className="btn btn-primary"
+            to={`/messages?to=${m.user_id}&name=${encodeURIComponent(m.name)}`}
+          >
+            Message
+          </Link>
+          <button type="button" className="btn rate-btn" onClick={() => setRating(true)}>
+            Rate partner
+          </button>
+        </div>
       )}
     </article>
   );

@@ -446,6 +446,108 @@ a:focus-visible {
   flex: 1;
 }
 
+/* Direct messaging */
+.messages-layout {
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+@media (max-width: 720px) {
+  .messages-layout {
+    grid-template-columns: 1fr;
+  }
+}
+.messages-threads {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-align: left;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  cursor: pointer;
+}
+.thread.active {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+.thread-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.thread-badge {
+  min-width: 1.3rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+}
+.thread-preview {
+  font-size: 0.82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.messages-conversation {
+  display: flex;
+  flex-direction: column;
+  min-height: 360px;
+}
+.conversation-title {
+  margin: 0 0 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.conversation-log {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  overflow-y: auto;
+  max-height: 420px;
+  padding: 0.25rem;
+}
+.bubble {
+  align-self: flex-start;
+  max-width: 78%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--muted) 16%, transparent);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.bubble-mine {
+  align-self: flex-end;
+  background: var(--primary);
+  color: #fff;
+}
+.conversation-input {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+.conversation-input input {
+  flex: 1;
+}
+.match-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 /* Mobile app-style bottom navigation (5 slots: 4 groups + center "+"). */
 .bottomnav {
   position: fixed;

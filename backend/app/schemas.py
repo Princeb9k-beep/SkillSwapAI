@@ -75,6 +75,11 @@ class RoomNotesUpdate(BaseModel):
     notes: str = Field(default="", max_length=20000)
 
 
+# --- Direct messaging -----------------------------------------------------
+class MessageCreate(BaseModel):
+    body: str = Field(min_length=1, max_length=4000)
+
+
 # --- AI Twin --------------------------------------------------------------
 class TwinTrain(BaseModel):
     samples: str = Field(min_length=20, max_length=8000)

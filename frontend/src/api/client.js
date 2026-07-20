@@ -134,6 +134,12 @@ export const api = {
   getOrders: () => request("/marketplace/orders"),
   updateOrder: (id, status) =>
     request(`/marketplace/orders/${id}`, { method: "PATCH", body: { status } }),
+  // direct messaging
+  messageThreads: () => request("/messages/threads"),
+  conversation: (partnerId) => request(`/messages/${partnerId}`),
+  sendMessage: (partnerId, body) =>
+    request(`/messages/${partnerId}`, { method: "POST", body: { body } }),
+  unreadCount: () => request("/messages/unread/count"),
   // video practice rooms
   listRooms: () => request("/rooms"),
   createRoom: (data) => request("/rooms", { method: "POST", body: data }),

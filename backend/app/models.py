@@ -466,3 +466,25 @@ class RoomParticipant(Base):
     left_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+
+
+class Message(Base):
+    """A 1:1 direct message between two users (spec §2.3). Conversations are
+    derived by pairing sender/recipient; unread state powers thread badges."""
+
+    __tablename__ = "messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    sender_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    recipient_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    body: Mapped[str] = mapped_column(Text)
+    read: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="0", index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
