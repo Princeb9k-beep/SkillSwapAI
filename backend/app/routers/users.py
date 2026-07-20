@@ -46,3 +46,15 @@ async def update_me(
         data=UserOut.model_validate(user).model_dump(mode="json"),
         message="Profile updated",
     )
+
+
+@router.delete("/me")
+async def delete_me(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> object:
+    """Permanently delete the current account and all its data (cascades via
+    ON DELETE CASCADE across skills, roadmaps, messages, notifications, etc.)."""
+    await session.delete(user)
+    await session.commit()
+    return ok(message="Your account has been deleted.")

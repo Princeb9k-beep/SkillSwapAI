@@ -784,6 +784,34 @@ a:focus-visible {
 .settings-signout {
   align-self: flex-start;
 }
+.account-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.verified-ok {
+  color: var(--success);
+  font-weight: 600;
+}
+.auth-links {
+  text-align: center;
+}
+/* Email-verification nudge banner */
+.verify-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 1rem;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+.verify-banner a {
+  color: var(--primary);
+  font-weight: 700;
+}
 
 /* Direct messaging */
 .messages-layout {
