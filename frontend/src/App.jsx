@@ -28,6 +28,7 @@ const Marketplace = lazy(() => import("./pages/Marketplace.jsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
 const Lessons = lazy(() => import("./pages/Lessons.jsx"));
 const Career = lazy(() => import("./pages/Career.jsx"));
+const Settings = lazy(() => import("./pages/Settings.jsx"));
 
 function AuthedApp() {
   return (
@@ -45,6 +46,7 @@ function AuthedApp() {
             <Route path="/translate" element={<Translate />} />
             <Route path="/rooms" element={<Rooms />} />
             <Route path="/messages" element={<Messages />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/challenges" element={<Challenges />} />
             <Route path="/twin" element={<Twin />} />
             <Route path="/progress" element={<Progress />} />

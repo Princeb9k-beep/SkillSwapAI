@@ -99,6 +99,7 @@ export const NAV_GROUPS = [
       { to: "/career", label: "Career" },
       { to: "/market", label: "Market" },
       { to: "/verify", label: "Verify" },
+      { to: "/settings", label: "Settings" },
     ],
   },
 ];
