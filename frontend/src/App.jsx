@@ -5,6 +5,7 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import Nav from "./components/Nav.jsx";
+import BottomNav from "./components/BottomNav.jsx";
 import InstallPrompt from "./components/InstallPrompt.jsx";
 import { AppProvider, useApp } from "./context/AppContext.jsx";
 import { LoadingState } from "./components/States.jsx";
@@ -55,6 +56,7 @@ function AuthedApp() {
           </Routes>
         </Suspense>
       </main>
+      <BottomNav />
     </>
   );
 }

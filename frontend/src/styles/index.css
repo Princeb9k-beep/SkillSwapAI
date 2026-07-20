@@ -82,34 +82,12 @@ h1 {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
-/* Collapsible menu — a dropdown panel on mobile */
+/* Mobile: the top bar shows only brand + sign-out; the grouped BottomNav
+   handles navigation. Desktop reveals the full horizontal link list. */
 .nav-menu {
-  display: none;
-}
-.nav-menu.open {
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  padding: 0.75rem max(1.25rem, env(safe-area-inset-left)) 1rem;
-}
-.nav-menu.open .nav-links {
-  flex-direction: column;
-  gap: 0.15rem;
-}
-.nav-menu.open .nav-link {
-  width: 100%;
-}
-.nav-menu.open .nav-user {
-  margin: 0.5rem 0 0;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border);
+  align-items: center;
+  margin-left: auto;
 }
 .brand {
   font-weight: 800;
@@ -125,40 +103,29 @@ h1 {
 .brand-ai {
   color: var(--primary);
 }
+/* Mobile: the flat link list is hidden — the BottomNav replaces it. */
 .nav-links {
-  display: flex;
+  display: none;
   gap: 0.5rem;
   flex-wrap: wrap;
 }
-/* Desktop: horizontal bar (hamburger hidden, menu inline) */
+/* Desktop: horizontal bar with every tab inline; no bottom bar. */
 @media (min-width: 900px) {
   .nav-toggle {
     display: none;
   }
-  .nav-menu,
-  .nav-menu.open {
-    display: flex;
+  .nav-menu {
     flex: 1;
     flex-direction: row;
     align-items: center;
     gap: 0.75rem;
-    position: static;
-    inset: auto;
-    padding: 0;
-    border: none;
-    box-shadow: none;
-    background: none;
   }
-  .nav-menu .nav-links {
+  .nav-links {
+    display: flex;
     flex-direction: row;
-  }
-  .nav-menu.open .nav-link {
-    width: auto;
   }
   .nav-menu .nav-user {
     margin: 0 0 0 auto;
-    padding-top: 0;
-    border-top: none;
   }
 }
 .nav-link {
@@ -479,11 +446,137 @@ a:focus-visible {
   flex: 1;
 }
 
+/* Mobile app-style bottom navigation (5 slots: 4 groups + center "+"). */
+.bottomnav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 0.25rem;
+  padding: 0.4rem 0.5rem calc(0.4rem + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+}
+.bottomnav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  min-height: 52px;
+  padding: 0.35rem 0.2rem;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 10px;
+}
+.bottomnav-item.active,
+.bottomnav-item.open {
+  color: var(--primary);
+}
+.bottomnav-item:focus-visible,
+.bottomnav-create:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+/* Raised center action */
+.bottomnav-create {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin: 0 0.25rem;
+  transform: translateY(-12px);
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 45%, transparent);
+  text-decoration: none;
+}
+.bottomnav-create.active {
+  filter: brightness(1.05);
+}
+/* Sheet that reveals a group's tabs above the bar */
+.bottomnav-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 29;
+  background: rgba(0, 0, 0, 0.3);
+}
+.bottomnav-sheet {
+  position: fixed;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  z-index: 31;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.6rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+.bottomnav-sheet-title {
+  margin: 0.1rem 0.4rem 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.bottomnav-sheet-link {
+  display: flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--text);
+  font-weight: 600;
+}
+.bottomnav-sheet-link:hover {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+.bottomnav-sheet-link.active {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+/* Keep page content clear of the fixed bar on mobile. */
+@media (max-width: 899px) {
+  .container {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+}
+/* Desktop: the top bar is the nav; hide the bottom bar entirely. */
+@media (min-width: 900px) {
+  .bottomnav,
+  .bottomnav-sheet,
+  .bottomnav-scrim {
+    display: none;
+  }
+  .install-banner {
+    bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
 /* PWA install banner */
 .install-banner {
   position: fixed;
   left: 50%;
-  bottom: max(1rem, env(safe-area-inset-bottom));
+  /* Sit above the mobile bottom nav; drops to 1rem on desktop (no bottom bar). */
+  bottom: calc(84px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   z-index: 60;
   display: flex;
