@@ -487,6 +487,58 @@ def test_translation(client):
     assert data["target_language"] == "Spanish" and isinstance(data["translation"], str)
 
 
+def test_practice_rooms_lobby(client):
+    host = _auth(client, "roomhost@example.com", "Room Host")
+    guest = _auth(client, "roomguest@example.com", "Room Guest")
+
+    # Create a room.
+    r = client.post("/rooms", json={"title": "Mock interview", "topic": "Careers"}, headers=host)
+    assert r.status_code == 201
+    room = r.json()["data"]
+    code = room["code"]
+    assert room["title"] == "Mock interview" and room["is_open"] is True
+
+    # It shows up in the open lobby.
+    listed = client.get("/rooms", headers=guest).json()["data"]
+    assert any(x["code"] == code for x in listed)
+
+    # Detail carries shared notes.
+    detail = client.get(f"/rooms/{code}", headers=guest).json()["data"]
+    assert detail["code"] == code and "notes" in detail
+
+    # Notes persist.
+    assert client.put(f"/rooms/{code}/notes", json={"notes": "agenda"}, headers=host).status_code == 200
+    assert client.get(f"/rooms/{code}", headers=host).json()["data"]["notes"] == "agenda"
+
+    # Only the host can close it.
+    assert client.post(f"/rooms/{code}/close", headers=guest).status_code == 403
+    assert client.post(f"/rooms/{code}/close", headers=host).status_code == 200
+
+    # Closed rooms drop out of the lobby.
+    listed_after = client.get("/rooms", headers=host).json()["data"]
+    assert all(x["code"] != code for x in listed_after)
+
+
+def test_practice_room_signaling(client):
+    host = _auth(client, "sig1@example.com", "Sig One")
+    uid = client.get("/users/me", headers=host).json()["data"]["id"]
+    code = client.post("/rooms", json={"title": "Pairing"}, headers=host).json()["data"]["code"]
+
+    # The signaling socket greets a peer with a welcome + the current peer list.
+    with client.websocket_connect(f"/rooms/ws/{code}?uid={uid}") as ws:
+        hello = ws.receive_json()
+        assert hello["type"] == "welcome"
+        assert isinstance(hello["peers"], list) and "peer_id" in hello
+
+
+def test_practice_room_signaling_rejects_unauthenticated(client):
+    host = _auth(client, "sig2@example.com", "Sig Two")
+    code = client.post("/rooms", json={"title": "Locked"}, headers=host).json()["data"]["code"]
+    with client.websocket_connect(f"/rooms/ws/{code}") as ws:
+        msg = ws.receive_json()
+        assert msg["type"] == "error"
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401

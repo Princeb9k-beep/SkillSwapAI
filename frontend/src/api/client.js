@@ -21,6 +21,15 @@ export function setToken(token) {
   else localStorage.removeItem(TOKEN_KEY);
 }
 
+// Build the signaling WebSocket URL for a practice room. Browsers can't set
+// Authorization headers on a WebSocket, so the JWT rides as a query param.
+export function roomSocketUrl(code) {
+  const origin = BASE || window.location.origin;
+  const wsBase = origin.replace(/^http/, "ws");
+  const token = getToken();
+  return `${wsBase}/rooms/ws/${encodeURIComponent(code)}?token=${encodeURIComponent(token || "")}`;
+}
+
 // Optional hook so the app can react to auth expiry (401) globally.
 let onUnauthorized = null;
 export function setUnauthorizedHandler(fn) {
@@ -125,6 +134,13 @@ export const api = {
   getOrders: () => request("/marketplace/orders"),
   updateOrder: (id, status) =>
     request(`/marketplace/orders/${id}`, { method: "PATCH", body: { status } }),
+  // video practice rooms
+  listRooms: () => request("/rooms"),
+  createRoom: (data) => request("/rooms", { method: "POST", body: data }),
+  getRoom: (code) => request(`/rooms/${code}`),
+  saveRoomNotes: (code, notes) =>
+    request(`/rooms/${code}/notes`, { method: "PUT", body: { notes } }),
+  closeRoom: (code) => request(`/rooms/${code}/close`, { method: "POST" }),
   // features
   getRoadmap: () => request("/roadmap"),
   generateRoadmap: (data) => request("/roadmap", { method: "POST", body: data }),

@@ -65,6 +65,16 @@ class TranslateRequest(BaseModel):
     target_language: str = Field(min_length=2, max_length=40)
 
 
+# --- Video Practice Rooms -------------------------------------------------
+class RoomCreate(BaseModel):
+    title: str = Field(min_length=2, max_length=120, examples=["Mock interview practice"])
+    topic: str = Field(default="General", min_length=1, max_length=60)
+
+
+class RoomNotesUpdate(BaseModel):
+    notes: str = Field(default="", max_length=20000)
+
+
 # --- AI Twin --------------------------------------------------------------
 class TwinTrain(BaseModel):
     samples: str = Field(min_length=20, max_length=8000)
