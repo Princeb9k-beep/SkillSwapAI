@@ -89,6 +89,7 @@ export const NAV_GROUPS = [
       { to: "/messages", label: "Messages" },
       { to: "/rooms", label: "Rooms" },
       { to: "/community", label: "Community" },
+      { to: "/meetups", label: "Meetups" },
     ],
   },
   {
@@ -98,6 +99,7 @@ export const NAV_GROUPS = [
     links: [
       { to: "/career", label: "Career" },
       { to: "/market", label: "Market" },
+      { to: "/partners", label: "Partners" },
       { to: "/verify", label: "Verify" },
       { to: "/settings", label: "Settings" },
     ],

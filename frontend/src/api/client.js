@@ -136,6 +136,23 @@ export const api = {
   getOrders: () => request("/marketplace/orders"),
   updateOrder: (id, status) =>
     request(`/marketplace/orders/${id}`, { method: "PATCH", body: { status } }),
+  // local meetups
+  listMeetups: () => request("/meetups"),
+  createMeetup: (data) => request("/meetups", { method: "POST", body: data }),
+  rsvpMeetup: (id) => request(`/meetups/${id}/rsvp`, { method: "POST" }),
+  cancelMeetup: (id) => request(`/meetups/${id}/cancel`, { method: "POST" }),
+  deleteMeetup: (id) => request(`/meetups/${id}`, { method: "DELETE" }),
+  // company partnerships
+  listCompanies: () => request("/partnerships/companies"),
+  createCompany: (data) => request("/partnerships/companies", { method: "POST", body: data }),
+  postChallenge: (companyId, data) =>
+    request(`/partnerships/companies/${companyId}/challenges`, { method: "POST", body: data }),
+  listOpportunities: () => request("/partnerships/challenges"),
+  submitToChallenge: (id, content) =>
+    request(`/partnerships/challenges/${id}/submit`, { method: "POST", body: { content } }),
+  challengeSubmissions: (id) => request(`/partnerships/challenges/${id}/submissions`),
+  reviewSubmission: (id, status) =>
+    request(`/partnerships/submissions/${id}/review`, { method: "POST", body: { status } }),
   // web push
   vapidKey: () => request("/push/vapid-public-key"),
   pushSubscribe: (sub) => request("/push/subscribe", { method: "POST", body: sub }),

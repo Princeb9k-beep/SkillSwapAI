@@ -1,6 +1,6 @@
 // Minimal offline cache for the app shell. Network-first for navigation so users
 // always get fresh content when online, falling back to cache when offline.
-const CACHE = "skillswap-v1";
+const CACHE = "skillswap-v2";
 const SHELL = ["/", "/index.html"];
 
 self.addEventListener("install", (event) => {
@@ -17,12 +17,10 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Paths owned by the API — never cached, since the frontend and backend now
-// share an origin (single-app deploy). Everything else same-origin is shell/assets.
-const API_PREFIXES = [
-  "/health", "/users", "/roadmap", "/projects",
-  "/resume", "/interview", "/lessons", "/docs", "/openapi.json",
-];
+// Static assets we cache (network-first). Everything that isn't a navigation or
+// one of these is treated as an API/data call and left entirely to the network,
+// so the SW can never cache or shadow a JSON response on a shared-origin deploy.
+const ASSET_RE = /\.(?:js|css|png|jpg|jpeg|svg|gif|ico|webmanifest|woff2?|ttf|map)$/;
 
 // --- Web Push -------------------------------------------------------------
 // Show a notification when a push arrives (even if the app/tab is closed).
@@ -65,12 +63,13 @@ self.addEventListener("notificationclick", (event) => {
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
-  // Only handle same-origin GETs, and only for the shell/assets — never the API.
   if (request.method !== "GET" || url.origin !== self.location.origin) {
     return;
   }
-  if (API_PREFIXES.some((p) => url.pathname === p || url.pathname.startsWith(p + "/"))) {
-    return;
+  const isNavigation = request.mode === "navigate";
+  const isAsset = url.pathname.startsWith("/assets/") || ASSET_RE.test(url.pathname);
+  if (!isNavigation && !isAsset) {
+    return; // API/data request — straight to the network, never cached.
   }
   event.respondWith(
     fetch(request)
@@ -79,6 +78,8 @@ self.addEventListener("fetch", (event) => {
         caches.open(CACHE).then((c) => c.put(request, copy));
         return res;
       })
-      .catch(() => caches.match(request).then((r) => r || caches.match("/")))
+      .catch(() =>
+        caches.match(request).then((r) => r || caches.match("/index.html"))
+      )
   );
 });
