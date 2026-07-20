@@ -134,6 +134,11 @@ export const api = {
   getOrders: () => request("/marketplace/orders"),
   updateOrder: (id, status) =>
     request(`/marketplace/orders/${id}`, { method: "PATCH", body: { status } }),
+  // web push
+  vapidKey: () => request("/push/vapid-public-key"),
+  pushSubscribe: (sub) => request("/push/subscribe", { method: "POST", body: sub }),
+  pushUnsubscribe: (endpoint) =>
+    request("/push/unsubscribe", { method: "POST", body: { endpoint } }),
   // notifications
   notifications: () => request("/notifications"),
   notificationsUnread: () => request("/notifications/unread/count"),

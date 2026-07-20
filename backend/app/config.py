@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     app_debug: bool = False
     cors_origins: str = "*"
 
+    # Web Push (VAPID) — optional. When unset, push is disabled and the app
+    # degrades to in-app notifications only.
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_subject: str = "mailto:admin@skillswapai.app"
+
     # AI/cache tuning
     ai_cache_ttl_seconds: int = 60 * 60 * 24      # cache AI responses for a day
     lock_ttl_ms: int = 30_000                     # distributed lock lease

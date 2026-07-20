@@ -21,6 +21,7 @@ from ..models import Message, User
 from ..responses import error, ok
 from ..schemas import MessageCreate
 from ..skills.notifications import create_notification
+from ..skills.webpush import push_to_user
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 
@@ -147,6 +148,7 @@ async def send_message(
     session.add(message)
 
     # Notify the recipient (if they haven't muted message alerts).
+    link = f"/messages?to={user.id}&name={quote(user.name or f'Learner #{user.id}')}"
     if partner.notify_messages:
         sender_name = user.name or f"Learner #{user.id}"
         create_notification(
@@ -155,10 +157,24 @@ async def send_message(
             type="message",
             title=f"New message from {sender_name}",
             body=message.body,
-            link=f"/messages?to={user.id}&name={quote(sender_name)}",
+            link=link,
         )
 
     await session.commit()
+
+    # Best-effort browser push to the recipient's devices (no-op if unconfigured).
+    if partner.notify_messages:
+        try:
+            await push_to_user(
+                session,
+                partner_id,
+                title=f"New message from {user.name or 'a partner'}",
+                body=message.body,
+                link=link,
+            )
+        except Exception:  # never let push failures break sending
+            pass
+
     return ok(data=_msg_dict(message, user.id), message="Sent", status_code=201)
 
 
