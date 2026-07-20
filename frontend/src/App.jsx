@@ -29,8 +29,18 @@ const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
 const Lessons = lazy(() => import("./pages/Lessons.jsx"));
 const Career = lazy(() => import("./pages/Career.jsx"));
 const Settings = lazy(() => import("./pages/Settings.jsx"));
+const Onboarding = lazy(() => import("./pages/Onboarding.jsx"));
 
 function AuthedApp() {
+  const { user } = useApp();
+  // First-run: guide brand-new users before dropping them into the full app.
+  if (user && user.onboarded === false) {
+    return (
+      <Suspense fallback={<LoadingState />}>
+        <Onboarding />
+      </Suspense>
+    );
+  }
   return (
     <>
       <Nav />

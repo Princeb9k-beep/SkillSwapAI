@@ -656,6 +656,17 @@ def test_message_send_survives_push_when_unconfigured(client):
     assert r.status_code == 201
 
 
+def test_onboarding_flag(client):
+    hdr = _auth(client, "onboardme@example.com", "Onboard Me")
+    # New users start un-onboarded.
+    me = client.get("/users/me", headers=hdr).json()["data"]
+    assert me["onboarded"] is False
+    # Completing onboarding persists the flag.
+    r = client.patch("/users/me", json={"onboarded": True}, headers=hdr)
+    assert r.status_code == 200 and r.json()["data"]["onboarded"] is True
+    assert client.get("/users/me", headers=hdr).json()["data"]["onboarded"] is True
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401
