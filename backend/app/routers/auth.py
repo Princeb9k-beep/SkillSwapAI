@@ -11,6 +11,7 @@ from ..deps import get_user_by_email
 from ..models import User
 from ..responses import error, ok
 from ..schemas import LoginRequest, SignupRequest, UserOut
+from ..skills.notifications import create_notification
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -42,6 +43,17 @@ async def signup(
     session.add(user)
     await session.commit()
     await session.refresh(user)  # need created_at for UserOut
+
+    # Greet the new user so their notification bell isn't empty.
+    create_notification(
+        session,
+        user.id,
+        type="welcome",
+        title="Welcome to SkillSwap AI",
+        body="Add your skills to find your first learning match.",
+        link="/matches",
+    )
+    await session.commit()
     return ok(data=_auth_payload(user), message="Account created", status_code=201)
 
 

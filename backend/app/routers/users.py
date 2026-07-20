@@ -33,6 +33,12 @@ async def update_me(
         user.goal = payload.goal
     if payload.target_income is not None:
         user.target_income = payload.target_income
+    if payload.notify_messages is not None:
+        user.notify_messages = payload.notify_messages
+    if payload.notify_achievements is not None:
+        user.notify_achievements = payload.notify_achievements
+    if payload.notify_product is not None:
+        user.notify_product = payload.notify_product
     await session.commit()
     return ok(
         data=UserOut.model_validate(user).model_dump(mode="json"),

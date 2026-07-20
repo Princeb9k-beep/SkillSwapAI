@@ -42,6 +42,16 @@ class User(Base):
     level: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
     streak: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     last_active_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # --- Notification preferences ---
+    notify_messages: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default="1"
+    )
+    notify_achievements: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default="1"
+    )
+    notify_product: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="0"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -482,6 +492,30 @@ class Message(Base):
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
     body: Mapped[str] = mapped_column(Text)
+    read: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="0", index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class Notification(Base):
+    """An in-app notification for a user, created by real events (a new message,
+    an earned achievement, a welcome on signup). Surfaced via the nav bell."""
+
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    # machine category: "message" | "achievement" | "welcome" | "system"
+    type: Mapped[str] = mapped_column(String(20), default="system")
+    title: Mapped[str] = mapped_column(String(160))
+    body: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # in-app route to open when clicked (e.g. "/messages?to=3")
+    link: Mapped[str | None] = mapped_column(String(300), nullable=True)
     read: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default="0", index=True
     )

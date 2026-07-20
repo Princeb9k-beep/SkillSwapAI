@@ -1,25 +1,10 @@
 // Settings: profile, appearance (theme), notification preferences, and account.
 // The Sign out button lives here, pinned to the bottom of the page.
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import { getTheme, setTheme, THEMES } from "../theme.js";
-
-const PREFS_KEY = "skillswap_prefs";
-const DEFAULT_PREFS = {
-  challengeReminders: true,
-  messageAlerts: true,
-  productUpdates: false,
-};
-
-function loadPrefs() {
-  try {
-    return { ...DEFAULT_PREFS, ...JSON.parse(localStorage.getItem(PREFS_KEY) || "{}") };
-  } catch {
-    return { ...DEFAULT_PREFS };
-  }
-}
 
 const THEME_LABELS = { system: "System", light: "Light", dark: "Dark" };
 
@@ -50,11 +35,24 @@ export default function Settings() {
   });
   const [saving, setSaving] = useState(false);
   const [theme, setThemeState] = useState(getTheme());
-  const [prefs, setPrefs] = useState(loadPrefs);
 
-  useEffect(() => {
-    localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
-  }, [prefs]);
+  // Notification prefs are real, server-backed settings on the user.
+  const notif = {
+    notify_messages: user?.notify_messages ?? true,
+    notify_achievements: user?.notify_achievements ?? true,
+    notify_product: user?.notify_product ?? false,
+  };
+
+  async function setPref(key, value) {
+    updateUser({ [key]: value }); // optimistic
+    try {
+      const updated = await api.updateProfile({ [key]: value });
+      updateUser(updated);
+    } catch (err) {
+      updateUser({ [key]: !value }); // revert
+      notify(err.message, "error");
+    }
+  }
 
   async function saveProfile(e) {
     e.preventDefault();
@@ -163,24 +161,24 @@ export default function Settings() {
       <div className="card settings-card">
         <h3>Notifications</h3>
         <Toggle
-          label="Daily challenge reminders"
-          hint="Nudge me to keep my streak going."
-          checked={prefs.challengeReminders}
-          onChange={(v) => setPrefs((p) => ({ ...p, challengeReminders: v }))}
+          label="Message alerts"
+          hint="Notify me when a partner sends me a message."
+          checked={notif.notify_messages}
+          onChange={(v) => setPref("notify_messages", v)}
         />
         <Toggle
-          label="Message alerts"
-          hint="Notify me when a partner messages me."
-          checked={prefs.messageAlerts}
-          onChange={(v) => setPrefs((p) => ({ ...p, messageAlerts: v }))}
+          label="Achievement alerts"
+          hint="Celebrate when I unlock an achievement."
+          checked={notif.notify_achievements}
+          onChange={(v) => setPref("notify_achievements", v)}
         />
         <Toggle
           label="Product updates"
           hint="Occasional news about new features."
-          checked={prefs.productUpdates}
-          onChange={(v) => setPrefs((p) => ({ ...p, productUpdates: v }))}
+          checked={notif.notify_product}
+          onChange={(v) => setPref("notify_product", v)}
         />
-        <p className="field-hint">Preferences are saved to this device.</p>
+        <p className="field-hint">Message and achievement alerts control your in-app notifications.</p>
       </div>
 
       {/* About */}

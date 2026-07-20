@@ -79,7 +79,24 @@ async def sync_achievements(session: AsyncSession, user: User) -> list[Achieveme
 async def record_activity(
     session: AsyncSession, user: User, xp: int
 ) -> list[Achievement]:
-    """Convenience: award XP, bump streak, sync achievements (no commit)."""
+    """Convenience: award XP, bump streak, sync achievements (no commit).
+
+    Newly-earned achievements also queue an in-app notification when the user
+    has achievement alerts enabled."""
     award_xp(user, xp)
     touch_streak(user)
-    return await sync_achievements(session, user)
+    newly = await sync_achievements(session, user)
+    if newly and getattr(user, "notify_achievements", True):
+        # Local import avoids a circular import (skills package ↔ models).
+        from .notifications import create_notification
+
+        for ach in newly:
+            create_notification(
+                session,
+                user.id,
+                type="achievement",
+                title=f"Achievement unlocked: {ach.title}",
+                body=ach.description,
+                link="/progress",
+            )
+    return newly
