@@ -9,6 +9,7 @@ import BottomNav from "./components/BottomNav.jsx";
 import InstallPrompt from "./components/InstallPrompt.jsx";
 import { AppProvider, useApp } from "./context/AppContext.jsx";
 import { LoadingState } from "./components/States.jsx";
+import { SkeletonPage } from "./components/Skeleton.jsx";
 
 const Auth = lazy(() => import("./pages/Auth.jsx"));
 const GoalInput = lazy(() => import("./pages/GoalInput.jsx"));
@@ -33,7 +34,9 @@ function AuthedApp() {
     <>
       <Nav />
       <main className="container">
-        <Suspense fallback={<LoadingState />}>
+        {/* Skeleton (not a spinner) while a tab's lazy chunk loads — reserves
+            layout and reads as faster when switching tabs. */}
+        <Suspense fallback={<SkeletonPage label="Loading page…" />}>
           <Routes>
             <Route path="/" element={<GoalInput />} />
             <Route path="/matches" element={<Matches />} />
