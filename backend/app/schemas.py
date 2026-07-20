@@ -53,6 +53,38 @@ class MatchFeedback(BaseModel):
     signal: str = Field(pattern="^(interested|dismissed)$")
 
 
+# --- Local Meetups --------------------------------------------------------
+class MeetupCreate(BaseModel):
+    title: str = Field(min_length=2, max_length=160)
+    description: str | None = Field(default=None, max_length=4000)
+    location: str = Field(default="Online", min_length=1, max_length=200)
+    starts_at: datetime
+    capacity: int = Field(default=0, ge=0, le=100000)
+
+
+# --- Company Partnerships -------------------------------------------------
+class CompanyCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=160)
+    description: str | None = Field(default=None, max_length=4000)
+    website: str | None = Field(default=None, max_length=300)
+
+
+class ChallengeCreate(BaseModel):
+    title: str = Field(min_length=2, max_length=200)
+    description: str | None = Field(default=None, max_length=6000)
+    kind: str = Field(default="challenge", pattern="^(challenge|scholarship|internship)$")
+    reward: str | None = Field(default=None, max_length=200)
+    deadline: str | None = Field(default=None, max_length=60)
+
+
+class SubmissionCreate(BaseModel):
+    content: str = Field(min_length=1, max_length=8000)
+
+
+class SubmissionReview(BaseModel):
+    status: str = Field(pattern="^(accepted|rejected)$")
+
+
 # --- AI Coach -------------------------------------------------------------
 class CoachChat(BaseModel):
     message: str = Field(min_length=1, max_length=4000)

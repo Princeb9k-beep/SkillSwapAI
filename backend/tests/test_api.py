@@ -699,6 +699,77 @@ def test_match_signals_dismiss_and_mutual_interest(client):
     assert client.post(f"/matches/{ben_id}/feedback", json={"signal": "nope"}, headers=ana).status_code == 422
 
 
+def test_meetups_create_rsvp_capacity(client):
+    host = _auth(client, "meethost@example.com", "Meet Host")
+    guest = _auth(client, "meetguest@example.com", "Meet Guest")
+    third = _auth(client, "meetthird@example.com", "Meet Third")
+
+    r = client.post(
+        "/meetups",
+        json={
+            "title": "Python study night",
+            "location": "Online",
+            "starts_at": "2099-01-01T18:00:00+00:00",
+            "capacity": 2,
+        },
+        headers=host,
+    )
+    assert r.status_code == 201
+    mid = r.json()["data"]["id"]
+    # Host is auto-RSVP'd (attendee_count 1, capacity 2).
+    listed = client.get("/meetups", headers=guest).json()["data"]
+    m = next(x for x in listed if x["id"] == mid)
+    assert m["attendee_count"] == 1 and m["joined"] is False
+
+    # Guest fills the last seat.
+    assert client.post(f"/meetups/{mid}/rsvp", headers=guest).status_code == 200
+    # Third is turned away (full).
+    assert client.post(f"/meetups/{mid}/rsvp", headers=third).status_code == 409
+    # Guest cancels, third can now join.
+    assert client.post(f"/meetups/{mid}/cancel", headers=guest).status_code == 200
+    assert client.post(f"/meetups/{mid}/rsvp", headers=third).status_code == 200
+    # Non-host can't delete.
+    assert client.delete(f"/meetups/{mid}", headers=third).status_code == 403
+    assert client.delete(f"/meetups/{mid}", headers=host).status_code == 200
+
+
+def test_partnerships_flow(client):
+    owner = _auth(client, "coowner@example.com", "Co Owner")
+    learner = _auth(client, "colearner@example.com", "Co Learner")
+
+    cid = client.post(
+        "/partnerships/companies",
+        json={"name": "Acme", "website": "https://acme.test"},
+        headers=owner,
+    ).json()["data"]["id"]
+
+    # Only the owner can post a challenge.
+    body = {"title": "Build a CLI", "kind": "internship", "reward": "Interview"}
+    assert client.post(f"/partnerships/companies/{cid}/challenges", json=body, headers=learner).status_code == 403
+    chid = client.post(f"/partnerships/companies/{cid}/challenges", json=body, headers=owner).json()["data"]["id"]
+
+    # It shows in the open list with kind + company.
+    opps = client.get("/partnerships/challenges", headers=learner).json()["data"]
+    opp = next(o for o in opps if o["id"] == chid)
+    assert opp["kind"] == "internship" and opp["company_name"] == "Acme" and opp["my_status"] is None
+
+    # Learner submits; owner sees + accepts it.
+    assert client.post(f"/partnerships/challenges/{chid}/submit", json={"content": "github.com/me/cli"}, headers=learner).status_code == 201
+    assert client.get("/partnerships/challenges", headers=learner).json()["data"]
+    my = next(o for o in client.get("/partnerships/challenges", headers=learner).json()["data"] if o["id"] == chid)
+    assert my["my_status"] == "submitted"
+
+    # Learner can't view submissions; owner can.
+    assert client.get(f"/partnerships/challenges/{chid}/submissions", headers=learner).status_code == 403
+    subs = client.get(f"/partnerships/challenges/{chid}/submissions", headers=owner).json()["data"]
+    assert len(subs) == 1 and subs[0]["status"] == "submitted"
+    sub_id = subs[0]["id"]
+    assert client.post(f"/partnerships/submissions/{sub_id}/review", json={"status": "accepted"}, headers=owner).status_code == 200
+    # Reflected in the learner's view.
+    my2 = next(o for o in client.get("/partnerships/challenges", headers=learner).json()["data"] if o["id"] == chid)
+    assert my2["my_status"] == "accepted"
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401

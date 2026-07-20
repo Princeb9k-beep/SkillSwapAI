@@ -574,3 +574,99 @@ class MatchSignal(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "partner_id", name="uq_match_signal_pair"),
     )
+
+
+# --- Local Meetups (spec §3.5) ------------------------------------------
+class Meetup(Base):
+    """An opt-in, in-person (or virtual) study meetup others can RSVP to."""
+
+    __tablename__ = "meetups"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    host_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    title: Mapped[str] = mapped_column(String(160))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Free-text public location (city / venue / "Online").
+    location: Mapped[str] = mapped_column(String(200), default="Online")
+    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    capacity: Mapped[int] = mapped_column(Integer, default=0)  # 0 = unlimited
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class MeetupRsvp(Base):
+    __tablename__ = "meetup_rsvps"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    meetup_id: Mapped[int] = mapped_column(
+        ForeignKey("meetups.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("meetup_id", "user_id", name="uq_meetup_rsvp"),
+    )
+
+
+# --- Company Partnerships (spec §3.10) ----------------------------------
+class Company(Base):
+    __tablename__ = "companies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(160))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    website: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    created_by: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class CompanyChallenge(Base):
+    __tablename__ = "company_challenges"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    company_id: Mapped[int] = mapped_column(
+        ForeignKey("companies.id", ondelete="CASCADE"), index=True
+    )
+    title: Mapped[str] = mapped_column(String(200))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # "challenge" | "scholarship" | "internship"
+    kind: Mapped[str] = mapped_column(String(20), default="challenge", index=True)
+    reward: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    deadline: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class ChallengeSubmission(Base):
+    __tablename__ = "challenge_submissions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    challenge_id: Mapped[int] = mapped_column(
+        ForeignKey("company_challenges.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    content: Mapped[str] = mapped_column(Text)
+    # "submitted" | "accepted" | "rejected"
+    status: Mapped[str] = mapped_column(String(20), default="submitted", index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("challenge_id", "user_id", name="uq_challenge_submission"),
+    )
