@@ -144,6 +144,11 @@ async def send_message(
     if partner is None:
         return error("User not found.", status_code=404, code="not_found")
 
+    from .moderation import blocked_ids  # local import avoids a cycle
+
+    if partner_id in await blocked_ids(session, user.id):
+        return error("You can't message this user.", status_code=403, code="blocked")
+
     message = Message(sender_id=user.id, recipient_id=partner_id, body=payload.body.strip())
     session.add(message)
 

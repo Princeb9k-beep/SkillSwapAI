@@ -62,6 +62,21 @@ export default function Settings() {
       .catch(() => {});
   }, [supported]);
 
+  // Blocked users.
+  const [blocked, setBlocked] = useState([]);
+  useEffect(() => {
+    api.listBlocks().then(setBlocked).catch(() => {});
+  }, []);
+  async function unblock(id) {
+    try {
+      await api.unblockUser(id);
+      setBlocked((b) => b.filter((x) => x.user_id !== id));
+      notify("Unblocked", "success");
+    } catch (err) {
+      notify(err.message, "error");
+    }
+  }
+
   async function togglePush(v) {
     setPushBusy(true);
     setPushMsg(null);
@@ -303,6 +318,25 @@ export default function Settings() {
         <h3>About</h3>
         <p className="muted setting-about">SkillSwap AI · v1.0.0</p>
         {memberSince && <p className="muted setting-about">Member since {memberSince}</p>}
+      </div>
+
+      {/* Blocked users */}
+      <div className="card settings-card">
+        <h3>Blocked users</h3>
+        {blocked.length === 0 ? (
+          <p className="field-hint">You haven't blocked anyone.</p>
+        ) : (
+          <ul className="blocked-list">
+            {blocked.map((u) => (
+              <li key={u.user_id} className="row-between">
+                <span>{u.name}</span>
+                <button type="button" className="btn" onClick={() => unblock(u.user_id)}>
+                  Unblock
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Account — pinned to the bottom */}

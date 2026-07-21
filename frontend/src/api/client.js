@@ -89,6 +89,12 @@ export const api = {
   getMatches: () => request("/matches"),
   matchFeedback: (partnerId, signal) =>
     request(`/matches/${partnerId}/feedback`, { method: "POST", body: { signal } }),
+  // safety / moderation
+  listBlocks: () => request("/blocks"),
+  blockUser: (userId) => request(`/blocks/${userId}`, { method: "POST" }),
+  unblockUser: (userId) => request(`/blocks/${userId}`, { method: "DELETE" }),
+  reportContent: (target_type, target_id, reason) =>
+    request("/reports", { method: "POST", body: { target_type, target_id, reason } }),
   // gamification
   getProgress: () => request("/progress"),
   getLeaderboard: () => request("/leaderboard"),

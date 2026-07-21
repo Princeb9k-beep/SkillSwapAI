@@ -113,13 +113,20 @@ async def find_matches(
     my_signals = await _load_my_signals(session, user.id)
     interested_in_me = await _load_inbound_interested(session, user.id)
 
+    # Safety: never surface someone in a block relationship (either direction).
+    from ..routers.moderation import blocked_ids  # local import avoids a cycle
+
+    blocked = await blocked_ids(session, user.id)
+
     # Fold both my signals AND who's interested in me into the cache key, so
     # feedback (mine or a partner's) takes effect on the next fetch.
     inbound = ",".join(str(i) for i in sorted(interested_in_me))
+    blocked_fp = ",".join(str(i) for i in sorted(blocked))
     fp = (
         _fingerprint(my_have, my_want)
         + ":" + _signals_fingerprint(my_signals)
         + ":" + hashlib.sha256(inbound.encode()).hexdigest()[:8]
+        + ":" + hashlib.sha256(blocked_fp.encode()).hexdigest()[:8]
     )
     cache_key = make_key("matches", user.id, fp)
     cached = await cache_get(cache_key)
@@ -159,6 +166,8 @@ async def find_matches(
         cand = users.get(cid)
         if cand is None:
             continue
+        if cid in blocked:
+            continue  # safety: hide blocked users
         if my_signals.get(cid) == "dismissed":
             continue  # respect the user's "not for me"
         their_have, their_want = await _load_skills(session, cid)
