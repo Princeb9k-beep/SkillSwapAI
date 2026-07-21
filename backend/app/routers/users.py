@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
-from ..deps import get_current_user
+from ..deps import get_current_user, user_is_admin
 from ..models import User
 from ..responses import ok
 from ..schemas import ProfileUpdate, UserOut
@@ -17,7 +17,9 @@ router = APIRouter(prefix="/users", tags=["users"])
 @router.get("/me")
 async def me(user: User = Depends(get_current_user)) -> object:
     """Return the current (token-identified) user."""
-    return ok(data=UserOut.model_validate(user).model_dump(mode="json"))
+    data = UserOut.model_validate(user).model_dump(mode="json")
+    data["is_admin"] = user_is_admin(user)
+    return ok(data=data)
 
 
 @router.patch("/me")

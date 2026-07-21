@@ -41,9 +41,13 @@ def _dev_token(token: str) -> dict:
 
 
 def _auth_payload(user: User) -> dict:
+    from ..deps import user_is_admin
+
+    user_data = UserOut.model_validate(user).model_dump(mode="json")
+    user_data["is_admin"] = user_is_admin(user)
     return {
         "token": create_access_token(user.id),
-        "user": UserOut.model_validate(user).model_dump(mode="json"),
+        "user": user_data,
     }
 
 

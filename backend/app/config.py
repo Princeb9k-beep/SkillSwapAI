@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     vapid_private_key: str = ""
     vapid_subject: str = "mailto:admin@skillswapai.app"
 
+    # Comma-separated emails granted moderator/admin access (report triage).
+    admin_emails: str = ""
+
     # AI/cache tuning
     ai_cache_ttl_seconds: int = 60 * 60 * 24      # cache AI responses for a day
     lock_ttl_ms: int = 30_000                     # distributed lock lease
@@ -70,6 +73,10 @@ class Settings(BaseSettings):
         if self.cors_origins.strip() == "*":
             return ["*"]
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def admin_email_set(self) -> set[str]:
+        return {e.strip().lower() for e in self.admin_emails.split(",") if e.strip()}
 
 
 @lru_cache

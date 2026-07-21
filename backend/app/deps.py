@@ -52,3 +52,17 @@ async def get_current_user(
 async def get_user_by_email(session: AsyncSession, email: str) -> User | None:
     result = await session.execute(select(User).where(User.email == email))
     return result.scalar_one_or_none()
+
+
+def user_is_admin(user: User) -> bool:
+    """A user is a moderator/admin if their email is in ADMIN_EMAILS."""
+    return bool(user.email) and user.email.lower() in get_settings().admin_email_set
+
+
+async def require_admin(user: User = Depends(get_current_user)) -> User:
+    """Dependency that allows only moderators/admins."""
+    if not user_is_admin(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Moderator access required."
+        )
+    return user

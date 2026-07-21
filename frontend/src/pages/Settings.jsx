@@ -320,6 +320,17 @@ export default function Settings() {
         {memberSince && <p className="muted setting-about">Member since {memberSince}</p>}
       </div>
 
+      {/* Moderation (admins only) */}
+      {user?.is_admin && (
+        <div className="card settings-card">
+          <h3>Moderation</h3>
+          <p className="field-hint">Review reported content and users.</p>
+          <a className="btn btn-primary" href="/admin">
+            Open moderation dashboard
+          </a>
+        </div>
+      )}
+
       {/* Blocked users */}
       <div className="card settings-card">
         <h3>Blocked users</h3>

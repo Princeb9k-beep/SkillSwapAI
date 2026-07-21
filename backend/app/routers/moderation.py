@@ -12,8 +12,8 @@ from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
-from ..deps import get_current_user
-from ..models import Block, Report, User
+from ..deps import get_current_user, require_admin
+from ..models import Block, CommunityPost, Message, Report, User
 from ..responses import error, ok
 from ..schemas import ReportCreate
 
@@ -104,3 +104,66 @@ async def create_report(
     )
     await session.commit()
     return ok(message="Thanks — our team will review this.", status_code=201)
+
+
+# --- Moderator dashboard (admin only) ------------------------------------
+async def _describe_target(session: AsyncSession, target_type: str, target_id: int) -> str:
+    """Best-effort human-readable summary of what was reported."""
+    if target_type == "user":
+        u = await session.get(User, target_id)
+        return f"User: {u.name or u.email}" if u else "User (deleted)"
+    if target_type == "message":
+        m = await session.get(Message, target_id)
+        return f"Message: “{m.body[:120]}”" if m else "Message (deleted)"
+    if target_type == "post":
+        p = await session.get(CommunityPost, target_id)
+        return f"Post: “{p.body[:120]}”" if p else "Post (deleted)"
+    return target_type
+
+
+@router.get("/admin/reports")
+async def admin_list_reports(
+    status: str = "open",
+    admin: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_session),
+) -> object:
+    """List reports for moderation (admins only). `status`=open|all."""
+    stmt = (
+        select(Report, User.name)
+        .join(User, User.id == Report.reporter_id)
+        .order_by(Report.created_at.desc())
+        .limit(200)
+    )
+    if status == "open":
+        stmt = stmt.where(Report.status == "open")
+    rows = (await session.execute(stmt)).all()
+    data = []
+    for r, reporter_name in rows:
+        data.append(
+            {
+                "id": r.id,
+                "reporter_name": reporter_name or f"Learner #{r.reporter_id}",
+                "target_type": r.target_type,
+                "target_id": r.target_id,
+                "target_summary": await _describe_target(session, r.target_type, r.target_id),
+                "reason": r.reason,
+                "status": r.status,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            }
+        )
+    return ok(data=data)
+
+
+@router.post("/admin/reports/{report_id}/resolve")
+async def admin_resolve_report(
+    report_id: int,
+    admin: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_session),
+) -> object:
+    """Mark a report reviewed (admins only)."""
+    report = await session.get(Report, report_id)
+    if report is None:
+        return error("Report not found.", status_code=404, code="not_found")
+    report.status = "reviewed"
+    await session.commit()
+    return ok(message="Report resolved")
