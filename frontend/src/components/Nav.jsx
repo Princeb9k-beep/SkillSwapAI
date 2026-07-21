@@ -12,6 +12,9 @@ const LINKS = [
 
 export default function Nav() {
   const { user } = useApp();
+  const links = user?.is_admin
+    ? [...LINKS, { to: "/admin", label: "Moderation" }]
+    : LINKS;
 
   return (
     <nav className="nav" aria-label="Main navigation">
@@ -21,7 +24,7 @@ export default function Nav() {
 
       <div className="nav-menu">
         <div className="nav-links">
-          {LINKS.map((l) => (
+          {links.map((l) => (
             <NavLink key={l.to} to={l.to} end={l.end} className="nav-link">
               {l.label}
             </NavLink>

@@ -19,6 +19,7 @@ import sys
 _DB = pathlib.Path(__file__).parent / "test.db"
 os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{_DB}"
 os.environ.setdefault("GROQ_API_KEY", "")  # ensure AI stays in fallback mode
+os.environ["ADMIN_EMAILS"] = "mod@example.com"  # grant a known email admin access
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import asyncio  # noqa: E402
@@ -860,6 +861,32 @@ def test_report_content(client):
     assert client.post("/reports", json={"target_type": "user", "target_id": 2, "reason": "abuse"}, headers=hdr).status_code == 201
     # Invalid target type rejected.
     assert client.post("/reports", json={"target_type": "banana", "target_id": 1, "reason": "x"}, headers=hdr).status_code == 422
+
+
+def test_moderator_dashboard(client):
+    mod = _auth(client, "mod@example.com", "Mod")       # admin (ADMIN_EMAILS)
+    user = _auth(client, "reguser@example.com", "Reg")  # non-admin
+
+    # is_admin flag is exposed on the user object.
+    assert client.get("/users/me", headers=mod).json()["data"]["is_admin"] is True
+    assert client.get("/users/me", headers=user).json()["data"]["is_admin"] is False
+
+    # A user files a report.
+    client.post("/reports", json={"target_type": "user", "target_id": 1, "reason": "spam"}, headers=user)
+
+    # Non-admin can't reach the dashboard.
+    assert client.get("/admin/reports", headers=user).status_code == 403
+
+    # Admin sees the open report and can resolve it.
+    reports = client.get("/admin/reports", headers=mod).json()["data"]
+    assert len(reports) >= 1 and reports[0]["status"] == "open"
+    rid = reports[0]["id"]
+    assert client.post(f"/admin/reports/{rid}/resolve", headers=mod).status_code == 200
+    # It drops out of the default (open) view.
+    assert all(r["id"] != rid for r in client.get("/admin/reports", headers=mod).json()["data"])
+    # But shows in the 'all' view as reviewed.
+    all_reports = client.get("/admin/reports?status=all", headers=mod).json()["data"]
+    assert any(r["id"] == rid and r["status"] == "reviewed" for r in all_reports)
 
 
 def test_missing_auth_returns_envelope(client):

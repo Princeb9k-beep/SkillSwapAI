@@ -676,6 +676,11 @@ a:focus-visible {
 }
 
 /* Moderation bits */
+.report-target {
+  margin: 0.4rem 0;
+  font-weight: 600;
+  word-break: break-word;
+}
 .conversation-mod {
   display: flex;
   gap: 0.75rem;

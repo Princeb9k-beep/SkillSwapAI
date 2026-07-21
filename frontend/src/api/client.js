@@ -95,6 +95,8 @@ export const api = {
   unblockUser: (userId) => request(`/blocks/${userId}`, { method: "DELETE" }),
   reportContent: (target_type, target_id, reason) =>
     request("/reports", { method: "POST", body: { target_type, target_id, reason } }),
+  adminReports: (status = "open") => request(`/admin/reports?status=${status}`),
+  resolveReport: (id) => request(`/admin/reports/${id}/resolve`, { method: "POST" }),
   // gamification
   getProgress: () => request("/progress"),
   getLeaderboard: () => request("/leaderboard"),
