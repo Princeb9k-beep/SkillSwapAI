@@ -822,6 +822,31 @@ a:focus-visible {
 .complete-btn {
   margin-top: 1rem;
 }
+.lesson-media .media-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.lesson-article-card .article > *:first-child {
+  margin-top: 0;
+}
+.article h4 {
+  margin: 1rem 0 0.4rem;
+}
+.article h5 {
+  margin: 0.9rem 0 0.3rem;
+}
+.article p {
+  margin: 0.5rem 0;
+  line-height: 1.6;
+}
+.article ul {
+  margin: 0.4rem 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
 
 /* Moderation bits */
 .report-target {

@@ -387,6 +387,57 @@ def _build_path(skill: dict) -> dict:
     }
 
 
+# Authoritative, stable "read more" resources per skill.
+_LEARN_URLS: dict[str, str] = {
+    "python-programming": "https://realpython.com/",
+    "javascript-web": "https://developer.mozilla.org/en-US/docs/Web/JavaScript",
+    "react-development": "https://react.dev/learn",
+    "sql-databases": "https://www.w3schools.com/sql/",
+    "git-github": "https://docs.github.com/en/get-started",
+    "data-analysis-pandas": "https://pandas.pydata.org/docs/",
+    "machine-learning": "https://scikit-learn.org/stable/user_guide.html",
+    "prompt-engineering": "https://www.promptingguide.ai/",
+    "data-visualization": "https://www.storytellingwithdata.com/",
+    "ui-ux-figma": "https://help.figma.com/hc/en-us",
+    "graphic-design": "https://www.canva.com/learn/",
+    "video-editing": "https://www.blackmagicdesign.com/products/davinciresolve/training",
+    "digital-marketing": "https://skillshop.withgoogle.com/",
+    "seo-fundamentals": "https://developers.google.com/search/docs/fundamentals/seo-starter-guide",
+    "content-writing": "https://www.copyblogger.com/blog/",
+    "social-media-growth": "https://later.com/blog/",
+    "product-management": "https://www.productplan.com/learn/",
+    "freelancing": "https://www.upwork.com/resources/",
+    "personal-finance": "https://www.investopedia.com/personal-finance-4427760",
+    "public-speaking": "https://www.toastmasters.org/resources",
+    "music-production": "https://www.ableton.com/en/live/learn-live/",
+    "photography": "https://photographylife.com/photography-basics",
+    "digital-illustration": "https://www.proko.com/",
+    "spanish-conversation": "https://www.spanishdict.com/guide",
+    "business-english": "https://learnenglish.britishcouncil.org/business-english",
+    "productivity-habits": "https://jamesclear.com/articles",
+}
+
+
+def _yt_search(query: str) -> str:
+    from urllib.parse import quote_plus
+
+    return f"https://www.youtube.com/results?search_query={quote_plus(query)}"
+
+
+def lesson_resources(path: dict, lesson: dict) -> dict:
+    """Curated 'watch' and 'read' resources that teach this lesson's topic.
+    Video is a topic-scoped YouTube search (always resolves to relevant videos);
+    reading points at an authoritative source for the skill."""
+    read_url = _LEARN_URLS.get(path["slug"], _yt_search(path["title"]))
+    return {
+        "video_url": _yt_search(f"{path['title']} {lesson['title']} tutorial"),
+        "video_label": f"Video lessons: {lesson['title']}",
+        "read_url": read_url,
+        "read_label": f"Read: {path['title']} guide",
+        "course_video_url": _yt_search(f"{path['title']} full course"),
+    }
+
+
 # The fully-built catalog, indexed for fast lookup.
 CATALOG: list[dict] = [_build_path(s) for s in _SKILLS]
 _BY_SLUG: dict[str, dict] = {p["slug"]: p for p in CATALOG}

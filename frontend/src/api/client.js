@@ -183,6 +183,7 @@ export const api = {
   academyPaths: (category) =>
     request(`/academy/paths${category && category !== "All" ? `?category=${encodeURIComponent(category)}` : ""}`),
   academyPath: (slug) => request(`/academy/paths/${slug}`),
+  academyContent: (slug, key) => request(`/academy/paths/${slug}/lessons/${key}/content`),
   academyEnroll: (slug) => request(`/academy/paths/${slug}/enroll`, { method: "POST" }),
   academyComplete: (slug, key) =>
     request(`/academy/paths/${slug}/lessons/${key}/complete`, { method: "POST" }),

@@ -65,19 +65,57 @@ function Tutor({ slug, lessonKey }) {
   );
 }
 
+// Minimal, safe markdown -> React for lesson articles (##, **bold**, - bullets).
+function bold(text) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+    part.startsWith("**") && part.endsWith("**") ? <strong key={i}>{part.slice(2, -2)}</strong> : part,
+  );
+}
+function Article({ text }) {
+  const lines = (text || "").split("\n");
+  const blocks = [];
+  let list = null;
+  lines.forEach((raw, i) => {
+    const line = raw.trimEnd();
+    if (line.startsWith("- ") || line.startsWith("* ")) {
+      list = list || [];
+      list.push(<li key={`li-${i}`}>{bold(line.slice(2))}</li>);
+      return;
+    }
+    if (list) { blocks.push(<ul key={`ul-${i}`}>{list}</ul>); list = null; }
+    if (!line.trim()) return;
+    if (line.startsWith("### ")) blocks.push(<h5 key={i}>{bold(line.slice(4))}</h5>);
+    else if (line.startsWith("## ")) blocks.push(<h4 key={i}>{bold(line.slice(3))}</h4>);
+    else if (line.startsWith("# ")) blocks.push(<h4 key={i}>{bold(line.slice(2))}</h4>);
+    else blocks.push(<p key={i}>{bold(line)}</p>);
+  });
+  if (list) blocks.push(<ul key="ul-end">{list}</ul>);
+  return <div className="article">{blocks}</div>;
+}
+
 // ---- Single lesson view ----
-function LessonView({ slug, lesson, onBack, onCompleted }) {
+function LessonView({ slug, lesson, onBack }) {
   const { notify } = useApp();
+  const [content, setContent] = useState(null);
+  const [status, setStatus] = useState("loading");
   const [done, setDone] = useState(lesson.completed);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setStatus("loading");
+    api.academyContent(slug, lesson.key)
+      .then((c) => { if (!cancelled) { setContent(c); setStatus("ready"); } })
+      .catch((err) => { if (!cancelled) { notify(err.message, "error"); setStatus("error"); } });
+    return () => { cancelled = true; };
+  }, [slug, lesson.key, notify]);
 
   async function complete() {
     setBusy(true);
     try {
       const res = await api.academyComplete(slug, lesson.key);
       setDone(true);
-      onCompleted(lesson.key, res);
-      notify(`+${15} XP · ${res.progress}% complete`, "success");
+      notify(`+15 XP · ${res.progress}% complete`, "success");
       (res.new_achievements || []).forEach((a) => notify(`Achievement: ${a}`, "success"));
     } catch (err) {
       notify(err.message, "error");
@@ -86,42 +124,79 @@ function LessonView({ slug, lesson, onBack, onCompleted }) {
     }
   }
 
+  const res = content?.resources;
+
   return (
     <div>
       <button className="btn btn-ghost" onClick={onBack}>← Back to course</button>
       <h2>{lesson.title}</h2>
       <p className="muted">{lesson.summary}</p>
 
-      <div className="card">
-        <h4>Step-by-step</h4>
-        <ol className="lesson-steps">
-          {lesson.steps.map((s, i) => <li key={i}>{s}</li>)}
-        </ol>
-      </div>
+      {status === "loading" && <SkeletonPage cards={1} label="Loading lesson…" />}
 
-      <div className="card lesson-exercise">
-        <h4>Hands-on exercise</h4>
-        <p>{lesson.exercise}</p>
-      </div>
+      {status === "ready" && content && (
+        <>
+          {/* Watch + read: real teaching resources for this topic */}
+          {res && (
+            <div className="card lesson-media">
+              <h4>Learn this skill</h4>
+              <div className="media-links">
+                <a className="btn btn-primary" href={res.video_url} target="_blank" rel="noreferrer">
+                  ▶ Watch video lessons
+                </a>
+                <a className="btn" href={res.read_url} target="_blank" rel="noreferrer">
+                  Read the guide ↗
+                </a>
+                <a className="btn btn-ghost" href={res.course_video_url} target="_blank" rel="noreferrer">
+                  Full course video ↗
+                </a>
+              </div>
+            </div>
+          )}
 
-      {lesson.tools?.length > 0 && (
-        <div className="card">
-          <h4>Tools for this lesson</h4>
-          <div className="tags">
-            {lesson.tools.map((t) => (
-              <a key={t.name} className="tag tool-tag" href={t.url} target="_blank" rel="noreferrer">
-                {t.name} ↗
-              </a>
-            ))}
+          {/* The taught article */}
+          <div className="card lesson-article-card">
+            <Article text={content.article} />
+            {content.fallback && (
+              <p className="field-hint">
+                Full AI-written lessons turn on once GROQ_API_KEY is configured; the video
+                and reading above teach this topic now.
+              </p>
+            )}
           </div>
-        </div>
+
+          <div className="card">
+            <h4>Step-by-step</h4>
+            <ol className="lesson-steps">
+              {content.steps.map((s, i) => <li key={i}>{s}</li>)}
+            </ol>
+          </div>
+
+          <div className="card lesson-exercise">
+            <h4>Hands-on exercise</h4>
+            <p>{content.exercise}</p>
+          </div>
+
+          {content.tools?.length > 0 && (
+            <div className="card">
+              <h4>Tools for this lesson</h4>
+              <div className="tags">
+                {content.tools.map((t) => (
+                  <a key={t.name} className="tag tool-tag" href={t.url} target="_blank" rel="noreferrer">
+                    {t.name} ↗
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <Tutor slug={slug} lessonKey={lesson.key} />
+
+          <button className="btn btn-primary complete-btn" onClick={complete} disabled={busy || done}>
+            {done ? "Completed ✓" : busy ? "Saving…" : "Mark lesson complete"}
+          </button>
+        </>
       )}
-
-      <Tutor slug={slug} lessonKey={lesson.key} />
-
-      <button className="btn btn-primary complete-btn" onClick={complete} disabled={busy || done}>
-        {done ? "Completed ✓" : busy ? "Saving…" : "Mark lesson complete"}
-      </button>
     </div>
   );
 }
