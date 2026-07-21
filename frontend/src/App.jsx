@@ -7,6 +7,7 @@ import { BrowserRouter, Route, Routes, Navigate, Link } from "react-router-dom";
 import Nav from "./components/Nav.jsx";
 import BottomNav from "./components/BottomNav.jsx";
 import InstallPrompt from "./components/InstallPrompt.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import { AppProvider, useApp } from "./context/AppContext.jsx";
 import { LoadingState } from "./components/States.jsx";
 import { SkeletonPage } from "./components/Skeleton.jsx";
@@ -95,9 +96,11 @@ function AuthedApp() {
 function Shell() {
   const { isAuthed } = useApp();
   return (
-    <Suspense fallback={<LoadingState />}>
-      {isAuthed ? <AuthedApp /> : <Auth />}
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingState />}>
+        {isAuthed ? <AuthedApp /> : <Auth />}
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 

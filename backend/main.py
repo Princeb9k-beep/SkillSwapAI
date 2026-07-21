@@ -211,6 +211,15 @@ FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 # Doc/JSON endpoints that must keep serving their own HTML/JSON, not the SPA.
 _SPA_EXCLUDE_EXACT = frozenset({"/docs", "/redoc", "/openapi.json"})
 
+# index.html and the service worker must never be cached long: they reference
+# hash-named asset chunks, so a stale copy points at chunks that 404 after a
+# deploy (which manifests as a blank/black screen when a lazy route loads).
+_NO_CACHE = {"Cache-Control": "no-cache, no-store, must-revalidate"}
+
+
+def _index_response() -> FileResponse:
+    return FileResponse(FRONTEND_DIST / "index.html", headers=_NO_CACHE)
+
 
 @app.middleware("http")
 async def spa_navigation_fallback(request: Request, call_next):
@@ -227,7 +236,7 @@ async def spa_navigation_fallback(request: Request, call_next):
         # Skip real files (they have an extension: .js, .png, .webmanifest…).
         and "." not in request.url.path.rsplit("/", 1)[-1]
     ):
-        return FileResponse(FRONTEND_DIST / "index.html")
+        return _index_response()
     return await call_next(request)
 
 
@@ -242,8 +251,11 @@ if FRONTEND_DIST.is_dir():
         # otherwise return index.html for the SPA to route.
         candidate = FRONTEND_DIST / full_path
         if full_path and candidate.is_file():
+            # The service worker must revalidate so SW updates roll out promptly.
+            if full_path.endswith("serviceWorker.js") or full_path == "index.html":
+                return FileResponse(candidate, headers=_NO_CACHE)
             return FileResponse(candidate)
-        return FileResponse(FRONTEND_DIST / "index.html")
+        return _index_response()
 
 else:
 
