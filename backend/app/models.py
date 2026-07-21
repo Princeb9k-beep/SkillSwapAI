@@ -716,3 +716,47 @@ class Report(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+
+# --- Skill Academy (paid AI-guided courses) -----------------------------
+class SkillEnrollment(Base):
+    """A user's enrollment (purchase) in an Academy skill path. The catalog
+    itself lives in code (app/skills/catalog.py); only enrollment + progress
+    are persisted, keyed by the path's slug."""
+
+    __tablename__ = "skill_enrollments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    path_slug: Mapped[str] = mapped_column(String(80), index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "path_slug", name="uq_skill_enrollment"),
+    )
+
+
+class SkillProgress(Base):
+    """A completed lesson within an enrolled skill path."""
+
+    __tablename__ = "skill_progress"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    path_slug: Mapped[str] = mapped_column(String(80), index=True)
+    lesson_key: Mapped[str] = mapped_column(String(20))
+    completed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "path_slug", "lesson_key", name="uq_skill_progress"
+        ),
+    )

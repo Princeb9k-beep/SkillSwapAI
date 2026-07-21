@@ -675,6 +675,142 @@ a:focus-visible {
   font-size: 0.72rem;
 }
 
+/* Skill Academy */
+.category-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 1rem 0;
+}
+.chip {
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.chip.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.academy-card {
+  display: flex;
+  flex-direction: column;
+}
+.academy-card h3 {
+  margin: 0.5rem 0 0.25rem;
+}
+.academy-card-foot {
+  margin-top: auto;
+  padding-top: 0.75rem;
+}
+.enroll-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.course-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.5rem 0;
+}
+.progress-track {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--primary);
+  transition: width 0.3s ease;
+}
+.module-card h3 {
+  margin: 0 0 0.5rem;
+}
+.lesson-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.lesson-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.55rem 0.5rem;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+.lesson-row:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+.lesson-row:disabled {
+  cursor: not-allowed;
+  color: var(--muted);
+}
+.lesson-status {
+  width: 1.2rem;
+  text-align: center;
+}
+.lesson-name {
+  flex: 1;
+}
+.lesson-lock {
+  font-size: 0.78rem;
+}
+.lesson-steps {
+  margin: 0.25rem 0 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.lesson-exercise {
+  border-left: 3px solid var(--primary);
+}
+.tool-tag {
+  text-decoration: none;
+  color: var(--primary);
+  border: 1px solid var(--border);
+}
+.tutor {
+  border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--border));
+}
+.tutor-modes {
+  margin: 0.4rem 0;
+}
+.tutor textarea {
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+.tutor-answer {
+  white-space: pre-wrap;
+  margin: 0.75rem 0 0;
+  padding: 0.75rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+.complete-btn {
+  margin-top: 1rem;
+}
+
 /* Moderation bits */
 .report-target {
   margin: 0.4rem 0;
