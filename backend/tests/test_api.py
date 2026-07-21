@@ -821,6 +821,47 @@ def test_delete_account(client):
     ).status_code == 201
 
 
+def test_block_hides_from_matches_and_messages(client):
+    ana = _auth(client, "blkana@example.com", "Blk Ana")
+    ben = _auth(client, "blkben@example.com", "Blk Ben")
+    ana_id = client.get("/users/me", headers=ana).json()["data"]["id"]
+    ben_id = client.get("/users/me", headers=ben).json()["data"]["id"]
+
+    client.post("/skills", json={"name": "Python", "kind": "have"}, headers=ana)
+    client.post("/skills", json={"name": "Guitar", "kind": "want"}, headers=ana)
+    client.post("/skills", json={"name": "Guitar", "kind": "have"}, headers=ben)
+    client.post("/skills", json={"name": "Python", "kind": "want"}, headers=ben)
+
+    assert any(m["user_id"] == ben_id for m in client.get("/matches", headers=ana).json()["data"])
+
+    # Ana blocks Ben.
+    assert client.post(f"/blocks/{ben_id}", headers=ana).status_code == 200
+    # Ben vanishes from Ana's matches AND Ana from Ben's (block is mutual in effect).
+    assert all(m["user_id"] != ben_id for m in client.get("/matches", headers=ana).json()["data"])
+    assert all(m["user_id"] != ana_id for m in client.get("/matches", headers=ben).json()["data"])
+    # Neither can message the other.
+    assert client.post(f"/messages/{ben_id}", json={"body": "hi"}, headers=ana).status_code == 403
+    assert client.post(f"/messages/{ana_id}", json={"body": "hi"}, headers=ben).status_code == 403
+
+    # Blocked list shows Ben; unblocking restores matches + messaging.
+    assert client.get("/blocks", headers=ana).json()["data"][0]["user_id"] == ben_id
+    assert client.delete(f"/blocks/{ben_id}", headers=ana).status_code == 200
+    assert any(m["user_id"] == ben_id for m in client.get("/matches", headers=ana).json()["data"])
+    assert client.post(f"/messages/{ben_id}", json={"body": "hi again"}, headers=ana).status_code == 201
+
+    # Can't block yourself / unknown user.
+    assert client.post(f"/blocks/{ana_id}", headers=ana).status_code == 400
+    assert client.post("/blocks/999999", headers=ana).status_code == 404
+
+
+def test_report_content(client):
+    hdr = _auth(client, "reporter@example.com", "Reporter")
+    assert client.post("/reports", json={"target_type": "post", "target_id": 1, "reason": "spam"}, headers=hdr).status_code == 201
+    assert client.post("/reports", json={"target_type": "user", "target_id": 2, "reason": "abuse"}, headers=hdr).status_code == 201
+    # Invalid target type rejected.
+    assert client.post("/reports", json={"target_type": "banana", "target_id": 1, "reason": "x"}, headers=hdr).status_code == 422
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401

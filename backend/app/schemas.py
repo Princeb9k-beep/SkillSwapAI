@@ -66,6 +66,13 @@ class MatchFeedback(BaseModel):
     signal: str = Field(pattern="^(interested|dismissed)$")
 
 
+# --- Safety / moderation --------------------------------------------------
+class ReportCreate(BaseModel):
+    target_type: str = Field(pattern="^(user|message|post)$")
+    target_id: int = Field(ge=1)
+    reason: str = Field(min_length=1, max_length=500)
+
+
 # --- Local Meetups --------------------------------------------------------
 class MeetupCreate(BaseModel):
     title: str = Field(min_length=2, max_length=160)

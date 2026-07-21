@@ -61,6 +61,32 @@ export default function Messages() {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [messages]);
 
+  async function blockPartner() {
+    if (!active) return;
+    if (!window.confirm(`Block ${active.partner_name}? They can't message you and won't appear in your matches.`)) return;
+    try {
+      await api.blockUser(active.partner_id);
+      notify(`${active.partner_name} blocked`, "info");
+      setActive(null);
+      setMessages([]);
+      loadThreads();
+    } catch (err) {
+      notify(err.message, "error");
+    }
+  }
+
+  async function reportPartner() {
+    if (!active) return;
+    const reason = window.prompt(`Report ${active.partner_name}? Tell us what's wrong:`);
+    if (!reason || !reason.trim()) return;
+    try {
+      await api.reportContent("user", active.partner_id, reason.trim());
+      notify("Report submitted", "success");
+    } catch (err) {
+      notify(err.message, "error");
+    }
+  }
+
   async function send(e) {
     e.preventDefault();
     const body = draft.trim();
@@ -126,7 +152,17 @@ export default function Messages() {
             <EmptyState title="Pick a conversation" hint="Select a thread to view messages." />
           ) : (
             <>
-              <h3 className="conversation-title">{active.partner_name}</h3>
+              <div className="row-between conversation-head">
+                <h3 className="conversation-title">{active.partner_name}</h3>
+                <div className="conversation-mod">
+                  <button type="button" className="link-btn" onClick={reportPartner}>
+                    Report
+                  </button>
+                  <button type="button" className="link-btn" onClick={blockPartner}>
+                    Block
+                  </button>
+                </div>
+              </div>
               <div className="conversation-log" ref={logRef}>
                 {messages.length === 0 ? (
                   <p className="muted">No messages yet — say hello.</p>

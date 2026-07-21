@@ -85,6 +85,19 @@ function MatchCard({ m, onDismiss }) {
       notify(err.message, "error");
     }
   }
+
+  async function block() {
+    if (!window.confirm(`Block ${m.name}? They won't appear in your matches or be able to message you.`)) {
+      return;
+    }
+    try {
+      await api.blockUser(m.user_id);
+      notify(`${m.name} blocked`, "info");
+      onDismiss(m.user_id);
+    } catch (err) {
+      notify(err.message, "error");
+    }
+  }
   const [rep, setRep] = useState({
     score: m.reputation_score,
     count: m.reputation_count,
@@ -208,6 +221,9 @@ function MatchCard({ m, onDismiss }) {
           </button>
           <button type="button" className="btn btn-ghost" onClick={dismiss}>
             Not for me
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={block}>
+            Block
           </button>
         </div>
       )}

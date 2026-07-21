@@ -106,6 +106,17 @@ function CommunityDetail({ id, onBack }) {
     }
   }
 
+  async function reportPost(postId) {
+    const reason = window.prompt("Report this post? Tell us what's wrong:");
+    if (!reason || !reason.trim()) return;
+    try {
+      await api.reportContent("post", postId, reason.trim());
+      notify("Report submitted", "success");
+    } catch (err) {
+      notify(err.message, "error");
+    }
+  }
+
   if (status === "loading") return <SkeletonPage cards={2} label="Loading community…" />;
   if (status !== "ready") return null;
 
@@ -142,7 +153,7 @@ function CommunityDetail({ id, onBack }) {
             <article className="card post" key={p.id}>
               <div className="row-between">
                 <strong>{p.user_name}</strong>
-                {p.can_delete && (
+                {p.can_delete ? (
                   <button
                     type="button"
                     className="btn btn-danger post-del"
@@ -150,6 +161,14 @@ function CommunityDetail({ id, onBack }) {
                     onClick={() => remove(p.id)}
                   >
                     Delete
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="link-btn"
+                    onClick={() => reportPost(p.id)}
+                  >
+                    Report
                   </button>
                 )}
               </div>

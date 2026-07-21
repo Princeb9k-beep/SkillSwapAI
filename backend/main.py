@@ -50,6 +50,7 @@ from app.routers import (
     matches,
     meetups,
     messages,
+    moderation,
     notifications,
     partnerships,
     push,
@@ -174,6 +175,7 @@ app.include_router(skills.router)
 app.include_router(matches.router)
 app.include_router(meetups.router)
 app.include_router(messages.router)
+app.include_router(moderation.router)
 app.include_router(notifications.router)
 app.include_router(partnerships.router)
 app.include_router(push.router)
