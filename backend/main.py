@@ -39,6 +39,7 @@ from app.redis_client import close_redis, init_redis
 from app.resilience import TokenBucketRateLimiter
 from app.responses import error, ok
 from app.routers import (
+    academy,
     auth,
     challenges,
     coach,
@@ -169,6 +170,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 # --- API routes -----------------------------------------------------------
 # Registered BEFORE the SPA catch-all below so they always take precedence.
 app.include_router(health.router)
+app.include_router(academy.router)
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(skills.router)

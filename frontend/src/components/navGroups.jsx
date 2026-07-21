@@ -74,6 +74,7 @@ export const NAV_GROUPS = [
     label: "Learn",
     Icon: LearnIcon,
     links: [
+      { to: "/academy", label: "Academy" },
       { to: "/dashboard", label: "Dashboard" },
       { to: "/lessons", label: "Lessons" },
       { to: "/challenges", label: "Challenges" },

@@ -889,6 +889,73 @@ def test_moderator_dashboard(client):
     assert any(r["id"] == rid and r["status"] == "reviewed" for r in all_reports)
 
 
+def test_academy_catalog_enroll_and_progress(client):
+    hdr = _auth(client, "learner1@example.com", "Learner One")
+
+    # A large, diverse catalog is served.
+    cats = client.get("/academy/categories", headers=hdr).json()["data"]
+    assert "All" in cats and len(cats) >= 6
+    paths = client.get("/academy/paths", headers=hdr).json()
+    assert paths["meta"]["total"] >= 20
+    slug = paths["data"][0]["slug"]
+    assert paths["data"][0]["enrolled"] is False
+
+    # Category filter narrows results.
+    prog_cat = "Programming"
+    filtered = client.get(f"/academy/paths?category={prog_cat}", headers=hdr).json()["data"]
+    assert filtered and all(p["category"] == prog_cat for p in filtered)
+
+    # Before enrolling, only the preview lesson is unlocked.
+    detail = client.get(f"/academy/paths/{slug}", headers=hdr).json()["data"]
+    all_lessons = [l for m in detail["modules"] for l in m["lessons"]]
+    assert all_lessons[0]["locked"] is False and "steps" in all_lessons[0]
+    assert all_lessons[-1]["locked"] is True and "steps" not in all_lessons[-1]
+
+    # Completing a lesson before enrolling is blocked.
+    first_key = all_lessons[0]["key"]
+    assert client.post(f"/academy/paths/{slug}/lessons/{first_key}/complete", headers=hdr).status_code == 403
+
+    # Enroll -> everything unlocks.
+    assert client.post(f"/academy/paths/{slug}/enroll", headers=hdr).status_code == 201
+    detail2 = client.get(f"/academy/paths/{slug}", headers=hdr).json()["data"]
+    assert detail2["enrolled"] is True
+    assert all(not l["locked"] for m in detail2["modules"] for l in m["lessons"])
+
+    # Complete a lesson -> progress + XP.
+    r = client.post(f"/academy/paths/{slug}/lessons/{first_key}/complete", headers=hdr).json()["data"]
+    assert r["completed"] == 1 and r["progress"] > 0 and r["xp"] >= 15
+    # Idempotent (no double XP).
+    again = client.post(f"/academy/paths/{slug}/lessons/{first_key}/complete", headers=hdr).json()["data"]
+    assert again["completed"] == 1
+
+    # Unknown lesson / path guardrails.
+    assert client.post(f"/academy/paths/{slug}/lessons/zzz/complete", headers=hdr).status_code == 404
+    assert client.get("/academy/paths/does-not-exist", headers=hdr).status_code == 404
+
+
+def test_academy_ai_tutor_fallback(client):
+    hdr = _auth(client, "learner2@example.com", "Learner Two")
+    paths = client.get("/academy/paths", headers=hdr).json()["data"]
+    slug = paths[0]["slug"]
+    first_key = client.get(f"/academy/paths/{slug}", headers=hdr).json()["data"]["modules"][0]["lessons"][0]["key"]
+
+    # Preview lesson: AI tutor works (Groq unconfigured -> graceful fallback).
+    r = client.post(
+        f"/academy/paths/{slug}/lessons/{first_key}/assist",
+        json={"mode": "explain"},
+        headers=hdr,
+    )
+    assert r.status_code == 200
+    data = r.json()["data"]
+    assert data["mode"] == "explain" and isinstance(data["answer"], str) and data["answer"]
+
+    # A locked lesson's tutor requires enrollment.
+    last_key = client.get(f"/academy/paths/{slug}", headers=hdr).json()["data"]["modules"][-1]["lessons"][-1]["key"]
+    assert client.post(
+        f"/academy/paths/{slug}/lessons/{last_key}/assist", json={"mode": "hint"}, headers=hdr
+    ).status_code == 403
+
+
 def test_missing_auth_returns_envelope(client):
     r = client.post("/roadmap", json={"goal": "x", "current_skills": []})
     assert r.status_code == 401

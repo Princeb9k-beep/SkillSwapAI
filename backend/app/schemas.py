@@ -66,6 +66,12 @@ class MatchFeedback(BaseModel):
     signal: str = Field(pattern="^(interested|dismissed)$")
 
 
+# --- Skill Academy --------------------------------------------------------
+class LessonAssistRequest(BaseModel):
+    mode: str = Field(default="explain", pattern="^(explain|hint|review)$")
+    question: str | None = Field(default=None, max_length=6000)
+
+
 # --- Safety / moderation --------------------------------------------------
 class ReportCreate(BaseModel):
     target_type: str = Field(pattern="^(user|message|post)$")

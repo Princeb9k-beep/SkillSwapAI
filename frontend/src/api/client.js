@@ -178,6 +178,19 @@ export const api = {
   notificationsUnread: () => request("/notifications/unread/count"),
   readNotification: (id) => request(`/notifications/${id}/read`, { method: "POST" }),
   readAllNotifications: () => request("/notifications/read-all", { method: "POST" }),
+  // skill academy
+  academyCategories: () => request("/academy/categories"),
+  academyPaths: (category) =>
+    request(`/academy/paths${category && category !== "All" ? `?category=${encodeURIComponent(category)}` : ""}`),
+  academyPath: (slug) => request(`/academy/paths/${slug}`),
+  academyEnroll: (slug) => request(`/academy/paths/${slug}/enroll`, { method: "POST" }),
+  academyComplete: (slug, key) =>
+    request(`/academy/paths/${slug}/lessons/${key}/complete`, { method: "POST" }),
+  academyAssist: (slug, key, mode, question) =>
+    request(`/academy/paths/${slug}/lessons/${key}/assist`, {
+      method: "POST",
+      body: { mode, question },
+    }),
   // direct messaging
   messageThreads: () => request("/messages/threads"),
   conversation: (partnerId) => request(`/messages/${partnerId}`),
