@@ -1,6 +1,6 @@
 // Minimal offline cache for the app shell. Network-first for navigation so users
 // always get fresh content when online, falling back to cache when offline.
-const CACHE = "skillswap-v2";
+const CACHE = "skillswap-v3";
 const SHELL = ["/", "/index.html"];
 
 self.addEventListener("install", (event) => {
