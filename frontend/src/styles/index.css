@@ -1177,30 +1177,64 @@ a:focus-visible {
 .bottomnav-create.active {
   filter: brightness(1.05);
 }
-/* Sheet that reveals a group's tabs above the bar */
+/* Bottom sheet that rises out of the nav bar to reveal a group's tabs. Full
+   width, flush to the top of the bar, rounded top corners + grab handle, so the
+   bar and sheet read as one continuous bottom surface. */
 .bottomnav-scrim {
   position: fixed;
   inset: 0;
   z-index: 29;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.38);
+  animation: scrim-in 0.2s ease;
 }
 .bottomnav-sheet {
   position: fixed;
-  left: 0.75rem;
-  right: 0.75rem;
-  bottom: calc(72px + env(safe-area-inset-bottom));
+  left: 0;
+  right: 0;
+  /* Sit directly on top of the bar (a few px overlap hides the seam). */
+  bottom: calc(58px + env(safe-area-inset-bottom));
   z-index: 31;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  padding: 0.6rem;
+  gap: 0.1rem;
+  padding: 0.5rem max(0.9rem, env(safe-area-inset-left)) 0.75rem;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: var(--shadow);
+  border-top: 1px solid var(--border);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.18);
+  max-height: 62vh;
+  overflow-y: auto;
+  transform-origin: bottom center;
+  animation: sheet-up 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* Grab handle for the bottom-sheet feel */
+.bottomnav-sheet::before {
+  content: "";
+  align-self: center;
+  width: 38px;
+  height: 4px;
+  margin: 0.1rem 0 0.5rem;
+  border-radius: 999px;
+  background: var(--border);
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .bottomnav-sheet-title {
-  margin: 0.1rem 0.4rem 0.35rem;
+  margin: 0 0.4rem 0.35rem;
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
