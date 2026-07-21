@@ -933,6 +933,30 @@ def test_academy_catalog_enroll_and_progress(client):
     assert client.get("/academy/paths/does-not-exist", headers=hdr).status_code == 404
 
 
+def test_academy_lesson_content(client):
+    hdr = _auth(client, "learner3@example.com", "Learner Three")
+    paths = client.get("/academy/paths", headers=hdr).json()["data"]
+    slug = paths[0]["slug"]
+    detail = client.get(f"/academy/paths/{slug}", headers=hdr).json()["data"]
+    lessons = [l for m in detail["modules"] for l in m["lessons"]]
+    first_key, last_key = lessons[0]["key"], lessons[-1]["key"]
+
+    # Preview lesson: taught content is available (article + resources).
+    r = client.get(f"/academy/paths/{slug}/lessons/{first_key}/content", headers=hdr)
+    assert r.status_code == 200
+    data = r.json()["data"]
+    assert isinstance(data["article"], str) and len(data["article"]) > 80
+    res = data["resources"]
+    assert res["video_url"].startswith("https://www.youtube.com/") and res["read_url"].startswith("http")
+    assert data["steps"] and data["exercise"]
+
+    # A locked lesson's content requires enrollment.
+    assert client.get(f"/academy/paths/{slug}/lessons/{last_key}/content", headers=hdr).status_code == 403
+    # After enrolling, it's available.
+    client.post(f"/academy/paths/{slug}/enroll", headers=hdr)
+    assert client.get(f"/academy/paths/{slug}/lessons/{last_key}/content", headers=hdr).status_code == 200
+
+
 def test_academy_ai_tutor_fallback(client):
     hdr = _auth(client, "learner2@example.com", "Learner Two")
     paths = client.get("/academy/paths", headers=hdr).json()["data"]

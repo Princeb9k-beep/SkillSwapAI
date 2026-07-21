@@ -18,7 +18,7 @@ from ..models import SkillEnrollment, SkillProgress, User
 from ..responses import error, ok
 from ..schemas import LessonAssistRequest
 from ..skills import catalog
-from ..skills.academy_ai import lesson_assist
+from ..skills.academy_ai import lesson_article, lesson_assist
 from ..skills.gamification import record_activity
 
 router = APIRouter(prefix="/academy", tags=["academy"])
@@ -157,6 +157,39 @@ async def enroll(
         session.add(SkillEnrollment(user_id=user.id, path_slug=slug))
         await session.commit()
     return ok(message=f"Enrolled in {path['title']}", status_code=201)
+
+
+@router.get("/paths/{slug}/lessons/{key}/content")
+async def lesson_content(
+    slug: str,
+    key: str,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> object:
+    """The taught lesson: an AI-written article plus curated video + reading
+    resources. Requires enrollment (beyond the free preview lesson)."""
+    found = catalog.get_lesson(slug, key)
+    if found is None:
+        return error("Lesson not found.", status_code=404, code="not_found")
+    path, lesson = found
+
+    enrolled = slug in await _enrolled_slugs(session, user.id)
+    is_preview = key in catalog.all_lesson_keys(slug)[:PREVIEW_LESSONS]
+    if not enrolled and not is_preview:
+        return error("Enroll to open this lesson.", status_code=403, code="not_enrolled")
+
+    article = await lesson_article(path, lesson)
+    return ok(
+        data={
+            "title": lesson["title"],
+            "summary": lesson["summary"],
+            "steps": lesson["steps"],
+            "exercise": lesson["exercise"],
+            "tools": lesson["tools"],
+            "resources": catalog.lesson_resources(path, lesson),
+            **article,
+        }
+    )
 
 
 @router.post("/paths/{slug}/lessons/{key}/complete")
