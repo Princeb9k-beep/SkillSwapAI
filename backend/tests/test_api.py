@@ -19,7 +19,7 @@ import sys
 _DB = pathlib.Path(__file__).parent / "test.db"
 os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{_DB}"
 os.environ.setdefault("GROQ_API_KEY", "")  # ensure AI stays in fallback mode
-os.environ["ADMIN_EMAILS"] = "mod@example.com"  # grant a known email admin access
+os.environ["ADMIN_EMAILS"] = "mod@example.com,elite-admin@example.com"  # admins
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import asyncio  # noqa: E402
@@ -248,6 +248,8 @@ def test_skill_verification_peer_review(client):
     r1 = _auth(client, "rob@example.com", "Rob")
     r2 = _auth(client, "sue@example.com", "Sue")
 
+    # Requesting verification is an Elite feature.
+    client.post("/billing/subscribe", json={"tier": "elite"}, headers=owner)
     # owner has the skill and requests verification
     client.post("/skills", json={"name": "Rust", "kind": "have"}, headers=owner)
     req = client.post(
@@ -441,6 +443,9 @@ def test_ai_twin_train_chat_quiz(client):
     owner = _auth(client, "tara@example.com", "Tara")
     learner = _auth(client, "leo@example.com", "Leo")
 
+    # Training your twin is Elite; chatting with a twin is Pro.
+    client.post("/billing/subscribe", json={"tier": "elite"}, headers=owner)
+    client.post("/billing/subscribe", json={"tier": "pro"}, headers=learner)
     # owner has a skill and trains their twin
     client.post("/skills", json={"name": "Guitar", "kind": "have"}, headers=owner)
     assert client.get("/twin/me", headers=owner).json()["data"]["trained"] is False
@@ -491,6 +496,7 @@ def test_translation(client):
 def test_practice_rooms_lobby(client):
     host = _auth(client, "roomhost@example.com", "Room Host")
     guest = _auth(client, "roomguest@example.com", "Room Guest")
+    client.post("/billing/subscribe", json={"tier": "pro"}, headers=host)  # rooms are Pro
 
     # Create a room.
     r = client.post("/rooms", json={"title": "Mock interview", "topic": "Careers"}, headers=host)
@@ -522,6 +528,7 @@ def test_practice_rooms_lobby(client):
 
 def test_practice_room_signaling(client):
     host = _auth(client, "sig1@example.com", "Sig One")
+    client.post("/billing/subscribe", json={"tier": "pro"}, headers=host)
     uid = client.get("/users/me", headers=host).json()["data"]["id"]
     code = client.post("/rooms", json={"title": "Pairing"}, headers=host).json()["data"]["code"]
 
@@ -534,6 +541,7 @@ def test_practice_room_signaling(client):
 
 def test_practice_room_signaling_rejects_unauthenticated(client):
     host = _auth(client, "sig2@example.com", "Sig Two")
+    client.post("/billing/subscribe", json={"tier": "pro"}, headers=host)
     code = client.post("/rooms", json={"title": "Locked"}, headers=host).json()["data"]["code"]
     with client.websocket_connect(f"/rooms/ws/{code}") as ws:
         msg = ws.receive_json()
@@ -891,6 +899,7 @@ def test_moderator_dashboard(client):
 
 def test_academy_catalog_enroll_and_progress(client):
     hdr = _auth(client, "learner1@example.com", "Learner One")
+    client.post("/billing/subscribe", json={"tier": "pro"}, headers=hdr)  # Academy is Pro
 
     # A large, diverse catalog is served.
     cats = client.get("/academy/categories", headers=hdr).json()["data"]
@@ -952,7 +961,8 @@ def test_academy_lesson_content(client):
 
     # A locked lesson's content requires enrollment.
     assert client.get(f"/academy/paths/{slug}/lessons/{last_key}/content", headers=hdr).status_code == 403
-    # After enrolling, it's available.
+    # After upgrading (Academy is Pro) and enrolling, it's available.
+    client.post("/billing/subscribe", json={"tier": "pro"}, headers=hdr)
     client.post(f"/academy/paths/{slug}/enroll", headers=hdr)
     assert client.get(f"/academy/paths/{slug}/lessons/{last_key}/content", headers=hdr).status_code == 200
 
@@ -978,6 +988,71 @@ def test_academy_ai_tutor_fallback(client):
     assert client.post(
         f"/academy/paths/{slug}/lessons/{last_key}/assist", json={"mode": "hint"}, headers=hdr
     ).status_code == 403
+
+
+def test_billing_plans_and_subscribe(client):
+    hdr = _auth(client, "tierbob@example.com", "Tier Bob")
+    plans = client.get("/billing/plans", headers=hdr).json()["data"]
+    assert [p["tier"] for p in plans["plans"]] == ["free", "pro", "elite"]
+    assert plans["current"] == "free"
+    assert client.get("/users/me", headers=hdr).json()["data"]["tier"] == "free"
+
+    # Upgrade to Pro.
+    assert client.post("/billing/subscribe", json={"tier": "pro"}, headers=hdr).status_code == 200
+    me = client.get("/billing/me", headers=hdr).json()["data"]
+    assert me["tier"] == "pro" and me["ai_daily_limit"] is None
+    assert client.get("/users/me", headers=hdr).json()["data"]["tier"] == "pro"
+    # Cancel back to free.
+    client.post("/billing/subscribe", json={"tier": "free"}, headers=hdr)
+    assert client.get("/users/me", headers=hdr).json()["data"]["tier"] == "free"
+    # Invalid tier rejected.
+    assert client.post("/billing/subscribe", json={"tier": "platinum"}, headers=hdr).status_code == 422
+
+
+def test_tier_feature_gating(client):
+    hdr = _auth(client, "gateuser@example.com", "Gate User")
+
+    def blocked(method, path, **kw):
+        r = getattr(client, method)(path, headers=hdr, **kw)
+        return r.status_code == 402
+
+    # Free tier: paid features are blocked with 402.
+    assert blocked("post", "/rooms", json={"title": "Room"})
+    assert blocked("post", "/twin/1/chat", json={"message": "hi"})
+    assert blocked("post", "/twin/train", json={"samples": "x" * 30})
+    assert blocked("post", "/verifications", json={"skill_name": "Python"})
+    assert blocked("post", "/resume/build", json={"name": "Gate User", "target_role": "Engineer", "skills": ["Python"]})
+
+    # Upgrade to Pro: rooms + career unlock; twin-train + verification still need Elite.
+    client.post("/billing/subscribe", json={"tier": "pro"}, headers=hdr)
+    assert client.post("/rooms", json={"title": "Room"}, headers=hdr).status_code == 201
+    assert not blocked("post", "/twin/1/chat", json={"message": "hi"})  # not 402 anymore
+    assert blocked("post", "/twin/train", json={"samples": "x" * 30})
+    assert blocked("post", "/verifications", json={"skill_name": "Python"})
+
+    # Upgrade to Elite: everything unlocks.
+    client.post("/billing/subscribe", json={"tier": "elite"}, headers=hdr)
+    assert not blocked("post", "/twin/train", json={"samples": "x" * 30})
+    assert not blocked("post", "/verifications", json={"skill_name": "Python"})
+
+
+def test_free_ai_daily_quota(client):
+    hdr = _auth(client, "quotauser@example.com", "Quota User")
+    body = {"text": "hello world", "target_language": "Spanish"}
+    # Free tier: 3 AI actions/day, then 402.
+    for _ in range(3):
+        assert client.post("/translate", json=body, headers=hdr).status_code == 200
+    assert client.post("/translate", json=body, headers=hdr).status_code == 402
+    # Pro: unlimited.
+    client.post("/billing/subscribe", json={"tier": "pro"}, headers=hdr)
+    assert client.post("/translate", json=body, headers=hdr).status_code == 200
+
+
+def test_admin_is_elite_tier(client):
+    admin = _auth(client, "elite-admin@example.com", "Elite Admin")  # in ADMIN_EMAILS
+    assert client.get("/billing/me", headers=admin).json()["data"]["tier"] == "elite"
+    # Admin can use an Elite-gated feature.
+    assert client.post("/verifications", json={"skill_name": "Python"}, headers=admin).status_code in (200, 201)
 
 
 def test_missing_auth_returns_envelope(client):

@@ -60,6 +60,10 @@ class User(Base):
     email_verified: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default="0"
     )
+    # Subscription tier: "free" | "pro" | "elite".
+    tier: Mapped[str] = mapped_column(
+        String(10), default="free", server_default="free", index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -760,3 +764,18 @@ class SkillProgress(Base):
             "user_id", "path_slug", "lesson_key", name="uq_skill_progress"
         ),
     )
+
+
+class AiUsage(Base):
+    """Per-day AI-action counter, used to enforce the Free tier's daily limit."""
+
+    __tablename__ = "ai_usage"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    day: Mapped[date] = mapped_column(Date, index=True)
+    count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+
+    __table_args__ = (UniqueConstraint("user_id", "day", name="uq_ai_usage_day"),)

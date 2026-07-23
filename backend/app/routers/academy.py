@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..database import get_session
 from ..deps import get_current_user
 from ..models import SkillEnrollment, SkillProgress, User
+from ..plans import require_feature
 from ..responses import error, ok
 from ..schemas import LessonAssistRequest
 from ..skills import catalog
@@ -135,14 +136,13 @@ async def get_path(
     )
 
 
-@router.post("/paths/{slug}/enroll")
+@router.post("/paths/{slug}/enroll", dependencies=[Depends(require_feature("academy_full"))])
 async def enroll(
     slug: str,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> object:
-    """Enroll in (purchase) a skill path. Payment is stubbed like the rest of the
-    marketplace — enrolling grants full access to the course."""
+    """Enroll in a skill path. Included with Pro & Elite (full Academy access)."""
     path = catalog.get_path(slug)
     if path is None:
         return error("Skill not found.", status_code=404, code="not_found")

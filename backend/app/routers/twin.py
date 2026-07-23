@@ -13,6 +13,8 @@ from ..responses import error, ok
 from ..schemas import TwinChat, TwinQuiz, TwinTrain
 from ..skills.twin import distill_style, twin_quiz, twin_reply
 
+from ..plans import require_feature
+
 router = APIRouter(prefix="/twin", tags=["twin"])
 
 
@@ -41,7 +43,7 @@ async def my_twin(
     )
 
 
-@router.post("/train")
+@router.post("/train", dependencies=[Depends(require_feature("twin_train"))])
 async def train(
     payload: TwinTrain,
     user: User = Depends(get_current_user),
@@ -109,7 +111,7 @@ async def history(
     return ok(data=[{"role": m.role, "content": m.content} for m in rows.scalars().all()])
 
 
-@router.post("/{owner_id}/chat")
+@router.post("/{owner_id}/chat", dependencies=[Depends(require_feature("twin_chat"))])
 async def chat_with_twin(
     owner_id: int,
     payload: TwinChat,
@@ -126,7 +128,7 @@ async def chat_with_twin(
     return ok(data={"reply": reply}, message="Twin replied")
 
 
-@router.post("/{owner_id}/quiz")
+@router.post("/{owner_id}/quiz", dependencies=[Depends(require_feature("twin_chat"))])
 async def quiz(
     owner_id: int,
     payload: TwinQuiz,

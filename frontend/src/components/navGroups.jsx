@@ -102,6 +102,7 @@ export const NAV_GROUPS = [
       { to: "/market", label: "Market" },
       { to: "/partners", label: "Partners" },
       { to: "/verify", label: "Verify" },
+      { to: "/plans", label: "Plans" },
       { to: "/settings", label: "Settings" },
     ],
   },

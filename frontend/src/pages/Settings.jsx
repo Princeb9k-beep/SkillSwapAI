@@ -190,7 +190,22 @@ export default function Settings() {
   return (
     <section className="settings">
       <h1>Settings</h1>
-      <p className="muted">Manage your profile, appearance, and account.</p>
+      <p className="muted">Manage your profile, plan, appearance, and account.</p>
+
+      {/* Plan */}
+      <div className="card settings-card">
+        <h3>Plan</h3>
+        <div className="row-between plan-row">
+          <span>
+            You're on the <strong className={`tier-pill tier-${user?.tier || "free"}`}>
+              {(user?.tier || "free").toUpperCase()}
+            </strong> plan.
+          </span>
+          <a className="btn btn-primary" href="/plans">
+            {user?.tier === "elite" ? "Manage plan" : "Upgrade"}
+          </a>
+        </div>
+      </div>
 
       {/* Profile */}
       <form className="card settings-card" onSubmit={saveProfile}>

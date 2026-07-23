@@ -26,12 +26,25 @@ async def matches(
     Empty until the user has added some 'have'/'want' skills.
     """
     results = await find_matches(session, user, limit=limit)
+
+    # Free tier sees a capped number of matches.
+    from ..plans import limit_for
+
+    cap = limit_for(user, "matches")
+    capped = cap is not None and len(results) > cap
+    if capped:
+        results = results[:cap]
+
     msg = (
         "Add skills you have and want to find matches."
         if not results
         else f"Found {len(results)} match(es)."
     )
-    return ok(data=results, message=msg, meta={"count": len(results)})
+    return ok(
+        data=results,
+        message=msg,
+        meta={"count": len(results), "capped": capped, "match_cap": cap},
+    )
 
 
 @router.post("/{partner_id}/feedback")

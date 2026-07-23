@@ -11,11 +11,12 @@ import { api, roomSocketUrl } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import { ErrorBanner, EmptyState } from "../components/States.jsx";
 import { SkeletonPage } from "../components/Skeleton.jsx";
+import UpgradeNotice from "../components/UpgradeNotice.jsx";
 
 const ICE_SERVERS = [{ urls: "stun:stun.l.google.com:19302" }];
 
 function Lobby({ onEnter }) {
-  const { notify } = useApp();
+  const { notify, user } = useApp();
   const [rooms, setRooms] = useState([]);
   const [status, setStatus] = useState("loading");
   const [error, setError] = useState(null);
@@ -62,6 +63,10 @@ function Lobby({ onEnter }) {
         Jump into a live video room to practice with a partner — mock interviews,
         pair programming, language exchange. Bring your camera.
       </p>
+
+      <UpgradeNotice tier={user?.tier} need="pro">
+        Video practice rooms are a Pro feature.
+      </UpgradeNotice>
 
       <form className="card form" onSubmit={create}>
         <h3>Start a room</h3>

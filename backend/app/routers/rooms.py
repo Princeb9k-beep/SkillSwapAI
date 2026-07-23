@@ -26,6 +26,7 @@ from ..config import get_settings
 from ..database import get_session, get_sessionmaker
 from ..deps import get_current_user
 from ..models import PracticeRoom, RoomParticipant, User
+from ..plans import has_feature, require_feature
 from ..responses import error, ok
 from ..schemas import RoomCreate, RoomNotesUpdate
 
@@ -124,13 +125,13 @@ async def list_rooms(
     return ok(data=data)
 
 
-@router.post("")
+@router.post("", dependencies=[Depends(require_feature("video_rooms"))])
 async def create_room(
     payload: RoomCreate,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> object:
-    """Open a new practice room; the creator is the host."""
+    """Open a new practice room; the creator is the host (Pro+ only)."""
     # Retry on the (astronomically unlikely) code collision.
     code = _new_code()
     for _ in range(5):
@@ -246,6 +247,12 @@ async def signaling(websocket: WebSocket, code: str) -> None:
         if user is None:
             await websocket.send_json({"type": "error", "message": "unauthorized"})
             await websocket.close(code=4401)
+            return
+        if not has_feature(user, "video_rooms"):
+            await websocket.send_json(
+                {"type": "error", "message": "Upgrade to Pro to join video rooms."}
+            )
+            await websocket.close(code=4403)
             return
         room = (
             await session.execute(select(PracticeRoom).where(PracticeRoom.code == code))

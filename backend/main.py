@@ -41,6 +41,7 @@ from app.responses import error, ok
 from app.routers import (
     academy,
     auth,
+    billing,
     challenges,
     coach,
     communities,
@@ -172,6 +173,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 app.include_router(health.router)
 app.include_router(academy.router)
 app.include_router(auth.router)
+app.include_router(billing.router)
 app.include_router(users.router)
 app.include_router(skills.router)
 app.include_router(matches.router)
