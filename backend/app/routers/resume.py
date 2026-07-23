@@ -10,10 +10,12 @@ from ..responses import ok
 from ..schemas import ResumeRequest
 from ..skills.resume import build_resume
 
+from ..plans import require_feature
+
 router = APIRouter(prefix="/resume", tags=["resume"])
 
 
-@router.post("/build")
+@router.post("/build", dependencies=[Depends(require_feature("career_tools"))])
 async def build(
     payload: ResumeRequest, user: User = Depends(get_current_user)
 ) -> object:

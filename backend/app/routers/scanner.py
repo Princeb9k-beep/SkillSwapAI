@@ -10,10 +10,12 @@ from ..responses import ok
 from ..schemas import ScanRequest
 from ..skills.scanner import analyze
 
+from ..plans import enforce_ai_quota
+
 router = APIRouter(prefix="/scanner", tags=["scanner"])
 
 
-@router.post("/analyze")
+@router.post("/analyze", dependencies=[Depends(enforce_ai_quota)])
 async def scan(
     payload: ScanRequest,
     user: User = Depends(get_current_user),

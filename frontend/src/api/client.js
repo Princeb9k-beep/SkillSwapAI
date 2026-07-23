@@ -76,6 +76,10 @@ export const api = {
   me: () => request("/users/me"),
   updateProfile: (data) => request("/users/me", { method: "PATCH", body: data }),
   deleteAccount: () => request("/users/me", { method: "DELETE" }),
+  // billing / subscription
+  billingPlans: () => request("/billing/plans"),
+  billingMe: () => request("/billing/me"),
+  subscribe: (tier) => request("/billing/subscribe", { method: "POST", body: { tier } }),
   verifyEmail: (token) => request("/auth/verify-email", { method: "POST", body: { token }, auth: false }),
   resendVerification: () => request("/auth/resend-verification", { method: "POST" }),
   forgotPassword: (email) =>

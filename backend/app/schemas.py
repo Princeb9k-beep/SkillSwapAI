@@ -66,6 +66,11 @@ class MatchFeedback(BaseModel):
     signal: str = Field(pattern="^(interested|dismissed)$")
 
 
+# --- Billing / subscription ----------------------------------------------
+class SubscribeRequest(BaseModel):
+    tier: str = Field(pattern="^(free|pro|elite)$")
+
+
 # --- Skill Academy --------------------------------------------------------
 class LessonAssistRequest(BaseModel):
     mode: str = Field(default="explain", pattern="^(explain|hint|review)$")
@@ -267,6 +272,7 @@ class UserOut(BaseModel):
     notify_product: bool
     onboarded: bool
     email_verified: bool
+    tier: str
     created_at: datetime
 
 

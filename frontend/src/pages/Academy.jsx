@@ -6,6 +6,7 @@ import { api } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import { ErrorBanner, EmptyState } from "../components/States.jsx";
 import { SkeletonPage } from "../components/Skeleton.jsx";
+import UpgradeNotice from "../components/UpgradeNotice.jsx";
 
 const price = (cents) => `$${(cents / 100).toFixed(0)}`;
 
@@ -203,7 +204,8 @@ function LessonView({ slug, lesson, onBack }) {
 
 // ---- Path (course) detail ----
 function PathDetail({ slug, onBack }) {
-  const { notify } = useApp();
+  const { notify, user } = useApp();
+  const effTier = user?.is_admin ? "elite" : (user?.tier || "free");
   const [path, setPath] = useState(null);
   const [status, setStatus] = useState("loading");
   const [error, setError] = useState(null);
@@ -269,14 +271,19 @@ function PathDetail({ slug, onBack }) {
           <div className="progress-track"><div className="progress-fill" style={{ width: `${path.progress}%` }} /></div>
           <span className="muted">{path.completed}/{path.lesson_count} complete</span>
         </div>
+      ) : effTier === "free" ? (
+        <UpgradeNotice tier={effTier} need="pro">
+          The full Skill Academy is a Pro feature. Upgrade to enroll and unlock
+          every course.
+        </UpgradeNotice>
       ) : (
         <div className="enroll-bar card">
           <div>
-            <strong>{price(path.price_cents)}</strong>
-            <span className="muted"> · one-time · full lifetime access</span>
+            <strong>Included with your plan</strong>
+            <span className="muted"> · full lifetime access</span>
           </div>
           <button className="btn btn-primary" onClick={enroll} disabled={enrolling}>
-            {enrolling ? "Enrolling…" : `Enroll — ${price(path.price_cents)}`}
+            {enrolling ? "Enrolling…" : "Enroll now"}
           </button>
         </div>
       )}

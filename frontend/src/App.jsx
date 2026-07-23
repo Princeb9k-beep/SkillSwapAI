@@ -34,6 +34,7 @@ const Meetups = lazy(() => import("./pages/Meetups.jsx"));
 const Partners = lazy(() => import("./pages/Partners.jsx"));
 const Admin = lazy(() => import("./pages/Admin.jsx"));
 const Academy = lazy(() => import("./pages/Academy.jsx"));
+const Plans = lazy(() => import("./pages/Plans.jsx"));
 const Onboarding = lazy(() => import("./pages/Onboarding.jsx"));
 
 function AuthedApp() {
@@ -72,6 +73,7 @@ function AuthedApp() {
             <Route path="/partners" element={<Partners />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/academy" element={<Academy />} />
+            <Route path="/plans" element={<Plans />} />
             <Route path="/challenges" element={<Challenges />} />
             <Route path="/twin" element={<Twin />} />
             <Route path="/progress" element={<Progress />} />

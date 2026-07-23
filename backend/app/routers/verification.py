@@ -21,6 +21,8 @@ from ..models import Achievement, Skill, User, VerificationRequest, Verification
 from ..responses import error, ok
 from ..schemas import ReviewCreate, VerificationCreate
 
+from ..plans import require_feature
+
 router = APIRouter(prefix="/verifications", tags=["verification"])
 
 # Net-vote thresholds to decide a request.
@@ -39,7 +41,7 @@ def _request_dict(r: VerificationRequest) -> dict:
     }
 
 
-@router.post("")
+@router.post("", dependencies=[Depends(require_feature("verification"))])
 async def create_request(
     payload: VerificationCreate,
     user: User = Depends(get_current_user),

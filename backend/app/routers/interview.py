@@ -12,10 +12,12 @@ from ..responses import error, ok
 from ..schemas import InterviewAnswerRequest, InterviewStartRequest
 from ..skills.interview import evaluate_answers, generate_questions
 
+from ..plans import require_feature
+
 router = APIRouter(prefix="/interview", tags=["interview"])
 
 
-@router.post("/start")
+@router.post("/start", dependencies=[Depends(require_feature("career_tools"))])
 async def start(
     payload: InterviewStartRequest,
     user: User = Depends(get_current_user),
@@ -33,7 +35,7 @@ async def start(
     )
 
 
-@router.post("/answer")
+@router.post("/answer", dependencies=[Depends(require_feature("career_tools"))])
 async def answer(
     payload: InterviewAnswerRequest,
     user: User = Depends(get_current_user),
