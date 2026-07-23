@@ -2125,7 +2125,7 @@ a:focus-visible {
   color: #fff;
 }
 .tier-elite {
-  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  background: linear-gradient(135deg, #c084fc 0%, #a855f7 40%, #7c3aed 100%);
   color: #fff;
 }
 
