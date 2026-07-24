@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { NAV_GROUPS, CREATE_SLOT } from "./navGroups.jsx";
+import PlanBadge from "./PlanBadge.jsx";
 
 export default function BottomNav() {
   const location = useLocation();
@@ -58,7 +59,8 @@ export default function BottomNav() {
                 className="bottomnav-sheet-link"
                 onClick={() => setOpenKey(null)}
               >
-                {l.label}
+                <span>{l.label}</span>
+                <PlanBadge plan={l.plan} />
               </NavLink>
             ))}
           </div>
