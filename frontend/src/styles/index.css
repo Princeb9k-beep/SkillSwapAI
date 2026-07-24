@@ -2145,3 +2145,30 @@ a:focus-visible {
 .upgrade-notice span {
   font-weight: 600;
 }
+
+/* ---- PRO / ELITE tab badges (nav) ---- */
+.plan-badge {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  padding: 0.2rem 0.35rem;
+  border-radius: 5px;
+  color: #fff;
+  vertical-align: middle;
+}
+.plan-badge-pro {
+  background: var(--primary);
+}
+.plan-badge-elite {
+  background: linear-gradient(135deg, #c084fc 0%, #a855f7 40%, #7c3aed 100%);
+}
+/* Desktop top-bar: small gap after the label. */
+.nav-link .plan-badge {
+  margin-left: 0.35rem;
+}
+/* Mobile sheet: push the badge to the trailing edge of the row. */
+.bottomnav-sheet-link .plan-badge {
+  margin-left: auto;
+}

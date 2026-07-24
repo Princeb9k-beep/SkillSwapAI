@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { useApp } from "../context/AppContext.jsx";
 import { NAV_GROUPS } from "./navGroups.jsx";
 import NotificationBell from "./NotificationBell.jsx";
+import PlanBadge from "./PlanBadge.jsx";
 
 // Flat list (desktop top bar) is derived from the same grouped source of truth
 // the mobile BottomNav uses, so the two navigations never drift apart.
@@ -27,6 +28,7 @@ export default function Nav() {
           {links.map((l) => (
             <NavLink key={l.to} to={l.to} end={l.end} className="nav-link">
               {l.label}
+              <PlanBadge plan={l.plan} />
             </NavLink>
           ))}
         </div>

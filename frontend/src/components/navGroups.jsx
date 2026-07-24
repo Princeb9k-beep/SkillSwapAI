@@ -64,7 +64,7 @@ export const NAV_GROUPS = [
     Icon: AiIcon,
     links: [
       { to: "/coach", label: "Coach" },
-      { to: "/twin", label: "AI Twin" },
+      { to: "/twin", label: "AI Twin", plan: "pro" },
       { to: "/scanner", label: "Scanner" },
       { to: "/translate", label: "Translate" },
     ],
@@ -74,7 +74,7 @@ export const NAV_GROUPS = [
     label: "Learn",
     Icon: LearnIcon,
     links: [
-      { to: "/academy", label: "Academy" },
+      { to: "/academy", label: "Academy", plan: "pro" },
       { to: "/dashboard", label: "Dashboard" },
       { to: "/lessons", label: "Lessons" },
       { to: "/challenges", label: "Challenges" },
@@ -88,7 +88,7 @@ export const NAV_GROUPS = [
     links: [
       { to: "/matches", label: "Matches" },
       { to: "/messages", label: "Messages" },
-      { to: "/rooms", label: "Rooms" },
+      { to: "/rooms", label: "Rooms", plan: "pro" },
       { to: "/community", label: "Community" },
       { to: "/meetups", label: "Meetups" },
     ],
@@ -98,10 +98,10 @@ export const NAV_GROUPS = [
     label: "Grow",
     Icon: GrowIcon,
     links: [
-      { to: "/career", label: "Career" },
+      { to: "/career", label: "Career", plan: "pro" },
       { to: "/market", label: "Market" },
       { to: "/partners", label: "Partners" },
-      { to: "/verify", label: "Verify" },
+      { to: "/verify", label: "Verify", plan: "elite" },
       { to: "/plans", label: "Plans" },
       { to: "/settings", label: "Settings" },
     ],
