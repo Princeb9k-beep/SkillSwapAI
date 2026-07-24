@@ -766,16 +766,22 @@ class SkillProgress(Base):
     )
 
 
-class AiUsage(Base):
-    """Per-day AI-action counter, used to enforce the Free tier's daily limit."""
+class AiWallet(Base):
+    """A user's AI-token wallet. Every AI action costs one token, drawn first from
+    the monthly per-tier allowance (which refills each calendar month) and then
+    from any purchased top-up tokens (which carry over). One row per user."""
 
-    __tablename__ = "ai_usage"
+    __tablename__ = "ai_wallets"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True
+        ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True
     )
-    day: Mapped[date] = mapped_column(Date, index=True)
-    count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
-
-    __table_args__ = (UniqueConstraint("user_id", "day", name="uq_ai_usage_day"),)
+    # Allowance period this wallet is currently tracking, as "YYYY-MM".
+    period: Mapped[str] = mapped_column(String(7), default="", server_default="")
+    # Tokens of the monthly allowance already spent this period.
+    allowance_used: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0"
+    )
+    # Purchased top-up tokens remaining (do not expire).
+    purchased: Mapped[int] = mapped_column(Integer, default=0, server_default="0")

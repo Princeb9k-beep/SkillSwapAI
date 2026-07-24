@@ -10,7 +10,7 @@ from ..responses import ok
 from ..schemas import TranslateRequest
 from ..skills.translate import LANGUAGES, translate
 
-from ..plans import enforce_ai_quota
+from ..plans import consume_ai_token
 
 router = APIRouter(prefix="/translate", tags=["translate"])
 
@@ -20,7 +20,7 @@ async def languages(_: User = Depends(get_current_user)) -> object:
     return ok(data=LANGUAGES)
 
 
-@router.post("", dependencies=[Depends(enforce_ai_quota)])
+@router.post("", dependencies=[Depends(consume_ai_token)])
 async def do_translate(
     payload: TranslateRequest,
     _: User = Depends(get_current_user),

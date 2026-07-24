@@ -13,7 +13,7 @@ from ..responses import ok
 from ..schemas import CoachChat
 from ..skills.coach import coach_reply
 
-from ..plans import enforce_ai_quota
+from ..plans import consume_ai_token
 
 router = APIRouter(prefix="/coach", tags=["coach"])
 
@@ -35,7 +35,7 @@ async def history(
     return ok(data=messages)
 
 
-@router.post("/chat", dependencies=[Depends(enforce_ai_quota)])
+@router.post("/chat", dependencies=[Depends(consume_ai_token)])
 async def chat_endpoint(
     payload: CoachChat,
     user: User = Depends(get_current_user),

@@ -71,6 +71,10 @@ class SubscribeRequest(BaseModel):
     tier: str = Field(pattern="^(free|pro|elite)$")
 
 
+class BuyTokensRequest(BaseModel):
+    pack: str = Field(pattern="^(small|medium|large)$")
+
+
 # --- Skill Academy --------------------------------------------------------
 class LessonAssistRequest(BaseModel):
     mode: str = Field(default="explain", pattern="^(explain|hint|review)$")

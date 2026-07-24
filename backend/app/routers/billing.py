@@ -9,12 +9,21 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from fastapi import HTTPException, status
+
 from ..database import get_session
 from ..deps import get_current_user, user_is_admin
 from ..models import User
-from ..plans import LIMITS, PLANS, ai_used_today, limit_for, tier_of
+from ..plans import (
+    LIMITS,
+    PLANS,
+    TOKEN_PACKS,
+    add_purchased_tokens,
+    ai_token_status,
+    tier_of,
+)
 from ..responses import ok
-from ..schemas import SubscribeRequest
+from ..schemas import BuyTokensRequest, SubscribeRequest
 
 router = APIRouter(prefix="/billing", tags=["billing"])
 
@@ -30,17 +39,48 @@ async def my_subscription(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> object:
-    """Current tier, effective limits, and today's AI usage."""
+    """Current tier, effective limits, and AI-token wallet."""
     tier = tier_of(user)
-    ai_limit = limit_for(user, "ai_daily")
     return ok(
         data={
             "tier": tier,
             "is_admin": user_is_admin(user),
             "limits": LIMITS.get(tier, LIMITS["free"]),
-            "ai_used_today": await ai_used_today(session, user),
-            "ai_daily_limit": ai_limit,
+            "tokens": await ai_token_status(session, user),
         }
+    )
+
+
+@router.get("/tokens")
+async def my_tokens(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> object:
+    """The user's AI-token wallet plus the buyable top-up packs."""
+    return ok(
+        data={
+            "wallet": await ai_token_status(session, user),
+            "packs": TOKEN_PACKS,
+        }
+    )
+
+
+@router.post("/tokens/buy")
+async def buy_tokens(
+    payload: BuyTokensRequest,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> object:
+    """Buy a top-up pack (payment stubbed — tokens are credited immediately)."""
+    pack = next((p for p in TOKEN_PACKS if p["id"] == payload.pack), None)
+    if pack is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Unknown token pack."
+        )
+    await add_purchased_tokens(session, user, pack["tokens"])
+    return ok(
+        data={"wallet": await ai_token_status(session, user)},
+        message=f"Added {pack['tokens']:,} AI tokens. Happy learning!",
     )
 
 

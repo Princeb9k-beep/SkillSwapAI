@@ -2172,3 +2172,39 @@ a:focus-visible {
 .bottomnav-sheet-link .plan-badge {
   margin-left: auto;
 }
+
+/* ---- AI token wallet (Plans page) ---- */
+.token-wallet {
+  margin-top: 1.25rem;
+}
+.token-balance {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--primary);
+}
+.token-breakdown {
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+}
+.token-buy-title {
+  margin-top: 1rem;
+}
+.token-packs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+.token-pack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.7rem 0.5rem;
+}
+.token-pack-amt {
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--text);
+}
