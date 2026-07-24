@@ -1,10 +1,11 @@
-"""Subscription tiers, feature gating, and usage limits.
+"""Subscription tiers, feature gating, and AI-token usage.
 
 Three tiers — free / pro / elite — gate access to most paid features. Gating is
 enforced on the backend (not just hidden in the UI): `require_feature(...)` is a
-dependency that 402s with an upgrade message, and `enforce_ai_quota` caps the
-Free tier's daily AI actions. Admins (ADMIN_EMAILS) are treated as elite so they
-can exercise everything.
+dependency that 402s with an upgrade message, and `consume_ai_token` spends one
+AI token per AI action (monthly per-tier allowance first, then purchased top-up
+tokens). Admins (ADMIN_EMAILS) are treated as elite so they can exercise
+everything.
 """
 
 from __future__ import annotations
@@ -15,9 +16,10 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .config import get_settings
 from .database import get_session
 from .deps import get_current_user, user_is_admin
-from .models import AiUsage, User
+from .models import AiWallet, User
 
 TIERS = ("free", "pro", "elite")
 _RANK = {"free": 0, "pro": 1, "elite": 2}
@@ -35,10 +37,17 @@ FEATURES: dict[str, dict] = {
 
 # Quantity limits per tier (None = unlimited).
 LIMITS: dict[str, dict] = {
-    "free": {"matches": 5, "ai_daily": 3, "marketplace_discount": 0},
-    "pro": {"matches": None, "ai_daily": None, "marketplace_discount": 0},
-    "elite": {"matches": None, "ai_daily": None, "marketplace_discount": 20},
+    "free": {"matches": 5, "marketplace_discount": 0},
+    "pro": {"matches": None, "marketplace_discount": 0},
+    "elite": {"matches": None, "marketplace_discount": 20},
 }
+
+# Buyable AI-token top-up packs (payment stubbed). id -> tokens + price.
+TOKEN_PACKS: list[dict] = [
+    {"id": "small", "name": "Starter", "tokens": 500, "price_cents": 500},
+    {"id": "medium", "name": "Booster", "tokens": 1500, "price_cents": 1200},
+    {"id": "large", "name": "Power", "tokens": 5000, "price_cents": 3500},
+]
 
 # The catalog shown on the Plans page.
 PLANS: list[dict] = [
@@ -52,7 +61,7 @@ PLANS: list[dict] = [
             "Messaging, community & meetups",
             "Daily lessons & challenges",
             "Progress, XP & achievements",
-            "3 AI actions / day (Coach, Scanner, Translate)",
+            "100 AI tokens / month (Coach, Scanner, Translate)",
             "Skill Academy — free preview lessons",
         ],
     },
@@ -64,7 +73,7 @@ PLANS: list[dict] = [
         "tagline": "Unlock the full AI learning toolkit.",
         "features": [
             "Unlimited matching & ranking",
-            "Unlimited AI Coach, Scanner & Translate",
+            "2,000 AI tokens / month + buyable top-ups",
             "Video practice rooms",
             "Full Skill Academy — all courses included",
             "Resume builder & interview practice",
@@ -77,6 +86,7 @@ PLANS: list[dict] = [
         "price_cents": 2900,
         "tagline": "Go pro, get verified, and stand out.",
         "features": [
+            "Unlimited AI tokens — never run out",
             "Train your own AI Twin",
             "Skill verification badge",
             "20% off Marketplace & bookings",
@@ -119,43 +129,96 @@ def require_feature(feature: str):
     return dep
 
 
-async def enforce_ai_quota(
+def ai_token_allowance(user: User) -> int | None:
+    """Monthly AI-token allowance for a user's tier (None = unlimited/elite)."""
+    tier = tier_of(user)
+    if tier == "elite":
+        return None
+    settings = get_settings()
+    return settings.pro_ai_tokens if tier == "pro" else settings.free_ai_tokens
+
+
+def _current_period() -> str:
+    d = date.today()
+    return f"{d.year:04d}-{d.month:02d}"
+
+
+async def get_wallet(session: AsyncSession, user: User) -> AiWallet:
+    """Fetch (or create) the user's wallet, rolling the monthly allowance over
+    when a new calendar month has started. Caller commits."""
+    period = _current_period()
+    wallet = (
+        await session.execute(select(AiWallet).where(AiWallet.user_id == user.id))
+    ).scalar_one_or_none()
+    if wallet is None:
+        wallet = AiWallet(user_id=user.id, period=period, allowance_used=0, purchased=0)
+        session.add(wallet)
+    elif wallet.period != period:
+        wallet.period = period
+        wallet.allowance_used = 0
+    return wallet
+
+
+async def ai_token_status(session: AsyncSession, user: User) -> dict:
+    """Snapshot of the user's token wallet for the API/UI."""
+    allowance = ai_token_allowance(user)
+    wallet = await get_wallet(session, user)
+    await session.commit()  # persist any month rollover
+    if allowance is None:
+        return {
+            "unlimited": True,
+            "allowance": None,
+            "allowance_used": 0,
+            "allowance_remaining": None,
+            "purchased": wallet.purchased,
+            "balance": None,
+            "period": wallet.period,
+        }
+    allowance_remaining = max(0, allowance - wallet.allowance_used)
+    return {
+        "unlimited": False,
+        "allowance": allowance,
+        "allowance_used": wallet.allowance_used,
+        "allowance_remaining": allowance_remaining,
+        "purchased": wallet.purchased,
+        "balance": allowance_remaining + wallet.purchased,
+        "period": wallet.period,
+    }
+
+
+async def add_purchased_tokens(session: AsyncSession, user: User, tokens: int) -> AiWallet:
+    """Credit purchased top-up tokens to the wallet (payment stubbed)."""
+    wallet = await get_wallet(session, user)
+    wallet.purchased += tokens
+    await session.commit()
+    return wallet
+
+
+async def consume_ai_token(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> User:
-    """Dependency for AI endpoints: consume one of the Free tier's daily actions,
-    or 402 when the daily limit is reached. Paid tiers are unlimited."""
-    limit = limit_for(user, "ai_daily")
-    if limit is None:
+    """Dependency for AI endpoints: spend one AI token — from the monthly
+    allowance first, then purchased top-ups — or 402 when the wallet is empty.
+    Elite is unlimited."""
+    allowance = ai_token_allowance(user)
+    wallet = await get_wallet(session, user)
+    if allowance is None:  # elite: unlimited
+        await session.commit()  # persist any rollover
         return user
 
-    today = date.today()
-    row = (
-        await session.execute(
-            select(AiUsage).where(AiUsage.user_id == user.id, AiUsage.day == today)
-        )
-    ).scalar_one_or_none()
-    used = row.count if row else 0
-    if used >= limit:
+    if wallet.allowance_used < allowance:
+        wallet.allowance_used += 1
+    elif wallet.purchased > 0:
+        wallet.purchased -= 1
+    else:
+        await session.commit()  # persist any rollover before failing
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
             detail=(
-                f"You've used your {limit} free AI actions today. "
-                "Upgrade to Pro for unlimited AI."
+                "You're out of AI tokens. Buy a top-up or upgrade your plan "
+                "for more monthly tokens."
             ),
         )
-    if row is None:
-        session.add(AiUsage(user_id=user.id, day=today, count=1))
-    else:
-        row.count = used + 1
     await session.commit()
     return user
-
-
-async def ai_used_today(session: AsyncSession, user: User) -> int:
-    row = (
-        await session.execute(
-            select(AiUsage).where(AiUsage.user_id == user.id, AiUsage.day == date.today())
-        )
-    ).scalar_one_or_none()
-    return row.count if row else 0

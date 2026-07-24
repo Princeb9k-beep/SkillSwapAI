@@ -20,6 +20,7 @@ _DB = pathlib.Path(__file__).parent / "test.db"
 os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{_DB}"
 os.environ.setdefault("GROQ_API_KEY", "")  # ensure AI stays in fallback mode
 os.environ["ADMIN_EMAILS"] = "mod@example.com,elite-admin@example.com"  # admins
+os.environ["FREE_AI_TOKENS"] = "3"  # small monthly allowance so exhaustion is testable
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import asyncio  # noqa: E402
@@ -1000,7 +1001,7 @@ def test_billing_plans_and_subscribe(client):
     # Upgrade to Pro.
     assert client.post("/billing/subscribe", json={"tier": "pro"}, headers=hdr).status_code == 200
     me = client.get("/billing/me", headers=hdr).json()["data"]
-    assert me["tier"] == "pro" and me["ai_daily_limit"] is None
+    assert me["tier"] == "pro" and me["tokens"]["allowance"] == 2000
     assert client.get("/users/me", headers=hdr).json()["data"]["tier"] == "pro"
     # Cancel back to free.
     client.post("/billing/subscribe", json={"tier": "free"}, headers=hdr)
@@ -1036,16 +1037,40 @@ def test_tier_feature_gating(client):
     assert not blocked("post", "/verifications", json={"skill_name": "Python"})
 
 
-def test_free_ai_daily_quota(client):
+def test_free_ai_token_allowance(client):
     hdr = _auth(client, "quotauser@example.com", "Quota User")
     body = {"text": "hello world", "target_language": "Spanish"}
-    # Free tier: 3 AI actions/day, then 402.
+
+    # Free tier: 3 monthly AI tokens (test override), 1 per action, then 402.
+    tokens = client.get("/billing/tokens", headers=hdr).json()["data"]
+    assert tokens["wallet"]["balance"] == 3
+    assert [p["id"] for p in tokens["packs"]] == ["small", "medium", "large"]
     for _ in range(3):
         assert client.post("/translate", json=body, headers=hdr).status_code == 200
     assert client.post("/translate", json=body, headers=hdr).status_code == 402
-    # Pro: unlimited.
-    client.post("/billing/subscribe", json={"tier": "pro"}, headers=hdr)
+    wallet = client.get("/billing/tokens", headers=hdr).json()["data"]["wallet"]
+    assert wallet["allowance_remaining"] == 0 and wallet["balance"] == 0
+
+    # Buy a top-up pack — the purchased tokens restore access.
+    buy = client.post("/billing/tokens/buy", json={"pack": "small"}, headers=hdr)
+    assert buy.status_code == 200
+    assert buy.json()["data"]["wallet"]["purchased"] == 500
     assert client.post("/translate", json=body, headers=hdr).status_code == 200
+    wallet = client.get("/billing/tokens", headers=hdr).json()["data"]["wallet"]
+    assert wallet["purchased"] == 499  # allowance was empty, so it drew from top-up
+
+    # Unknown pack is rejected.
+    assert client.post("/billing/tokens/buy", json={"pack": "mega"}, headers=hdr).status_code == 422
+
+
+def test_elite_ai_tokens_unlimited(client):
+    hdr = _auth(client, "eliteai@example.com", "Elite AI")
+    client.post("/billing/subscribe", json={"tier": "elite"}, headers=hdr)
+    body = {"text": "hello world", "target_language": "Spanish"}
+    for _ in range(5):
+        assert client.post("/translate", json=body, headers=hdr).status_code == 200
+    wallet = client.get("/billing/tokens", headers=hdr).json()["data"]["wallet"]
+    assert wallet["unlimited"] is True and wallet["balance"] is None
 
 
 def test_admin_is_elite_tier(client):

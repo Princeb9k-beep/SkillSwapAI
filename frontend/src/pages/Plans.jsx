@@ -9,6 +9,93 @@ import { SkeletonPage } from "../components/Skeleton.jsx";
 
 const price = (cents) => (cents === 0 ? "$0" : `$${(cents / 100).toFixed(0)}`);
 const per = (cents) => (cents === 0 ? "forever" : "month");
+const fmt = (n) => n.toLocaleString();
+
+// AI-token wallet: current balance, monthly allowance, and buyable top-ups.
+function TokenWallet() {
+  const { notify } = useApp();
+  const [data, setData] = useState(null);
+  const [status, setStatus] = useState("loading");
+  const [busy, setBusy] = useState(null);
+
+  const load = useCallback(async () => {
+    setStatus("loading");
+    try {
+      setData(await api.aiTokens());
+      setStatus("ready");
+    } catch {
+      setStatus("error");
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function buy(pack) {
+    setBusy(pack.id);
+    try {
+      const res = await api.buyTokens(pack.id);
+      setData((d) => ({ ...d, wallet: res.wallet }));
+      notify(res.message || "Tokens added", "success");
+    } catch (err) {
+      notify(err.message, "error");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  if (status !== "ready" || !data) return null;
+  const { wallet, packs } = data;
+  const pct =
+    wallet.unlimited || !wallet.allowance
+      ? 0
+      : Math.round((wallet.allowance_used / wallet.allowance) * 100);
+
+  return (
+    <div className="card token-wallet">
+      <div className="row-between">
+        <h3>AI tokens</h3>
+        <span className="token-balance">
+          {wallet.unlimited ? "Unlimited" : fmt(wallet.balance)}
+        </span>
+      </div>
+      <p className="field-hint">
+        Every AI action — Coach, Scanner, Translate and more — costs 1 token.
+      </p>
+
+      {wallet.unlimited ? (
+        <p className="muted">Your Elite plan includes unlimited AI tokens. 🎉</p>
+      ) : (
+        <>
+          <div className="progress-track">
+            <div className="progress-fill" style={{ width: `${pct}%` }} />
+          </div>
+          <p className="muted token-breakdown">
+            {fmt(wallet.allowance_remaining)} of {fmt(wallet.allowance)} monthly tokens left
+            {wallet.purchased > 0 && ` · +${fmt(wallet.purchased)} top-up`}
+          </p>
+
+          <p className="field-hint token-buy-title">Need more? Buy a top-up:</p>
+          <div className="token-packs">
+            {packs.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className="btn token-pack"
+                disabled={busy === p.id}
+                onClick={() => buy(p)}
+              >
+                <span className="token-pack-amt">+{fmt(p.tokens)}</span>
+                <span className="muted">{price(p.price_cents)}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 function Check() {
   return (
@@ -113,6 +200,9 @@ export default function Plans() {
           );
         })}
       </div>
+
+      {/* Remount on plan change so the allowance reflects the new tier. */}
+      <TokenWallet key={current} />
 
       <p className="field-hint plans-foot">
         Upgrades apply instantly. Payments are not charged yet (Stripe checkout is a planned
