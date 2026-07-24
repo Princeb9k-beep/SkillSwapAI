@@ -44,6 +44,20 @@ class Settings(BaseSettings):
     # Comma-separated emails granted moderator/admin access (report triage).
     admin_emails: str = ""
 
+    # --- Transactional email (SMTP) --------------------------------------
+    # When smtp_host is set, verification / password-reset emails are actually
+    # sent. Unset -> the app degrades to returning dev tokens (as before).
+    # Works with any SMTP provider (SendGrid, Mailgun, Postmark, Gmail, ...).
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_starttls: bool = True          # STARTTLS on 587 (set false for port 465 + smtp_ssl)
+    smtp_ssl: bool = False              # implicit TLS (port 465)
+    email_from: str = "SkillSwap AI <no-reply@skillswapai.app>"
+    # Base URL of the frontend, used to build links in emails.
+    frontend_url: str = "http://localhost:5173"
+
     # AI/cache tuning
     ai_cache_ttl_seconds: int = 60 * 60 * 24      # cache AI responses for a day
     lock_ttl_ms: int = 30_000                     # distributed lock lease
@@ -82,6 +96,11 @@ class Settings(BaseSettings):
     @property
     def admin_email_set(self) -> set[str]:
         return {e.strip().lower() for e in self.admin_emails.split(",") if e.strip()}
+
+    @property
+    def email_configured(self) -> bool:
+        """True when an SMTP host is set, so real emails can be sent."""
+        return bool(self.smtp_host.strip())
 
 
 @lru_cache

@@ -15,6 +15,11 @@ from ..auth import (
 from ..config import get_settings
 from ..database import get_session
 from ..deps import get_current_user, get_user_by_email
+from ..mailer import (
+    email_configured,
+    send_password_reset_email,
+    send_verification_email,
+)
 from ..models import User
 from ..responses import error, ok
 from ..schemas import (
@@ -35,9 +40,12 @@ def _is_production() -> bool:
 
 
 def _dev_token(token: str) -> dict:
-    """Outside production (no email provider configured) we return the token so
-    the flow is usable/testable; in production it is emailed, never returned."""
-    return {} if _is_production() else {"dev_token": token}
+    """When no email provider is configured we return the token so the flow is
+    usable/testable; once SMTP is set (or in production) it's emailed, never
+    returned."""
+    if email_configured() or _is_production():
+        return {}
+    return {"dev_token": token}
 
 
 def _auth_payload(user: User) -> dict:
@@ -84,8 +92,11 @@ async def signup(
     await session.commit()
 
     data = _auth_payload(user)
-    # Issue an email-verification token (emailed in prod; returned in dev).
-    data.update(_dev_token(create_scoped_token(user.id, "verify")))
+    # Issue an email-verification token — email it when SMTP is configured,
+    # otherwise fall back to returning it so the dev flow still works.
+    token = create_scoped_token(user.id, "verify")
+    await send_verification_email(user.email, user.name, token)
+    data.update(_dev_token(token))
     return ok(data=data, message="Account created", status_code=201)
 
 
@@ -112,8 +123,10 @@ async def resend_verification(
     """Re-issue an email-verification token for the signed-in user."""
     if user.email_verified:
         return ok(message="Your email is already verified.")
+    token = create_scoped_token(user.id, "verify")
+    await send_verification_email(user.email, user.name, token)
     return ok(
-        data=_dev_token(create_scoped_token(user.id, "verify")),
+        data=_dev_token(token),
         message="Verification email sent.",
     )
 
@@ -127,7 +140,9 @@ async def forgot_password(
     user = await get_user_by_email(session, payload.email)
     data = {}
     if user is not None:
-        data = _dev_token(create_scoped_token(user.id, "reset", ttl_minutes=30))
+        token = create_scoped_token(user.id, "reset", ttl_minutes=30)
+        await send_password_reset_email(user.email, user.name, token)
+        data = _dev_token(token)
     return ok(data=data, message="If that email exists, a reset link is on its way.")
 
 

@@ -803,6 +803,32 @@ def test_email_verification_flow(client):
     assert client.post("/auth/verify-email", json={"token": "garbage"}).status_code == 400
 
 
+def test_signup_sends_email_when_configured(client, monkeypatch):
+    """When SMTP is configured the verification link is emailed and the token is
+    NOT returned to the client."""
+    import app.routers.auth as auth_router
+
+    sent = {}
+
+    async def _fake_send(to, name, token):
+        sent["to"] = to
+        sent["token"] = token
+        return True
+
+    monkeypatch.setattr(auth_router, "email_configured", lambda: True)
+    monkeypatch.setattr(auth_router, "send_verification_email", _fake_send)
+
+    r = client.post(
+        "/auth/signup",
+        json={"email": "emailed@example.com", "password": "supersecret123", "name": "E"},
+    )
+    assert r.status_code == 201
+    data = r.json()["data"]
+    # The token was emailed, so it must not leak in the response.
+    assert "dev_token" not in data
+    assert sent["to"] == "emailed@example.com" and sent["token"]
+
+
 def test_password_reset_flow(client):
     email = "resetme@example.com"
     client.post("/auth/signup", json={"email": email, "password": "originalpass1", "name": "R"})
