@@ -36,6 +36,7 @@ const Admin = lazy(() => import("./pages/Admin.jsx"));
 const Academy = lazy(() => import("./pages/Academy.jsx"));
 const Plans = lazy(() => import("./pages/Plans.jsx"));
 const Onboarding = lazy(() => import("./pages/Onboarding.jsx"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail.jsx"));
 
 function AuthedApp() {
   const { user } = useApp();
@@ -97,6 +98,17 @@ function AuthedApp() {
 
 function Shell() {
   const { isAuthed } = useApp();
+  // The emailed verification link must work signed-in or out, so handle it
+  // before the auth gate.
+  if (window.location.pathname === "/verify-email") {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingState />}>
+          <VerifyEmail />
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
   return (
     <ErrorBoundary>
       <Suspense fallback={<LoadingState />}>

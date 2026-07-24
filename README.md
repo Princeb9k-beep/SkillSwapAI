@@ -90,6 +90,13 @@ when Node *is* available.
      `GROQ_MODEL`, `APP_SECRET_KEY`, `APP_ENV=production`. Leave `VITE_API_BASE_URL`
      unset so the SPA calls its own origin. The app auto-rewrites Render's
      `postgres://` URL to the async driver.
+   - **To actually send email** (verification + password reset), set the SMTP vars
+     from any provider (SendGrid, Mailgun, Postmark, SES, Gmail…): `SMTP_HOST`,
+     `SMTP_PORT` (587), `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM`, and
+     `FRONTEND_URL` (your deployed frontend origin, used for links in emails). Use
+     `SMTP_STARTTLS=True` on port 587, or `SMTP_SSL=True` on port 465. When these
+     are unset the app skips sending and returns dev tokens instead, so signup and
+     reset still work locally without a mail provider.
 
 > **After changing frontend code**, rebuild and commit the bundle:
 > `cd frontend && npm run build`, then commit `frontend/dist/`.
