@@ -8,6 +8,7 @@ import { api } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import { ErrorBanner, EmptyState } from "../components/States.jsx";
 import { SkeletonPage } from "../components/Skeleton.jsx";
+import { onRealtime } from "../realtime.js";
 
 export default function Messages() {
   const { notify } = useApp();
@@ -60,6 +61,20 @@ export default function Messages() {
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [messages]);
+
+  // Live updates: a new message refreshes the thread list, and if it belongs to
+  // the open conversation, reload it (which also marks it read).
+  useEffect(() => {
+    const off = onRealtime((e) => {
+      if (e.type !== "message") return;
+      loadThreads();
+      const partnerId = e.data.to_id ?? e.data.from_id;
+      if (active && active.partner_id === partnerId) {
+        openConversation(partnerId, active.partner_name);
+      }
+    });
+    return off;
+  }, [active, loadThreads, openConversation]);
 
   async function blockPartner() {
     if (!active) return;

@@ -829,6 +829,24 @@ def test_signup_sends_email_when_configured(client, monkeypatch):
     assert sent["to"] == "emailed@example.com" and sent["token"]
 
 
+def test_realtime_message_delivery(client):
+    a = _auth(client, "rt_sender@example.com", "RT Sender")
+    b = _auth(client, "rt_recipient@example.com", "RT Recipient")
+    a_id = client.get("/users/me", headers=a).json()["data"]["id"]
+    b_id = client.get("/users/me", headers=b).json()["data"]["id"]
+
+    # B opens their personal socket (uid fallback works outside production).
+    with client.websocket_connect(f"/ws/user?uid={b_id}") as ws:
+        assert ws.receive_json()["type"] == "ready"
+        # A messages B — B should receive a live "message" event.
+        r = client.post(f"/messages/{b_id}", json={"body": "hi live"}, headers=a)
+        assert r.status_code == 201
+        evt = ws.receive_json()
+        assert evt["type"] == "message"
+        assert evt["data"]["body"] == "hi live"
+        assert evt["data"]["from_id"] == a_id and evt["data"]["mine"] is False
+
+
 def test_public_profile(client):
     hdr = _auth(client, "profileowner@example.com", "Profile Owner")
     client.post("/skills", json={"name": "Python", "kind": "have", "level": "advanced"}, headers=hdr)
