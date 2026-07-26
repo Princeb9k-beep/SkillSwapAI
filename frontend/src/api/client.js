@@ -45,7 +45,10 @@ export function setUnauthorizedHandler(fn) {
 }
 
 async function request(path, { method = "GET", body, auth = true } = {}) {
-  const headers = { "Content-Type": "application/json" };
+  const isForm = typeof FormData !== "undefined" && body instanceof FormData;
+  const headers = {};
+  // Let the browser set multipart boundaries for FormData; JSON otherwise.
+  if (!isForm) headers["Content-Type"] = "application/json";
   const token = getToken();
   if (auth && token) headers["Authorization"] = `Bearer ${token}`;
 
@@ -54,7 +57,7 @@ async function request(path, { method = "GET", body, auth = true } = {}) {
     res = await fetch(`${BASE}${path}`, {
       method,
       headers,
-      body: body ? JSON.stringify(body) : undefined,
+      body: isForm ? body : body ? JSON.stringify(body) : undefined,
     });
   } catch {
     throw new Error("Can't reach the server. Check your connection and try again.");
@@ -140,9 +143,20 @@ export const api = {
   // ai coach
   coachHistory: () => request("/coach/history"),
   coachChat: (message) => request("/coach/chat", { method: "POST", body: { message } }),
+  coachCritique: (file, note) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    if (note) fd.append("note", note);
+    return request("/coach/critique", { method: "POST", body: fd });
+  },
   clearCoach: () => request("/coach/history", { method: "DELETE" }),
   // ai skill scanner
   scanSkills: (text) => request("/scanner/analyze", { method: "POST", body: { text } }),
+  scanFile: (file) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return request("/scanner/analyze-file", { method: "POST", body: fd });
+  },
   // live translation
   translateLanguages: () => request("/translate/languages"),
   translate: (text, target_language) =>

@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
 from ..deps import get_current_user
 from ..models import CoachMessage, User
-from ..responses import ok
+from ..responses import error, ok
 from ..schemas import CoachChat
 from ..skills.coach import coach_reply
+from ..skills.extract import UnsupportedFile, extract_text
 
 from ..plans import consume_ai_token
 
@@ -45,6 +46,25 @@ async def chat_endpoint(
     reply = await coach_reply(session, user, payload.message.strip())
     await session.commit()
     return ok(data={"reply": reply}, message="Coach replied")
+
+
+@router.post("/critique", dependencies=[Depends(consume_ai_token)])
+async def critique_file(
+    file: UploadFile = File(...),
+    note: str = Form(default=""),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> object:
+    """Upload a file (resume, code, doc) and get the coach's written critique."""
+    try:
+        text = extract_text(file.filename or "", await file.read())
+    except UnsupportedFile as exc:
+        return error(str(exc), status_code=400, code="bad_file")
+    ask = note.strip() or "Please review this and give specific, actionable feedback."
+    prompt = f"{ask}\n\n--- {file.filename or 'uploaded file'} ---\n{text}"
+    reply = await coach_reply(session, user, prompt)
+    await session.commit()
+    return ok(data={"reply": reply, "source": file.filename}, message="Coach reviewed your file")
 
 
 @router.delete("/history")
