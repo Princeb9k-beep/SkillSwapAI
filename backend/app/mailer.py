@@ -108,6 +108,35 @@ async def send_verification_email(to: str, name: str | None, token: str) -> bool
     return await send_email(to, "Confirm your SkillSwap AI email", text, html)
 
 
+# Which notification preference gates each notification type's email.
+_PREF_BY_TYPE = {
+    "message": "notify_messages",
+    "achievement": "notify_achievements",
+    "referral": "notify_achievements",
+    "welcome": "notify_achievements",
+    "match": "notify_messages",
+    "meetup": "notify_messages",
+}
+
+
+async def send_event_email(user, type: str, title: str, body: str | None, link: str | None) -> bool:
+    """Email a user about an in-app event, respecting their notification prefs.
+    No-op (returns False) when the relevant pref is off or SMTP is unconfigured."""
+    pref = _PREF_BY_TYPE.get(type, "notify_product")
+    if not getattr(user, pref, True):
+        return False
+    url = _frontend_url(link or "/")
+    html = _shell(
+        title,
+        body or "You have a new update on SkillSwap AI.",
+        "Open SkillSwap AI",
+        url,
+        "You're getting this because of your notification settings — change them anytime in Settings.",
+    )
+    text = f"{title}\n\n{body or ''}\n\n{url}"
+    return await send_email(user.email, title, text, html)
+
+
 async def send_password_reset_email(to: str, name: str | None, token: str) -> bool:
     url = _frontend_url(f"/reset-password?token={token}")
     greeting = f"Hi {name}," if name else "Hi,"

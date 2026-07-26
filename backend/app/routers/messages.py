@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
 from ..deps import get_current_user
+from ..mailer import send_event_email
 from ..models import Message, User
 from ..realtime import hub
 from ..responses import error, ok
@@ -201,6 +202,17 @@ async def send_message(
                 link=link,
             )
         except Exception:  # never let push failures break sending
+            pass
+        # Best-effort email (no-op if SMTP unconfigured or pref off).
+        try:
+            await send_event_email(
+                partner,
+                "message",
+                f"New message from {sender_name}",
+                message.body,
+                link,
+            )
+        except Exception:
             pass
 
     return ok(data=_msg_dict(message, user.id), message="Sent", status_code=201)
