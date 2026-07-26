@@ -120,7 +120,29 @@ async function request(path, { method = "GET", body, auth = true, _retried = fal
   if (!res.ok || payload.success === false) {
     throw new Error(payload?.message || "Something went wrong.");
   }
+
+  // Let the token pill refresh after any action that likely spent a token.
+  if (method !== "GET" && spendsToken(path) && typeof window !== "undefined") {
+    window.dispatchEvent(new Event("tokens:changed"));
+  }
   return payload.data;
+}
+
+// Endpoints (POSTs) that consume an AI token on the backend.
+const AI_TOKEN_PREFIXES = [
+  "/coach",
+  "/scanner",
+  "/translate",
+  "/roadmap",
+  "/resume",
+  "/interview",
+  "/twin",
+  "/verifications/assessment",
+  "/billing/tokens/buy",
+  "/billing/subscribe",
+];
+function spendsToken(path) {
+  return AI_TOKEN_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`) || path.startsWith(`${p}?`));
 }
 
 export const api = {

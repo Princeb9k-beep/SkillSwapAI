@@ -3,6 +3,7 @@ import { useApp } from "../context/AppContext.jsx";
 import { NAV_GROUPS } from "./navGroups.jsx";
 import NotificationBell from "./NotificationBell.jsx";
 import PlanBadge from "./PlanBadge.jsx";
+import TokenPill from "./TokenPill.jsx";
 
 // Flat list (desktop top bar) is derived from the same grouped source of truth
 // the mobile BottomNav uses, so the two navigations never drift apart.
@@ -33,6 +34,7 @@ export default function Nav() {
           ))}
         </div>
         <div className="nav-user">
+          <TokenPill />
           <NotificationBell />
           {user?.name || user?.email ? (
             <NavLink to="/settings" className="nav-who muted" title="Settings">

@@ -2439,3 +2439,35 @@ a:focus-visible {
 .search-card h3 {
   margin: 0.25rem 0;
 }
+
+/* ---- AI token pill (top-right, on AI tabs) ---- */
+.token-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.85rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+.token-pill:hover {
+  border-color: var(--primary);
+}
+.token-pill:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.token-pill-icon {
+  font-size: 0.95rem;
+}
+.token-pill-low {
+  border-color: var(--error);
+  background: color-mix(in srgb, var(--error) 10%, var(--surface));
+  color: var(--error);
+}
