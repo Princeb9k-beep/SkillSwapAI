@@ -21,6 +21,7 @@ from ..mailer import (
     send_verification_email,
 )
 from ..models import User
+from ..ratelimit import rate_limit
 from ..responses import error, ok
 from ..schemas import (
     ForgotPasswordRequest,
@@ -59,7 +60,7 @@ def _auth_payload(user: User) -> dict:
     }
 
 
-@router.post("/signup")
+@router.post("/signup", dependencies=[Depends(rate_limit("signup", 10, 3600))])
 async def signup(
     payload: SignupRequest, session: AsyncSession = Depends(get_session)
 ) -> object:
@@ -116,7 +117,10 @@ async def verify_email(
     return ok(message="Email verified")
 
 
-@router.post("/resend-verification")
+@router.post(
+    "/resend-verification",
+    dependencies=[Depends(rate_limit("resend", 5, 3600))],
+)
 async def resend_verification(
     user: User = Depends(get_current_user),
 ) -> object:
@@ -131,7 +135,7 @@ async def resend_verification(
     )
 
 
-@router.post("/forgot-password")
+@router.post("/forgot-password", dependencies=[Depends(rate_limit("forgot", 5, 3600))])
 async def forgot_password(
     payload: ForgotPasswordRequest, session: AsyncSession = Depends(get_session)
 ) -> object:
@@ -162,7 +166,7 @@ async def reset_password(
     return ok(message="Password updated — you can sign in now.")
 
 
-@router.post("/login")
+@router.post("/login", dependencies=[Depends(rate_limit("login", 20, 900))])
 async def login(
     payload: LoginRequest, session: AsyncSession = Depends(get_session)
 ) -> object:
