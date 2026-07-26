@@ -208,6 +208,11 @@ class ReviewCreate(BaseModel):
     comment: str | None = Field(default=None, max_length=1000)
 
 
+class OAuthCallback(BaseModel):
+    code: str = Field(min_length=1, max_length=2000)
+    state: str | None = Field(default=None, max_length=256)
+
+
 class VerificationQuizStart(BaseModel):
     skill_name: str = Field(min_length=2, max_length=255)
 

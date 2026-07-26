@@ -55,6 +55,7 @@ from app.routers import (
     messages,
     moderation,
     notifications,
+    oauth,
     partnerships,
     push,
     portfolio,
@@ -203,6 +204,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 app.include_router(health.router)
 app.include_router(academy.router)
 app.include_router(auth.router)
+app.include_router(oauth.router)
 app.include_router(billing.router)
 app.include_router(realtime.router)
 app.include_router(referrals.router)

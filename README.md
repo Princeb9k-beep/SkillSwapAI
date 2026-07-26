@@ -90,6 +90,10 @@ when Node *is* available.
      `GROQ_MODEL`, `APP_SECRET_KEY`, `APP_ENV=production`. Leave `VITE_API_BASE_URL`
      unset so the SPA calls its own origin. The app auto-rewrites Render's
      `postgres://` URL to the async driver.
+   - **Social sign-in** (optional): set `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`
+     and/or `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET` to enable "Continue with
+     Google/GitHub". Register `<frontend>/oauth/callback` as the authorized
+     redirect URI in the provider console. Unset providers simply aren't shown.
    - **Daily learning reminders**: set `CRON_SECRET` and add a Render **Cron Job**
      that runs daily, e.g. `curl -fsS -X POST -H "X-Cron-Secret: $CRON_SECRET"
      https://your-api.onrender.com/reminders/run`. Users opt in under Settings →

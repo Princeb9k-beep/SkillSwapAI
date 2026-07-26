@@ -2385,3 +2385,36 @@ a:focus-visible {
   margin: 0 0 0.4rem;
   font-size: 1.2rem;
 }
+
+/* ---- OAuth sign-in ---- */
+.oauth-block {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.oauth-divider {
+  text-align: center;
+  position: relative;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 0.25rem 0;
+}
+.oauth-divider::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--border);
+}
+.oauth-divider span {
+  position: relative;
+  background: var(--bg);
+  padding: 0 0.6rem;
+}
+.oauth-btn {
+  width: 100%;
+  justify-content: center;
+}
