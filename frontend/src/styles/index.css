@@ -2332,3 +2332,20 @@ a:focus-visible {
 .lb-name:hover {
   text-decoration: underline;
 }
+
+/* ---- File upload controls (Scanner / Coach) ---- */
+.scan-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.upload-btn {
+  cursor: pointer;
+}
+.coach-upload {
+  cursor: pointer;
+  padding: 0.5rem 0.7rem;
+  font-size: 1.1rem;
+  line-height: 1;
+}

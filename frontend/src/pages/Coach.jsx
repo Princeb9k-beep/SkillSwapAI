@@ -58,6 +58,23 @@ export default function Coach() {
     }
   }
 
+  async function critiqueFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || sending) return;
+    setMessages((m) => [...m, { role: "user", content: `📎 Uploaded ${file.name} for review` }]);
+    setSending(true);
+    try {
+      const res = await api.coachCritique(file, "");
+      setMessages((m) => [...m, { role: "assistant", content: res.reply }]);
+    } catch (err) {
+      notify(err.message, "error");
+      setMessages((m) => m.slice(0, -1));
+    } finally {
+      setSending(false);
+    }
+  }
+
   async function clear() {
     try {
       await api.clearCoach();
@@ -121,6 +138,16 @@ export default function Coach() {
           aria-label="Message the coach"
           onChange={(e) => setInput(e.target.value)}
         />
+        <label className="btn coach-upload" title="Upload a file for the coach to review">
+          📎
+          <input
+            type="file"
+            accept=".pdf,.txt,.md,.doc,.docx,.csv,.py,.js,.ts,.json,.html,.css"
+            onChange={critiqueFile}
+            disabled={sending}
+            hidden
+          />
+        </label>
         <button className="btn btn-primary" disabled={!input.trim() || sending} aria-busy={sending}>
           Send
         </button>

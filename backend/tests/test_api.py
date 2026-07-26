@@ -829,6 +829,32 @@ def test_signup_sends_email_when_configured(client, monkeypatch):
     assert sent["to"] == "emailed@example.com" and sent["token"]
 
 
+def test_scanner_file_upload(client):
+    hdr = _auth(client, "fileuser@example.com", "File User")
+    content = (
+        "Experienced Python backend engineer. Built FastAPI services, PostgreSQL "
+        "schemas, and Redis caching. Seeking to grow into data engineering."
+    ).encode()
+    files = {"file": ("resume.txt", content, "text/plain")}
+    r = client.post("/scanner/analyze-file", files=files, headers=hdr)
+    assert r.status_code == 200
+    data = r.json()["data"]
+    assert data["source"] == "resume.txt"
+    assert "summary" in data or "strengths" in data
+
+    # An unsupported binary type is rejected cleanly.
+    bad = {"file": ("photo.png", b"\x89PNG\r\n\x1a\n", "image/png")}
+    assert client.post("/scanner/analyze-file", files=bad, headers=hdr).status_code == 400
+
+
+def test_coach_file_critique(client):
+    hdr = _auth(client, "coachfile@example.com", "Coach File")
+    files = {"file": ("notes.md", b"# My project\nA todo app in React with no tests yet.", "text/markdown")}
+    r = client.post("/coach/critique", files=files, data={"note": "Review this"}, headers=hdr)
+    assert r.status_code == 200
+    assert "reply" in r.json()["data"]
+
+
 def test_message_emails_recipient(client, monkeypatch):
     """A new message triggers a pref-gated email to the recipient."""
     import app.routers.messages as messages_router

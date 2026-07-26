@@ -27,6 +27,22 @@ export default function Scanner() {
     }
   }
 
+  async function analyzeFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    try {
+      setResult(await api.scanFile(file));
+      notify(`Analyzed ${file.name}`, "success");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function addSkill(name, kind) {
     try {
       await api.addSkill({ name, kind });
@@ -86,9 +102,22 @@ export default function Scanner() {
           />
         </label>
         {error && <ErrorBanner message={error} />}
-        <button className="btn btn-primary" disabled={busy || text.trim().length < 20} aria-busy={busy}>
-          {busy ? "Analyzing…" : "Analyze"}
-        </button>
+        <div className="scan-actions">
+          <button className="btn btn-primary" disabled={busy || text.trim().length < 20} aria-busy={busy}>
+            {busy ? "Analyzing…" : "Analyze"}
+          </button>
+          <label className="btn btn-ghost upload-btn">
+            {busy ? "Working…" : "Upload a file"}
+            <input
+              type="file"
+              accept=".pdf,.txt,.md,.doc,.docx,.csv,.py,.js,.ts,.json,.html,.css"
+              onChange={analyzeFile}
+              disabled={busy}
+              hidden
+            />
+          </label>
+        </div>
+        <span className="field-hint">Upload a résumé PDF or a text/code file, or paste above.</span>
       </form>
 
       {result && (
