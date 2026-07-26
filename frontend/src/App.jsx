@@ -36,6 +36,7 @@ const Admin = lazy(() => import("./pages/Admin.jsx"));
 const Academy = lazy(() => import("./pages/Academy.jsx"));
 const Plans = lazy(() => import("./pages/Plans.jsx"));
 const Onboarding = lazy(() => import("./pages/Onboarding.jsx"));
+const Search = lazy(() => import("./pages/Search.jsx"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail.jsx"));
 const Profile = lazy(() => import("./pages/Profile.jsx"));
 const OAuthCallback = lazy(() => import("./pages/OAuthCallback.jsx"));
@@ -80,6 +81,7 @@ function AuthedApp() {
             <Route path="/challenges" element={<Challenges />} />
             <Route path="/twin" element={<Twin />} />
             <Route path="/progress" element={<Progress />} />
+            <Route path="/search" element={<Search />} />
             <Route path="/u/:id" element={<Profile />} />
             <Route path="/community" element={<Communities />} />
             <Route path="/verify" element={<Verify />} />
