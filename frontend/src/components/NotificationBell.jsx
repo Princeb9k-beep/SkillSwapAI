@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client.js";
+import { onRealtime } from "../realtime.js";
 
 const POLL_MS = 45000;
 
@@ -46,11 +47,18 @@ export default function NotificationBell() {
     }
   }, []);
 
-  // Poll the unread count on mount and on an interval.
+  // Poll the unread count on mount and on an interval (fallback), and refresh
+  // instantly whenever a live notification/message event arrives.
   useEffect(() => {
     refreshCount();
     const id = setInterval(refreshCount, POLL_MS);
-    return () => clearInterval(id);
+    const off = onRealtime((e) => {
+      if (e.type === "notification" || e.type === "message") refreshCount();
+    });
+    return () => {
+      clearInterval(id);
+      off();
+    };
   }, [refreshCount]);
 
   // Close the panel on an outside click.

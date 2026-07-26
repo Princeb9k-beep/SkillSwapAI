@@ -30,6 +30,14 @@ export function roomSocketUrl(code) {
   return `${wsBase}/rooms/ws/${encodeURIComponent(code)}?token=${encodeURIComponent(token || "")}`;
 }
 
+// Build the personal live-updates WebSocket URL (messages + notifications).
+export function userSocketUrl() {
+  const origin = BASE || window.location.origin;
+  const wsBase = origin.replace(/^http/, "ws");
+  const token = getToken();
+  return `${wsBase}/ws/user?token=${encodeURIComponent(token || "")}`;
+}
+
 // Optional hook so the app can react to auth expiry (401) globally.
 let onUnauthorized = null;
 export function setUnauthorizedHandler(fn) {

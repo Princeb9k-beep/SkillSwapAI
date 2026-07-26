@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..database import get_session
 from ..deps import get_current_user
 from ..models import Message, User
+from ..realtime import hub
 from ..responses import error, ok
 from ..schemas import MessageCreate
 from ..skills.notifications import create_notification
@@ -166,6 +167,28 @@ async def send_message(
         )
 
     await session.commit()
+    await session.refresh(message)
+
+    # Live delivery to any open tabs the recipient has (in-process WS hub).
+    sender_name = user.name or f"Learner #{user.id}"
+    await hub.send_to_user(
+        partner_id,
+        {
+            "type": "message",
+            "data": {
+                **_msg_dict(message, partner_id),
+                "from_id": user.id,
+                "from_name": sender_name,
+            },
+        },
+    )
+    if partner.notify_messages:
+        await hub.send_to_user(partner_id, {"type": "notification"})
+    # Echo to the sender's other tabs so conversations stay in sync everywhere.
+    await hub.send_to_user(
+        user.id,
+        {"type": "message", "data": {**_msg_dict(message, user.id), "to_id": partner_id}},
+    )
 
     # Best-effort browser push to the recipient's devices (no-op if unconfigured).
     if partner.notify_messages:

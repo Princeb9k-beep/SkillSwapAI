@@ -3,6 +3,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { getToken, setToken, setUnauthorizedHandler } from "../api/client.js";
+import { connectRealtime, disconnectRealtime } from "../realtime.js";
 
 const AppContext = createContext(null);
 const USER_KEY = "skillswap_user";
@@ -51,6 +52,16 @@ export function AppProvider({ children }) {
   useEffect(() => {
     setUnauthorizedHandler(() => logout());
   }, [logout]);
+
+  // Keep a personal live-updates socket open while signed in.
+  useEffect(() => {
+    if (token) {
+      connectRealtime();
+      return () => disconnectRealtime();
+    }
+    disconnectRealtime();
+    return undefined;
+  }, [token]);
 
   return (
     <AppContext.Provider
