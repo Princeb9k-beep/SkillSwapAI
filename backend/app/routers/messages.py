@@ -15,7 +15,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..database import get_session
+from ..background import run_in_background
+from ..database import get_session, get_sessionmaker
 from ..deps import get_current_user
 from ..mailer import send_event_email
 from ..models import Message, User
@@ -191,29 +192,25 @@ async def send_message(
         {"type": "message", "data": {**_msg_dict(message, user.id), "to_id": partner_id}},
     )
 
-    # Best-effort browser push to the recipient's devices (no-op if unconfigured).
+    # Push + email are slow external I/O — run them after the response returns.
     if partner.notify_messages:
-        try:
-            await push_to_user(
-                session,
-                partner_id,
-                title=f"New message from {user.name or 'a partner'}",
-                body=message.body,
-                link=link,
-            )
-        except Exception:  # never let push failures break sending
-            pass
-        # Best-effort email (no-op if SMTP unconfigured or pref off).
-        try:
-            await send_event_email(
-                partner,
-                "message",
-                f"New message from {sender_name}",
-                message.body,
-                link,
-            )
-        except Exception:
-            pass
+        body = message.body
+        push_title = f"New message from {user.name or 'a partner'}"
+        email_title = f"New message from {sender_name}"
+
+        async def _deliver() -> None:
+            # Own session: the request's session is closed by the time this runs.
+            async with get_sessionmaker()() as bg:
+                try:
+                    await push_to_user(bg, partner_id, title=push_title, body=body, link=link)
+                except Exception:  # noqa: BLE001
+                    pass
+            try:
+                await send_event_email(partner, "message", email_title, body, link)
+            except Exception:  # noqa: BLE001
+                pass
+
+        run_in_background(_deliver(), name="message-side-effects")
 
     return ok(data=_msg_dict(message, user.id), message="Sent", status_code=201)
 

@@ -11,6 +11,7 @@ from ..auth import (
     hash_password,
     verify_password,
 )
+from ..background import run_in_background
 from ..config import get_settings
 from ..database import get_session
 from ..deps import get_current_user, get_user_by_email
@@ -102,16 +103,16 @@ async def signup(
             body=f"You earned {bonus} bonus AI tokens.",
             link="/settings",
         )
-        try:
-            await send_event_email(
+        run_in_background(
+            send_event_email(
                 referrer,
                 "referral",
                 "Someone joined with your invite! 🎉",
                 f"You earned {bonus} bonus AI tokens. Thanks for spreading the word!",
                 "/settings",
-            )
-        except Exception:
-            pass
+            ),
+            name="referral-email",
+        )
 
     # Greet the new user so their notification bell isn't empty.
     create_notification(
@@ -128,7 +129,7 @@ async def signup(
     # Issue an email-verification token — email it when SMTP is configured,
     # otherwise fall back to returning it so the dev flow still works.
     token = create_scoped_token(user.id, "verify")
-    await send_verification_email(user.email, user.name, token)
+    run_in_background(send_verification_email(user.email, user.name, token), name="verify-email")
     data.update(_dev_token(token))
     return ok(data=data, message="Account created", status_code=201)
 
@@ -160,7 +161,7 @@ async def resend_verification(
     if user.email_verified:
         return ok(message="Your email is already verified.")
     token = create_scoped_token(user.id, "verify")
-    await send_verification_email(user.email, user.name, token)
+    run_in_background(send_verification_email(user.email, user.name, token), name="verify-email")
     return ok(
         data=_dev_token(token),
         message="Verification email sent.",
@@ -177,7 +178,7 @@ async def forgot_password(
     data = {}
     if user is not None:
         token = create_scoped_token(user.id, "reset", ttl_minutes=30)
-        await send_password_reset_email(user.email, user.name, token)
+        run_in_background(send_password_reset_email(user.email, user.name, token), name="reset-email")
         data = _dev_token(token)
     return ok(data=data, message="If that email exists, a reset link is on its way.")
 
