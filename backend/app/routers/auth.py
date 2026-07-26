@@ -21,7 +21,9 @@ from ..mailer import (
     send_verification_email,
 )
 from ..models import User
+from ..plans import add_purchased_tokens
 from ..ratelimit import rate_limit
+from ..referrals import bonus_tokens, find_referrer
 from ..responses import error, ok
 from ..schemas import (
     ForgotPasswordRequest,
@@ -77,9 +79,30 @@ async def signup(
         name=payload.name,
         password_hash=hash_password(payload.password),
     )
+    # Apply a referral code (if valid and not self) — credit bonus tokens to
+    # both the new user and the inviter.
+    referrer = None
+    if payload.referral_code:
+        referrer = await find_referrer(session, payload.referral_code)
+        if referrer is not None:
+            user.referred_by_id = referrer.id
+
     session.add(user)
     await session.commit()
     await session.refresh(user)  # need created_at for UserOut
+
+    if referrer is not None:
+        bonus = bonus_tokens()
+        await add_purchased_tokens(session, user, bonus)
+        await add_purchased_tokens(session, referrer, bonus)
+        create_notification(
+            session,
+            referrer.id,
+            type="referral",
+            title="Someone joined with your invite! 🎉",
+            body=f"You earned {bonus} bonus AI tokens.",
+            link="/settings",
+        )
 
     # Greet the new user so their notification bell isn't empty.
     create_notification(

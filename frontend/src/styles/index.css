@@ -2235,3 +2235,26 @@ a:focus-visible {
   margin: 0;
   font-size: 1.4rem;
 }
+
+/* ---- Invite / referral (Settings) ---- */
+.invite-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin: 0.5rem 0;
+}
+.invite-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  border: 1px solid var(--border);
+}
+.invite-stats {
+  margin-top: 0.25rem;
+  font-size: 0.9rem;
+}

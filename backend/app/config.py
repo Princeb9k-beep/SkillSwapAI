@@ -74,6 +74,10 @@ class Settings(BaseSettings):
     free_ai_tokens: int = 100
     pro_ai_tokens: int = 2000
 
+    # Referrals: bonus AI tokens granted to BOTH the inviter and the invitee when
+    # a new user signs up with a referral code.
+    referral_bonus_tokens: int = 200
+
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )

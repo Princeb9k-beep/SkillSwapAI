@@ -829,6 +829,38 @@ def test_signup_sends_email_when_configured(client, monkeypatch):
     assert sent["to"] == "emailed@example.com" and sent["token"]
 
 
+def test_referral_bonus(client):
+    inviter = _auth(client, "inviter@example.com", "Inviter")
+    ref = client.get("/referrals/me", headers=inviter).json()["data"]
+    code = ref["code"]
+    assert code and ref["referred_count"] == 0 and ref["bonus_tokens"] == 200
+
+    # A new user signs up with the code — both parties get bonus tokens.
+    r = client.post(
+        "/auth/signup",
+        json={
+            "email": "invitee@example.com",
+            "password": "supersecret1",
+            "name": "Invitee",
+            "referral_code": code,
+        },
+    )
+    assert r.status_code == 201
+    invitee = {"Authorization": f"Bearer {r.json()['data']['token']}"}
+    assert client.get("/billing/tokens", headers=invitee).json()["data"]["wallet"]["purchased"] == 200
+    assert client.get("/billing/tokens", headers=inviter).json()["data"]["wallet"]["purchased"] == 200
+    assert client.get("/referrals/me", headers=inviter).json()["data"]["referred_count"] == 1
+
+    # An invalid code is ignored — signup still succeeds, no bonus granted.
+    r2 = client.post(
+        "/auth/signup",
+        json={"email": "noref@example.com", "password": "supersecret1", "referral_code": "BADCODE9"},
+    )
+    assert r2.status_code == 201
+    noref = {"Authorization": f"Bearer {r2.json()['data']['token']}"}
+    assert client.get("/billing/tokens", headers=noref).json()["data"]["wallet"]["purchased"] == 0
+
+
 def test_password_reset_flow(client):
     email = "resetme@example.com"
     client.post("/auth/signup", json={"email": email, "password": "originalpass1", "name": "R"})
