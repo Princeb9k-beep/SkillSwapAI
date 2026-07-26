@@ -826,6 +826,11 @@ def test_signup_sends_email_when_configured(client, monkeypatch):
     data = r.json()["data"]
     # The token was emailed, so it must not leak in the response.
     assert "dev_token" not in data
+    # The email is sent on a background task — drive the loop until it runs.
+    for _ in range(50):
+        if sent:
+            break
+        client.get("/health")
     assert sent["to"] == "emailed@example.com" and sent["token"]
 
 
@@ -980,6 +985,11 @@ def test_message_emails_recipient(client, monkeypatch):
     b = _auth(client, "mail_b@example.com", "Mail B")
     b_id = client.get("/users/me", headers=b).json()["data"]["id"]
     assert client.post(f"/messages/{b_id}", json={"body": "ping"}, headers=a).status_code == 201
+    # Email is delivered on a background task now — drive the loop until it runs.
+    for _ in range(50):
+        if sent:
+            break
+        client.get("/health")
     assert sent and sent[0][0] == "mail_b@example.com" and sent[0][1] == "message"
 
 
