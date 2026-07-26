@@ -114,6 +114,7 @@ export default function Settings() {
     notify_messages: user?.notify_messages ?? true,
     notify_achievements: user?.notify_achievements ?? true,
     notify_product: user?.notify_product ?? false,
+    daily_reminder: user?.daily_reminder ?? false,
   };
 
   async function setPref(key, value) {
@@ -338,6 +339,12 @@ export default function Settings() {
           hint="Occasional news about new features."
           checked={notif.notify_product}
           onChange={(v) => setPref("notify_product", v)}
+        />
+        <Toggle
+          label="Daily learning reminder"
+          hint="A once-a-day nudge to do your lesson and keep your streak."
+          checked={notif.daily_reminder}
+          onChange={(v) => setPref("daily_reminder", v)}
         />
         <p className="field-hint">Message and achievement alerts control your in-app notifications.</p>
 

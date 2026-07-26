@@ -91,6 +91,8 @@ async def update_me(
         user.notify_achievements = payload.notify_achievements
     if payload.notify_product is not None:
         user.notify_product = payload.notify_product
+    if payload.daily_reminder is not None:
+        user.daily_reminder = payload.daily_reminder
     if payload.onboarded is not None:
         user.onboarded = payload.onboarded
     await session.commit()

@@ -116,6 +116,7 @@ _PREF_BY_TYPE = {
     "welcome": "notify_achievements",
     "match": "notify_messages",
     "meetup": "notify_messages",
+    "reminder": "daily_reminder",
 }
 
 
