@@ -829,6 +829,24 @@ def test_signup_sends_email_when_configured(client, monkeypatch):
     assert sent["to"] == "emailed@example.com" and sent["token"]
 
 
+def test_global_search(client):
+    owner = _auth(client, "searchteacher@example.com", "Ada Searchable")
+    client.post("/skills", json={"name": "Rust", "kind": "have", "level": "advanced"}, headers=owner)
+
+    seeker = _auth(client, "searchseeker@example.com", "Seeker")
+    # Find the person by their teachable skill.
+    by_skill = client.get("/search?q=Rust", headers=seeker).json()["data"]
+    assert any(p["name"] == "Ada Searchable" for p in by_skill["people"])
+    # Find them by name.
+    by_name = client.get("/search?q=Searchable", headers=seeker).json()["data"]
+    assert any(p["name"] == "Ada Searchable" for p in by_name["people"])
+    # Academy courses are searchable too.
+    courses = client.get("/search?q=Python", headers=seeker).json()["data"]["courses"]
+    assert len(courses) >= 1
+    # Too-short queries are rejected.
+    assert client.get("/search?q=a", headers=seeker).status_code == 422
+
+
 def test_refresh_token_flow(client):
     email = "refresh@example.com"
     signup = client.post(

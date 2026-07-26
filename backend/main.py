@@ -69,6 +69,7 @@ from app.routers import (
     roadmap,
     rooms,
     scanner,
+    search,
     translate,
     twin,
     skills,
@@ -212,6 +213,7 @@ app.include_router(reminders.router)
 app.include_router(users.router)
 app.include_router(skills.router)
 app.include_router(matches.router)
+app.include_router(search.router)
 app.include_router(meetups.router)
 app.include_router(messages.router)
 app.include_router(moderation.router)

@@ -2418,3 +2418,24 @@ a:focus-visible {
   width: 100%;
   justify-content: center;
 }
+
+/* ---- Global search ---- */
+.search-bar {
+  display: flex;
+  gap: 0.6rem;
+  margin: 1rem 0;
+}
+.search-bar input {
+  flex: 1;
+}
+.search-card {
+  text-align: left;
+  cursor: pointer;
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  width: 100%;
+}
+.search-card h3 {
+  margin: 0.25rem 0;
+}
