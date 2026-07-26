@@ -10,13 +10,14 @@ from ..database import get_session
 from ..deps import get_current_user
 from ..models import Roadmap, User
 from ..responses import error, ok
+from ..plans import consume_ai_token
 from ..schemas import RoadmapCreate
 from ..skills.roadmap import generate_roadmap
 
 router = APIRouter(prefix="/roadmap", tags=["roadmap"])
 
 
-@router.post("")
+@router.post("", dependencies=[Depends(consume_ai_token)])
 async def create_roadmap(
     payload: RoadmapCreate,
     user: User = Depends(get_current_user),

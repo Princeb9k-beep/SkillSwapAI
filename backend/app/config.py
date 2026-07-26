@@ -62,6 +62,13 @@ class Settings(BaseSettings):
     ai_cache_ttl_seconds: int = 60 * 60 * 24      # cache AI responses for a day
     lock_ttl_ms: int = 30_000                     # distributed lock lease
 
+    # --- Observability ----------------------------------------------------
+    # Emit logs as JSON (set true in production for log aggregators).
+    log_json: bool = False
+    # Sentry error monitoring — optional. When set, unhandled errors are reported.
+    sentry_dsn: str = ""
+    sentry_traces_sample_rate: float = 0.0
+
     # AI token allowances — how many AI actions (1 token each) each tier gets per
     # month before it must buy a top-up. Elite is unlimited (see plans.py).
     free_ai_tokens: int = 100

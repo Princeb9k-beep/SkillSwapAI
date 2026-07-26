@@ -35,6 +35,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.config import get_settings
 from app.database import dispose_engine, get_engine
 from app.groq_client import init_groq
+from app.observability import configure_logging, init_sentry
 from app.redis_client import close_redis, init_redis
 from app.resilience import TokenBucketRateLimiter
 from app.responses import error, ok
@@ -71,8 +72,10 @@ from app.routers import (
     verification,
 )
 
-logging.basicConfig(level=logging.INFO)
+configure_logging()
+init_sentry()
 logger = logging.getLogger("skillswap")
+access_logger = logging.getLogger("skillswap.access")
 
 # Protect AI-heavy endpoints: 30 requests/minute per user (fails open if Redis down).
 # Match the exact API paths (not prefixes) so SPA page routes that share a name —
@@ -126,6 +129,30 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def access_log(request: Request, call_next):
+    """Structured per-request access log (method, path, status, duration)."""
+    import time as _time
+
+    start = _time.perf_counter()
+    response = await call_next(request)
+    duration_ms = round((_time.perf_counter() - start) * 1000, 1)
+    access_logger.info(
+        "%s %s -> %s (%sms)",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+        extra={
+            "method": request.method,
+            "path": request.url.path,
+            "status": response.status_code,
+            "duration_ms": duration_ms,
+        },
+    )
+    return response
 
 
 @app.middleware("http")
