@@ -53,6 +53,11 @@ class User(Base):
     notify_product: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default="0"
     )
+    # Opt-in daily nudge to do today's lesson (drives streaks).
+    daily_reminder: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="0"
+    )
+    last_reminded_on: Mapped[date | None] = mapped_column(Date, nullable=True)
     # True once the user finishes (or skips) first-run onboarding.
     onboarded: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default="0"

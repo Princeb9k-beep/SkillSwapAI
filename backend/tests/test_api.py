@@ -19,7 +19,7 @@ import sys
 _DB = pathlib.Path(__file__).parent / "test.db"
 os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{_DB}"
 os.environ.setdefault("GROQ_API_KEY", "")  # ensure AI stays in fallback mode
-os.environ["ADMIN_EMAILS"] = "mod@example.com,elite-admin@example.com"  # admins
+os.environ["ADMIN_EMAILS"] = "mod@example.com,elite-admin@example.com,reminder-admin@example.com"  # admins
 os.environ["FREE_AI_TOKENS"] = "3"  # small monthly allowance so exhaustion is testable
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
@@ -827,6 +827,30 @@ def test_signup_sends_email_when_configured(client, monkeypatch):
     # The token was emailed, so it must not leak in the response.
     assert "dev_token" not in data
     assert sent["to"] == "emailed@example.com" and sent["token"]
+
+
+def test_daily_reminders(client):
+    hdr = _auth(client, "reminders@example.com", "Reminder User")
+    # Opt in via profile.
+    upd = client.patch("/users/me", json={"daily_reminder": True}, headers=hdr)
+    assert upd.status_code == 200 and upd.json()["data"]["daily_reminder"] is True
+
+    # Admin can trigger the run; the opted-in user gets a reminder notification.
+    admin = _auth(client, "reminder-admin@example.com", "Reminder Admin")
+    r = client.post("/reminders/run", headers=admin)
+    assert r.status_code == 200 and r.json()["data"]["sent"] >= 1
+
+    notes = client.get("/notifications", headers=hdr).json()["data"]
+    assert any(n["type"] == "reminder" for n in notes)
+
+    # Second run the same day is idempotent — this user isn't reminded again.
+    before = len([n for n in notes if n["type"] == "reminder"])
+    client.post("/reminders/run", headers=admin)
+    notes2 = client.get("/notifications", headers=hdr).json()["data"]
+    assert len([n for n in notes2 if n["type"] == "reminder"]) == before
+
+    # Without the secret or admin, the endpoint is forbidden.
+    assert client.post("/reminders/run", headers=hdr).status_code == 403
 
 
 def test_ai_skill_assessment(client):

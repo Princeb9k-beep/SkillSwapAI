@@ -90,6 +90,11 @@ when Node *is* available.
      `GROQ_MODEL`, `APP_SECRET_KEY`, `APP_ENV=production`. Leave `VITE_API_BASE_URL`
      unset so the SPA calls its own origin. The app auto-rewrites Render's
      `postgres://` URL to the async driver.
+   - **Daily learning reminders**: set `CRON_SECRET` and add a Render **Cron Job**
+     that runs daily, e.g. `curl -fsS -X POST -H "X-Cron-Secret: $CRON_SECRET"
+     https://your-api.onrender.com/reminders/run`. Users opt in under Settings →
+     Notifications; opted-in users get an in-app (and push/email, if configured)
+     nudge once a day to keep their streak.
    - **To actually send email** (verification + password reset), set the SMTP vars
      from any provider (SendGrid, Mailgun, Postmark, SES, Gmail…): `SMTP_HOST`,
      `SMTP_PORT` (587), `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM`, and

@@ -49,6 +49,19 @@ async def get_current_user(
     return user
 
 
+async def get_optional_user(
+    authorization: str | None = Header(default=None),
+    x_user_id: int | None = Header(default=None, alias="X-User-Id"),
+    session: AsyncSession = Depends(get_session),
+) -> User | None:
+    """Like get_current_user but returns None instead of 401 when unauthenticated.
+    For endpoints that accept either a signed-in user or another credential."""
+    try:
+        return await get_current_user(authorization, x_user_id, session)
+    except HTTPException:
+        return None
+
+
 async def get_user_by_email(session: AsyncSession, email: str) -> User | None:
     result = await session.execute(select(User).where(User.email == email))
     return result.scalar_one_or_none()

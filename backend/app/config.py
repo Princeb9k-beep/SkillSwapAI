@@ -78,6 +78,10 @@ class Settings(BaseSettings):
     # a new user signs up with a referral code.
     referral_bonus_tokens: int = 200
 
+    # Shared secret an external scheduler (e.g. Render Cron) sends as X-Cron-Secret
+    # to trigger the daily-reminder job. Empty -> the endpoint is admin-only.
+    cron_secret: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )

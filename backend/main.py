@@ -61,6 +61,7 @@ from app.routers import (
     progress,
     realtime,
     referrals,
+    reminders,
     projects,
     reputation,
     resume,
@@ -205,6 +206,7 @@ app.include_router(auth.router)
 app.include_router(billing.router)
 app.include_router(realtime.router)
 app.include_router(referrals.router)
+app.include_router(reminders.router)
 app.include_router(users.router)
 app.include_router(skills.router)
 app.include_router(matches.router)
