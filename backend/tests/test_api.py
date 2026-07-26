@@ -829,6 +829,24 @@ def test_signup_sends_email_when_configured(client, monkeypatch):
     assert sent["to"] == "emailed@example.com" and sent["token"]
 
 
+def test_public_profile(client):
+    hdr = _auth(client, "profileowner@example.com", "Profile Owner")
+    client.post("/skills", json={"name": "Python", "kind": "have", "level": "advanced"}, headers=hdr)
+    me = client.get("/users/me", headers=hdr).json()["data"]
+
+    viewer = _auth(client, "profileviewer@example.com", "Viewer")
+    prof = client.get(f"/users/{me['id']}/profile", headers=viewer)
+    assert prof.status_code == 200
+    data = prof.json()["data"]
+    assert data["name"] == "Profile Owner"
+    assert data["level"] >= 1 and "xp" in data
+    assert any(s["name"] == "Python" for s in data["skills"])
+    assert "badges" in data and "reputation" in data
+
+    # Unknown user 404s.
+    assert client.get("/users/999999/profile", headers=viewer).status_code == 404
+
+
 def test_referral_bonus(client):
     inviter = _auth(client, "inviter@example.com", "Inviter")
     ref = client.get("/referrals/me", headers=inviter).json()["data"]

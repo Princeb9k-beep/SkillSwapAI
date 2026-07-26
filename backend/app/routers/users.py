@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
 from ..deps import get_current_user, user_is_admin
-from ..models import User
-from ..responses import ok
+from ..models import Achievement, Skill, User
+from ..responses import error, ok
 from ..schemas import ProfileUpdate, UserOut
+from ..skills.reputation import score_for
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -20,6 +22,54 @@ async def me(user: User = Depends(get_current_user)) -> object:
     data = UserOut.model_validate(user).model_dump(mode="json")
     data["is_admin"] = user_is_admin(user)
     return ok(data=data)
+
+
+@router.get("/{user_id}/profile")
+async def public_profile(
+    user_id: int,
+    _: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> object:
+    """Public-facing profile: gamification stats, skills, badges, reputation."""
+    target = await session.get(User, user_id)
+    if target is None:
+        return error("User not found.", status_code=404, code="not_found")
+
+    skills = (
+        await session.execute(
+            select(Skill).where(Skill.user_id == user_id, Skill.kind == "have")
+        )
+    ).scalars().all()
+    badges = (
+        await session.execute(
+            select(Achievement)
+            .where(Achievement.user_id == user_id)
+            .order_by(Achievement.earned_at.desc())
+        )
+    ).scalars().all()
+    reputation = await score_for(session, user_id)
+
+    return ok(
+        data={
+            "id": target.id,
+            "name": target.name or f"Learner #{target.id}",
+            "goal": target.goal,
+            "level": target.level,
+            "xp": target.xp,
+            "streak": target.streak,
+            "tier": target.tier,
+            "member_since": target.created_at.isoformat() if target.created_at else None,
+            "skills": [
+                {"name": s.name, "level": s.level, "verified": s.verified}
+                for s in skills
+            ],
+            "badges": [
+                {"code": b.code, "title": b.title, "description": b.description}
+                for b in badges
+            ],
+            "reputation": reputation,
+        }
+    )
 
 
 @router.patch("/me")

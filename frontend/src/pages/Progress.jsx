@@ -1,6 +1,7 @@
 // Gamification (spec §3.1): XP, level, streak, achievements + leaderboard.
 
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import { ErrorBanner } from "../components/States.jsx";
 import { SkeletonPage } from "../components/Skeleton.jsx";
@@ -101,7 +102,7 @@ export default function Progress() {
             {board.map((e) => (
               <tr key={e.user_id}>
                 <td>{e.rank}</td>
-                <td>{e.name}</td>
+                <td><Link className="lb-name" to={`/u/${e.user_id}`}>{e.name}</Link></td>
                 <td>{e.level}</td>
                 <td>{e.xp}</td>
               </tr>
