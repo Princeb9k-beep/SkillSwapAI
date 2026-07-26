@@ -2349,3 +2349,39 @@ a:focus-visible {
   font-size: 1.1rem;
   line-height: 1;
 }
+
+/* ---- AI skill assessment quiz ---- */
+.quiz-q {
+  margin: 0.75rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.quiz-question {
+  margin: 0 0 0.5rem;
+}
+.quiz-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  cursor: pointer;
+}
+.quiz-option input {
+  width: auto;
+  margin: 0;
+}
+.assessment-result {
+  text-align: center;
+  padding: 1rem;
+  border-radius: var(--radius);
+}
+.assessment-result.pass {
+  background: color-mix(in srgb, var(--success) 12%, var(--surface));
+}
+.assessment-result.fail {
+  background: color-mix(in srgb, var(--error) 10%, var(--surface));
+}
+.assessment-result h4 {
+  margin: 0 0 0.4rem;
+  font-size: 1.2rem;
+}

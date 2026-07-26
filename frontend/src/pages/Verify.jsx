@@ -9,6 +9,112 @@ import { SkeletonPage } from "../components/Skeleton.jsx";
 
 const STATUS_CLASS = { verified: "score-good", pending: "score-mid", rejected: "score-low" };
 
+// AI assessment: generate a quiz for a skill, answer it, get verified on a pass.
+function AiAssessment({ skills, onVerified }) {
+  const { notify } = useApp();
+  const [skill, setSkill] = useState("");
+  const [quiz, setQuiz] = useState(null); // { id, questions:[{question,options}] }
+  const [answers, setAnswers] = useState({});
+  const [result, setResult] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  async function start() {
+    if (!skill) return;
+    setBusy(true);
+    setResult(null);
+    try {
+      const q = await api.startAssessment(skill);
+      setQuiz(q);
+      setAnswers({});
+    } catch (err) {
+      notify(err.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submit() {
+    const ordered = quiz.questions.map((_, i) => answers[i]);
+    if (ordered.some((a) => a === undefined)) {
+      notify("Answer every question first.", "error");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await api.submitAssessment(quiz.id, ordered);
+      setResult(res);
+      if (res.passed) {
+        notify(`${res.skill_name} verified! 🎉`, "success");
+        onVerified?.();
+      }
+    } catch (err) {
+      notify(err.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card form">
+      <h3>Verify instantly with an AI quiz</h3>
+      <p className="field-hint">
+        Prefer not to wait for peers? Pass a short AI-generated quiz to earn the same
+        verified badge. Costs 1 AI token.
+      </p>
+      {!quiz ? (
+        <>
+          <label>
+            Skill
+            <select value={skill} onChange={(e) => setSkill(e.target.value)}>
+              <option value="">Choose a skill you can teach…</option>
+              {skills.map((s) => (
+                <option key={s.id} value={s.name}>
+                  {s.name}
+                  {s.verified ? " ✓ verified" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button className="btn btn-primary" onClick={start} disabled={!skill || busy} aria-busy={busy}>
+            {busy ? "Generating…" : "Start assessment"}
+          </button>
+        </>
+      ) : result ? (
+        <div className={`assessment-result ${result.passed ? "pass" : "fail"}`}>
+          <h4>{result.passed ? "Passed ✓" : "Not quite"}</h4>
+          <p>You scored {result.score}/{result.total} on the {result.skill_name} quiz.</p>
+          <button className="btn" onClick={() => { setQuiz(null); setResult(null); setSkill(""); }}>
+            {result.passed ? "Verify another skill" : "Try again"}
+          </button>
+        </div>
+      ) : (
+        <>
+          <p className="muted">{quiz.skill_name} assessment · {quiz.questions.length} questions</p>
+          {quiz.questions.map((q, i) => (
+            <div key={i} className="quiz-q">
+              <p className="quiz-question"><strong>{i + 1}.</strong> {q.question}</p>
+              {q.options.map((opt, oi) => (
+                <label key={oi} className="quiz-option">
+                  <input
+                    type="radio"
+                    name={`q${i}`}
+                    checked={answers[i] === oi}
+                    onChange={() => setAnswers((a) => ({ ...a, [i]: oi }))}
+                  />
+                  <span>{opt}</span>
+                </label>
+              ))}
+            </div>
+          ))}
+          <button className="btn btn-primary" onClick={submit} disabled={busy} aria-busy={busy}>
+            {busy ? "Grading…" : "Submit answers"}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function Verify() {
   const { notify } = useApp();
   const [skills, setSkills] = useState([]);
@@ -114,6 +220,8 @@ export default function Verify() {
           {skills.length === 0 ? "Add a 'have' skill first" : "Request verification"}
         </button>
       </form>
+
+      {skills.length > 0 && <AiAssessment skills={skills} onVerified={load} />}
 
       <h2>My requests</h2>
       {mine.length === 0 ? (
