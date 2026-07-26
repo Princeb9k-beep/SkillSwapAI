@@ -801,6 +801,25 @@ class AiWallet(Base):
     purchased: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
 
+class RefreshToken(Base):
+    """A long-lived, revocable refresh token (one per signed-in device/session).
+    Only the SHA-256 hash is stored. Rotated on use; revoked on logout."""
+
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    user_agent: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
 class SkillAssessment(Base):
     """An AI-generated quiz that verifies a skill without peer review. Questions
     (with the correct answer index) are stored server-side; the client only ever

@@ -2,7 +2,14 @@
 // Token and user are persisted in localStorage so a refresh keeps you signed in.
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { getToken, setToken, setUnauthorizedHandler } from "../api/client.js";
+import {
+  api,
+  getToken,
+  setToken,
+  getRefreshToken,
+  setRefreshToken,
+  setUnauthorizedHandler,
+} from "../api/client.js";
 import { connectRealtime, disconnectRealtime } from "../realtime.js";
 
 const AppContext = createContext(null);
@@ -21,16 +28,21 @@ export function AppProvider({ children }) {
   const [user, setUser] = useState(loadUser());
   const [toast, setToast] = useState(null);
 
-  const login = useCallback((newToken, newUser) => {
+  const login = useCallback((newToken, newUser, refreshToken) => {
     setToken(newToken);
     setTokenState(newToken);
+    if (refreshToken !== undefined) setRefreshToken(refreshToken);
     setUser(newUser);
     localStorage.setItem(USER_KEY, JSON.stringify(newUser));
   }, []);
 
   const logout = useCallback(() => {
+    // Best-effort server-side revoke of this device's refresh token.
+    const refresh = getRefreshToken();
+    if (refresh) api.logout(refresh).catch(() => {});
     setToken(null);
     setTokenState(null);
+    setRefreshToken(null);
     setUser(null);
     localStorage.removeItem(USER_KEY);
   }, []);

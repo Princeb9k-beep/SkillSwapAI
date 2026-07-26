@@ -9,6 +9,8 @@ in `sub` and a 7-day expiry.
 
 from __future__ import annotations
 
+import hashlib
+import secrets
 from datetime import datetime, timedelta, timezone
 
 import jwt
@@ -17,7 +19,18 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from .config import get_settings
 
 _ALGORITHM = "HS256"
-_TOKEN_TTL = timedelta(days=7)
+_TOKEN_TTL = timedelta(days=2)          # short-lived access token
+REFRESH_TTL = timedelta(days=30)        # long-lived refresh token
+
+
+def generate_refresh_token() -> tuple[str, str]:
+    """Return (raw_token, sha256_hash). Only the hash is ever stored."""
+    raw = secrets.token_urlsafe(32)
+    return raw, hash_refresh_token(raw)
+
+
+def hash_refresh_token(raw: str) -> str:
+    return hashlib.sha256(raw.encode()).hexdigest()
 
 
 def hash_password(password: str) -> str:

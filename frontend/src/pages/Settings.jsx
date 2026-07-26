@@ -157,6 +157,16 @@ export default function Settings() {
     notify("Signed out", "info");
   }
 
+  async function signOutEverywhere() {
+    try {
+      await api.logoutAll();
+      logout();
+      notify("Signed out of all devices", "info");
+    } catch (err) {
+      notify(err.message, "error");
+    }
+  }
+
   const [verifying, setVerifying] = useState(false);
   async function verifyEmail() {
     setVerifying(true);
@@ -413,6 +423,9 @@ export default function Settings() {
         <div className="account-actions">
           <button type="button" className="btn settings-signout" onClick={signOut}>
             Sign out
+          </button>
+          <button type="button" className="btn" onClick={signOutEverywhere}>
+            Sign out of all devices
           </button>
           <button type="button" className="btn btn-danger" onClick={deleteAccount}>
             Delete account

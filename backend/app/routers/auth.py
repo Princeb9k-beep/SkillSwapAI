@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth import (
-    create_access_token,
     create_scoped_token,
     decode_scoped_token,
     hash_password,
@@ -29,10 +28,18 @@ from ..responses import error, ok
 from ..schemas import (
     ForgotPasswordRequest,
     LoginRequest,
+    LogoutRequest,
+    RefreshRequest,
     ResetPasswordRequest,
     SignupRequest,
-    UserOut,
     VerifyEmailRequest,
+)
+from ..sessions import (
+    active_session_count,
+    issue_session,
+    revoke_all_for_user,
+    revoke_refresh_token,
+    rotate_refresh_token,
 )
 from ..skills.notifications import create_notification
 
@@ -52,20 +59,11 @@ def _dev_token(token: str) -> dict:
     return {"dev_token": token}
 
 
-def _auth_payload(user: User) -> dict:
-    from ..deps import user_is_admin
-
-    user_data = UserOut.model_validate(user).model_dump(mode="json")
-    user_data["is_admin"] = user_is_admin(user)
-    return {
-        "token": create_access_token(user.id),
-        "user": user_data,
-    }
-
-
 @router.post("/signup", dependencies=[Depends(rate_limit("signup", 10, 3600))])
 async def signup(
-    payload: SignupRequest, session: AsyncSession = Depends(get_session)
+    payload: SignupRequest,
+    request: Request,
+    session: AsyncSession = Depends(get_session),
 ) -> object:
     """Register a new account and return an access token."""
     existing = await get_user_by_email(session, payload.email)
@@ -126,7 +124,7 @@ async def signup(
     )
     await session.commit()
 
-    data = _auth_payload(user)
+    data = await issue_session(session, user, request.headers.get("user-agent"))
     # Issue an email-verification token — email it when SMTP is configured,
     # otherwise fall back to returning it so the dev flow still works.
     token = create_scoped_token(user.id, "verify")
@@ -202,12 +200,59 @@ async def reset_password(
 
 @router.post("/login", dependencies=[Depends(rate_limit("login", 20, 900))])
 async def login(
-    payload: LoginRequest, session: AsyncSession = Depends(get_session)
+    payload: LoginRequest,
+    request: Request,
+    session: AsyncSession = Depends(get_session),
 ) -> object:
-    """Authenticate and return an access token."""
+    """Authenticate and return an access + refresh token."""
     user = await get_user_by_email(session, payload.email)
     if user is None or not verify_password(payload.password, user.password_hash):
         return error(
             "Incorrect email or password.", status_code=401, code="bad_credentials"
         )
-    return ok(data=_auth_payload(user), message="Signed in")
+    data = await issue_session(session, user, request.headers.get("user-agent"))
+    return ok(data=data, message="Signed in")
+
+
+@router.post("/refresh", dependencies=[Depends(rate_limit("refresh", 60, 3600))])
+async def refresh(
+    payload: RefreshRequest,
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+) -> object:
+    """Exchange a refresh token for a new access + refresh token (rotation)."""
+    data = await rotate_refresh_token(
+        session, payload.refresh_token, request.headers.get("user-agent")
+    )
+    if data is None:
+        return error("Session expired. Please sign in again.", status_code=401, code="bad_refresh")
+    return ok(data=data, message="Refreshed")
+
+
+@router.post("/logout")
+async def logout(
+    payload: LogoutRequest, session: AsyncSession = Depends(get_session)
+) -> object:
+    """Revoke a single refresh token (this device's session)."""
+    if payload.refresh_token:
+        await revoke_refresh_token(session, payload.refresh_token)
+    return ok(message="Signed out")
+
+
+@router.post("/logout-all")
+async def logout_all(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> object:
+    """Revoke every refresh token for the user (sign out everywhere)."""
+    count = await revoke_all_for_user(session, user.id)
+    return ok(data={"revoked": count}, message="Signed out of all devices.")
+
+
+@router.get("/sessions")
+async def sessions(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> object:
+    """How many active (non-revoked, unexpired) sessions the user has."""
+    return ok(data={"active": await active_session_count(session, user.id)})

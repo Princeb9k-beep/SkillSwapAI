@@ -4,16 +4,16 @@ from __future__ import annotations
 
 import secrets
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..auth import create_access_token
 from ..database import get_session
-from ..deps import get_user_by_email, user_is_admin
+from ..deps import get_user_by_email
 from ..models import User
 from ..oauth import authorize_url, available_providers, exchange_code, provider_enabled
 from ..responses import error, ok
-from ..schemas import OAuthCallback, UserOut
+from ..schemas import OAuthCallback
+from ..sessions import issue_session
 from ..skills.notifications import create_notification
 
 router = APIRouter(prefix="/auth/oauth", tags=["auth"])
@@ -38,6 +38,7 @@ async def start(provider: str) -> object:
 async def callback(
     provider: str,
     payload: OAuthCallback,
+    request: Request,
     session: AsyncSession = Depends(get_session),
 ) -> object:
     """Exchange the code, then find or create the account and issue our JWT."""
@@ -78,9 +79,7 @@ async def callback(
         user.email_verified = True
         await session.commit()
 
-    user_data = UserOut.model_validate(user).model_dump(mode="json")
-    user_data["is_admin"] = user_is_admin(user)
-    return ok(
-        data={"token": create_access_token(user.id), "user": user_data, "created": created},
-        message="Signed in",
+    data = await issue_session(
+        session, user, request.headers.get("user-agent"), extra={"created": created}
     )
+    return ok(data=data, message="Signed in")

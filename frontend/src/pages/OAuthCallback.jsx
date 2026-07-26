@@ -25,7 +25,7 @@ export default function OAuthCallback() {
       .oauthCallback(provider, code)
       .then((data) => {
         localStorage.removeItem("oauth_provider");
-        login(data.token, data.user);
+        login(data.token, data.user, data.refresh_token);
         notify(data.created ? "Welcome to SkillSwap AI!" : "Signed in", "success");
         window.history.replaceState({}, "", "/");
       })

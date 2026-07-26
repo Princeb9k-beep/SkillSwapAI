@@ -208,6 +208,14 @@ class ReviewCreate(BaseModel):
     comment: str | None = Field(default=None, max_length=1000)
 
 
+class RefreshRequest(BaseModel):
+    refresh_token: str = Field(min_length=1, max_length=512)
+
+
+class LogoutRequest(BaseModel):
+    refresh_token: str | None = Field(default=None, max_length=512)
+
+
 class OAuthCallback(BaseModel):
     code: str = Field(min_length=1, max_length=2000)
     state: str | None = Field(default=None, max_length=256)
