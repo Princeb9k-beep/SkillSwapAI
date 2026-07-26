@@ -11,6 +11,7 @@
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
 const TOKEN_KEY = "skillswap_token";
+const REFRESH_KEY = "skillswap_refresh";
 
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -19,6 +20,44 @@ export function getToken() {
 export function setToken(token) {
   if (token) localStorage.setItem(TOKEN_KEY, token);
   else localStorage.removeItem(TOKEN_KEY);
+}
+
+export function getRefreshToken() {
+  return localStorage.getItem(REFRESH_KEY);
+}
+
+export function setRefreshToken(token) {
+  if (token) localStorage.setItem(REFRESH_KEY, token);
+  else localStorage.removeItem(REFRESH_KEY);
+}
+
+// Exchange the stored refresh token for a fresh access token. Returns true on
+// success. Guards against parallel refreshes with a shared in-flight promise.
+let refreshInFlight = null;
+async function tryRefresh() {
+  const refresh = getRefreshToken();
+  if (!refresh) return false;
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      try {
+        const res = await fetch(`${BASE}/auth/refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh_token: refresh }),
+        });
+        const payload = await res.json();
+        if (!res.ok || payload.success === false) return false;
+        setToken(payload.data.token);
+        setRefreshToken(payload.data.refresh_token);
+        return true;
+      } catch {
+        return false;
+      } finally {
+        refreshInFlight = null;
+      }
+    })();
+  }
+  return refreshInFlight;
 }
 
 // Build the signaling WebSocket URL for a practice room. Browsers can't set
@@ -44,7 +83,7 @@ export function setUnauthorizedHandler(fn) {
   onUnauthorized = fn;
 }
 
-async function request(path, { method = "GET", body, auth = true } = {}) {
+async function request(path, { method = "GET", body, auth = true, _retried = false } = {}) {
   const isForm = typeof FormData !== "undefined" && body instanceof FormData;
   const headers = {};
   // Let the browser set multipart boundaries for FormData; JSON otherwise.
@@ -63,15 +102,19 @@ async function request(path, { method = "GET", body, auth = true } = {}) {
     throw new Error("Can't reach the server. Check your connection and try again.");
   }
 
+  // On a 401, try a one-time silent refresh, then replay the request.
+  if (res.status === 401 && auth && !_retried) {
+    if (await tryRefresh()) {
+      return request(path, { method, body, auth, _retried: true });
+    }
+    if (onUnauthorized) onUnauthorized();
+  }
+
   let payload;
   try {
     payload = await res.json();
   } catch {
     throw new Error("Unexpected response from the server.");
-  }
-
-  if (res.status === 401 && auth && onUnauthorized) {
-    onUnauthorized();
   }
 
   if (!res.ok || payload.success === false) {
@@ -101,6 +144,10 @@ export const api = {
     request("/auth/forgot-password", { method: "POST", body: { email }, auth: false }),
   resetPassword: (token, password) =>
     request("/auth/reset-password", { method: "POST", body: { token, password }, auth: false }),
+  logout: (refresh_token) =>
+    request("/auth/logout", { method: "POST", body: { refresh_token }, auth: false }),
+  logoutAll: () => request("/auth/logout-all", { method: "POST" }),
+  authSessions: () => request("/auth/sessions"),
   oauthProviders: () => request("/auth/oauth/providers", { auth: false }),
   oauthStart: (provider) => request(`/auth/oauth/${provider}/start`, { auth: false }),
   oauthCallback: (provider, code) =>

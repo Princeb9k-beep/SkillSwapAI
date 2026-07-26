@@ -829,6 +829,38 @@ def test_signup_sends_email_when_configured(client, monkeypatch):
     assert sent["to"] == "emailed@example.com" and sent["token"]
 
 
+def test_refresh_token_flow(client):
+    email = "refresh@example.com"
+    signup = client.post(
+        "/auth/signup", json={"email": email, "password": "supersecret1", "name": "Refresh"}
+    ).json()["data"]
+    assert signup["token"] and signup["refresh_token"]
+    refresh = signup["refresh_token"]
+
+    # Refresh rotates: new access + a NEW refresh token; the old one is now dead.
+    r = client.post("/auth/refresh", json={"refresh_token": refresh})
+    assert r.status_code == 200
+    new = r.json()["data"]
+    assert new["token"] and new["refresh_token"] != refresh
+    assert client.post("/auth/refresh", json={"refresh_token": refresh}).status_code == 401
+
+    # The new access token works.
+    hdr = {"Authorization": f"Bearer {new['token']}"}
+    assert client.get("/users/me", headers=hdr).status_code == 200
+
+    # Sessions count reflects active refresh tokens; logout-all clears them.
+    assert client.get("/auth/sessions", headers=hdr).json()["data"]["active"] >= 1
+    client.post("/auth/logout-all", headers=hdr)
+    assert client.get("/auth/sessions", headers=hdr).json()["data"]["active"] == 0
+    assert client.post("/auth/refresh", json={"refresh_token": new["refresh_token"]}).status_code == 401
+
+
+def test_logout_revokes_refresh(client):
+    login = client.post("/auth/signup", json={"email": "logout@example.com", "password": "supersecret1"}).json()["data"]
+    client.post("/auth/logout", json={"refresh_token": login["refresh_token"]})
+    assert client.post("/auth/refresh", json={"refresh_token": login["refresh_token"]}).status_code == 401
+
+
 def test_oauth_providers_and_gating(client):
     # No OAuth env configured in tests -> no providers offered.
     provs = client.get("/auth/oauth/providers").json()["data"]["providers"]

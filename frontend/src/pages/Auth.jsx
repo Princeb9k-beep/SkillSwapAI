@@ -85,7 +85,7 @@ export default function Auth() {
             referral_code: form.referral.trim() || null,
           })
         : await api.login({ email: form.email, password: form.password });
-      login(data.token, data.user);
+      login(data.token, data.user, data.refresh_token);
       notify(isSignup ? "Welcome to SkillSwap AI!" : "Signed in", "success");
     } catch (err) {
       setError(err.message);
