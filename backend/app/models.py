@@ -64,6 +64,15 @@ class User(Base):
     tier: Mapped[str] = mapped_column(
         String(10), default="free", server_default="free", index=True
     )
+    # --- Referrals ---
+    # This user's own shareable invite code (assigned lazily).
+    referral_code: Mapped[str | None] = mapped_column(
+        String(12), unique=True, index=True, nullable=True
+    )
+    # Who invited them (set once, at signup).
+    referred_by_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

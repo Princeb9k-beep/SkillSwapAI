@@ -82,6 +82,7 @@ export const api = {
   subscribe: (tier) => request("/billing/subscribe", { method: "POST", body: { tier } }),
   aiTokens: () => request("/billing/tokens"),
   buyTokens: (pack) => request("/billing/tokens/buy", { method: "POST", body: { pack } }),
+  referralMe: () => request("/referrals/me"),
   verifyEmail: (token) => request("/auth/verify-email", { method: "POST", body: { token }, auth: false }),
   resendVerification: () => request("/auth/resend-verification", { method: "POST" }),
   forgotPassword: (email) =>

@@ -62,6 +62,20 @@ export default function Settings() {
       .catch(() => {});
   }, [supported]);
 
+  // Referral / invite.
+  const [referral, setReferral] = useState(null);
+  useEffect(() => {
+    api.referralMe().then(setReferral).catch(() => {});
+  }, []);
+  async function copyInvite() {
+    try {
+      await navigator.clipboard.writeText(referral.link);
+      notify("Invite link copied", "success");
+    } catch {
+      notify("Couldn't copy — link is shown below.", "info");
+    }
+  }
+
   // Blocked users.
   const [blocked, setBlocked] = useState([]);
   useEffect(() => {
@@ -206,6 +220,26 @@ export default function Settings() {
           </a>
         </div>
       </div>
+
+      {/* Invite friends */}
+      {referral && (
+        <div className="card settings-card">
+          <h3>Invite friends</h3>
+          <p className="field-hint">
+            Share your code — you and your friend each get {referral.bonus_tokens} bonus
+            AI tokens when they join.
+          </p>
+          <div className="invite-row">
+            <code className="invite-code">{referral.code}</code>
+            <button type="button" className="btn btn-primary" onClick={copyInvite}>
+              Copy invite link
+            </button>
+          </div>
+          <p className="muted invite-stats">
+            {referral.referred_count} joined · {referral.tokens_earned} tokens earned
+          </p>
+        </div>
+      )}
 
       {/* Profile */}
       <form className="card settings-card" onSubmit={saveProfile}>

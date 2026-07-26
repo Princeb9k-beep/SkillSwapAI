@@ -59,6 +59,7 @@ from app.routers import (
     push,
     portfolio,
     progress,
+    referrals,
     projects,
     reputation,
     resume,
@@ -201,6 +202,7 @@ app.include_router(health.router)
 app.include_router(academy.router)
 app.include_router(auth.router)
 app.include_router(billing.router)
+app.include_router(referrals.router)
 app.include_router(users.router)
 app.include_router(skills.router)
 app.include_router(matches.router)

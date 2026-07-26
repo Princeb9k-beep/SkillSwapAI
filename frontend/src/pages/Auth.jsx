@@ -8,7 +8,7 @@ import { ErrorBanner } from "../components/States.jsx";
 export default function Auth() {
   const { login, notify } = useApp();
   const [mode, setMode] = useState("login"); // login | signup | forgot | reset
-  const [form, setForm] = useState({ email: "", password: "", name: "" });
+  const [form, setForm] = useState({ email: "", password: "", name: "", referral: "" });
   const [resetToken, setResetToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -22,6 +22,12 @@ export default function Auth() {
     if (t && window.location.pathname.includes("reset")) {
       setResetToken(t);
       setMode("reset");
+    }
+    // A shared invite link (/?ref=CODE) pre-fills the code and opens signup.
+    const ref = p.get("ref");
+    if (ref) {
+      setForm((f) => ({ ...f, referral: ref }));
+      setMode("signup");
     }
   }, []);
 
@@ -58,6 +64,7 @@ export default function Auth() {
             email: form.email,
             password: form.password,
             name: form.name || null,
+            referral_code: form.referral.trim() || null,
           })
         : await api.login({ email: form.email, password: form.password });
       login(data.token, data.user);
@@ -124,6 +131,19 @@ export default function Auth() {
             {(isSignup || mode === "reset") && (
               <span className="field-hint">At least 8 characters.</span>
             )}
+          </label>
+        )}
+
+        {isSignup && (
+          <label>
+            Invite code <span className="field-hint">(optional)</span>
+            <input
+              type="text"
+              autoComplete="off"
+              value={form.referral}
+              placeholder="Have a friend's code? Enter it for bonus AI tokens"
+              onChange={update("referral")}
+            />
           </label>
         )}
 
