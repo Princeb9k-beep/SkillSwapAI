@@ -101,6 +101,10 @@ export const api = {
     request("/auth/forgot-password", { method: "POST", body: { email }, auth: false }),
   resetPassword: (token, password) =>
     request("/auth/reset-password", { method: "POST", body: { token, password }, auth: false }),
+  oauthProviders: () => request("/auth/oauth/providers", { auth: false }),
+  oauthStart: (provider) => request(`/auth/oauth/${provider}/start`, { auth: false }),
+  oauthCallback: (provider, code) =>
+    request(`/auth/oauth/${provider}/callback`, { method: "POST", body: { code }, auth: false }),
   // skills + matching
   getSkills: () => request("/skills"),
   addSkill: (data) => request("/skills", { method: "POST", body: data }),

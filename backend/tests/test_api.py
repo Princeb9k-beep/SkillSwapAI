@@ -829,6 +829,15 @@ def test_signup_sends_email_when_configured(client, monkeypatch):
     assert sent["to"] == "emailed@example.com" and sent["token"]
 
 
+def test_oauth_providers_and_gating(client):
+    # No OAuth env configured in tests -> no providers offered.
+    provs = client.get("/auth/oauth/providers").json()["data"]["providers"]
+    assert provs == []
+    # Starting a disabled provider 404s; callback on a disabled provider too.
+    assert client.get("/auth/oauth/google/start").status_code == 404
+    assert client.post("/auth/oauth/github/callback", json={"code": "x"}).status_code == 404
+
+
 def test_daily_reminders(client):
     hdr = _auth(client, "reminders@example.com", "Reminder User")
     # Opt in via profile.

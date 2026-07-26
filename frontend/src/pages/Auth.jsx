@@ -15,6 +15,24 @@ export default function Auth() {
 
   const isSignup = mode === "signup";
 
+  // OAuth providers (only shown when the backend has them configured).
+  const [providers, setProviders] = useState([]);
+  useEffect(() => {
+    api.oauthProviders().then((d) => setProviders(d.providers || [])).catch(() => {});
+  }, []);
+
+  async function oauth(provider) {
+    try {
+      const { url } = await api.oauthStart(provider);
+      localStorage.setItem("oauth_provider", provider);
+      window.location.href = url;
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  const PROVIDER_LABELS = { google: "Google", github: "GitHub" };
+
   // Support real reset links (/reset-password?token=… or ?reset_token=…).
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
@@ -161,6 +179,22 @@ export default function Auth() {
                   : "Update password"}
         </button>
       </form>
+
+      {(mode === "login" || mode === "signup") && providers.length > 0 && (
+        <div className="oauth-block">
+          <div className="oauth-divider"><span>or</span></div>
+          {providers.map((p) => (
+            <button
+              key={p}
+              type="button"
+              className="btn oauth-btn"
+              onClick={() => oauth(p)}
+            >
+              Continue with {PROVIDER_LABELS[p] || p}
+            </button>
+          ))}
+        </div>
+      )}
 
       <p className="muted auth-links">
         {mode === "login" && (

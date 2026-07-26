@@ -82,6 +82,15 @@ class Settings(BaseSettings):
     # to trigger the daily-reminder job. Empty -> the endpoint is admin-only.
     cron_secret: str = ""
 
+    # --- OAuth sign-in (optional) ----------------------------------------
+    # Set a provider's client id + secret to enable "Continue with …". Unset
+    # providers simply don't appear. redirect_base defaults to frontend_url.
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    github_client_id: str = ""
+    github_client_secret: str = ""
+    oauth_redirect_base: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )

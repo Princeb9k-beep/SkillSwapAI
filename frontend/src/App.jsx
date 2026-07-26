@@ -38,6 +38,7 @@ const Plans = lazy(() => import("./pages/Plans.jsx"));
 const Onboarding = lazy(() => import("./pages/Onboarding.jsx"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail.jsx"));
 const Profile = lazy(() => import("./pages/Profile.jsx"));
+const OAuthCallback = lazy(() => import("./pages/OAuthCallback.jsx"));
 
 function AuthedApp() {
   const { user } = useApp();
@@ -107,6 +108,15 @@ function Shell() {
       <ErrorBoundary>
         <Suspense fallback={<LoadingState />}>
           <VerifyEmail />
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
+  if (window.location.pathname === "/oauth/callback") {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingState />}>
+          <OAuthCallback />
         </Suspense>
       </ErrorBoundary>
     );
