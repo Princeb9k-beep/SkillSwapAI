@@ -135,6 +135,10 @@ export const api = {
   verificationQueue: () => request("/verifications/queue"),
   reviewVerification: (id, data) =>
     request(`/verifications/${id}/review`, { method: "POST", body: data }),
+  startAssessment: (skill_name) =>
+    request("/verifications/assessment", { method: "POST", body: { skill_name } }),
+  submitAssessment: (id, answers) =>
+    request(`/verifications/assessment/${id}/submit`, { method: "POST", body: { answers } }),
   // portfolio + reputation
   getPortfolio: () => request("/portfolio"),
   getReputation: (userId) => request(`/reputation/${userId}`),

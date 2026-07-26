@@ -829,6 +829,32 @@ def test_signup_sends_email_when_configured(client, monkeypatch):
     assert sent["to"] == "emailed@example.com" and sent["token"]
 
 
+def test_ai_skill_assessment(client):
+    hdr = _auth(client, "assess@example.com", "Assess User")
+    client.post("/billing/subscribe", json={"tier": "elite"}, headers=hdr)  # verification is Elite
+    client.post("/skills", json={"name": "Python", "kind": "have", "level": "advanced"}, headers=hdr)
+
+    quiz = client.post("/verifications/assessment", json={"skill_name": "Python"}, headers=hdr)
+    assert quiz.status_code == 201
+    q = quiz.json()["data"]
+    assert q["questions"] and "answer" not in q["questions"][0]  # answer key hidden
+
+    # Groq is unconfigured in tests, so generate_quiz returns the deterministic
+    # fallback quiz whose correct answers are known.
+    answers = [3, 2, 2, 2, 2]
+    res = client.post(f"/verifications/assessment/{q['id']}/submit", json={"answers": answers}, headers=hdr)
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["passed"] is True and data["score"] == data["total"]
+
+    # The Python skill is now verified.
+    skills = client.get("/skills", headers=hdr).json()["data"]
+    assert any(s["name"] == "Python" and s["verified"] for s in skills)
+
+    # Re-submitting the finished assessment is rejected.
+    assert client.post(f"/verifications/assessment/{q['id']}/submit", json={"answers": answers}, headers=hdr).status_code == 409
+
+
 def test_scanner_file_upload(client):
     hdr = _auth(client, "fileuser@example.com", "File User")
     content = (

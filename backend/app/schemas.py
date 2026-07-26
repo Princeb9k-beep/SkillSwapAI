@@ -208,6 +208,14 @@ class ReviewCreate(BaseModel):
     comment: str | None = Field(default=None, max_length=1000)
 
 
+class VerificationQuizStart(BaseModel):
+    skill_name: str = Field(min_length=2, max_length=255)
+
+
+class AssessmentSubmit(BaseModel):
+    answers: list[int] = Field(min_length=1, max_length=20)
+
+
 # --- Communities ----------------------------------------------------------
 class CommunityCreate(BaseModel):
     name: str = Field(min_length=2, max_length=120)

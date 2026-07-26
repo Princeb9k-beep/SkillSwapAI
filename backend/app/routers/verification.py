@@ -3,8 +3,9 @@ Skill verification (spec §2.5) — peer-reviewed trust.
 
 A user requests verification of a skill they can teach; peers vote approve/reject.
 When approvals reach a threshold (and outweigh rejections) the request is verified:
-the matching owned Skill is flagged `verified` and a badge is awarded. The AI-
-assessment path from the spec is deferred; this is the deterministic peer-review core.
+the matching owned Skill is flagged `verified` and a badge is awarded. A second,
+faster path is the AI assessment: a generated quiz the user passes to earn the
+same verified flag without waiting on peers.
 """
 
 from __future__ import annotations
@@ -17,16 +18,26 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
 from ..deps import get_current_user
-from ..models import Achievement, Skill, User, VerificationRequest, VerificationReview
+from ..models import (
+    Achievement,
+    Skill,
+    SkillAssessment,
+    User,
+    VerificationRequest,
+    VerificationReview,
+)
 from ..responses import error, ok
-from ..schemas import ReviewCreate, VerificationCreate
+from ..schemas import AssessmentSubmit, ReviewCreate, VerificationCreate, VerificationQuizStart
+from ..skills.verification_ai import generate_quiz
 
-from ..plans import require_feature
+from ..plans import consume_ai_token, require_feature
 
 router = APIRouter(prefix="/verifications", tags=["verification"])
 
 # Net-vote thresholds to decide a request.
 THRESHOLD = 2
+# Fraction of AI-quiz questions the user must get right to pass.
+ASSESSMENT_PASS = 0.8
 
 
 def _request_dict(r: VerificationRequest) -> dict:
@@ -171,12 +182,18 @@ async def review(
 
 
 async def _mark_verified(session: AsyncSession, req: VerificationRequest) -> None:
-    """Flag the requester's matching owned skill + award a badge."""
+    await mark_skill_verified(session, req.user_id, req.skill_normalized)
+
+
+async def mark_skill_verified(
+    session: AsyncSession, user_id: int, skill_normalized: str
+) -> None:
+    """Flag the user's matching owned skill as verified + award the badge once."""
     skills = await session.execute(
         select(Skill).where(
-            Skill.user_id == req.user_id,
+            Skill.user_id == user_id,
             Skill.kind == "have",
-            Skill.name_normalized == req.skill_normalized,
+            Skill.name_normalized == skill_normalized,
         )
     )
     for skill in skills.scalars().all():
@@ -184,15 +201,99 @@ async def _mark_verified(session: AsyncSession, req: VerificationRequest) -> Non
 
     have_badge = await session.execute(
         select(Achievement.id).where(
-            Achievement.user_id == req.user_id, Achievement.code == "verified_skill"
+            Achievement.user_id == user_id, Achievement.code == "verified_skill"
         )
     )
     if have_badge.scalar_one_or_none() is None:
         session.add(
             Achievement(
-                user_id=req.user_id,
+                user_id=user_id,
                 code="verified_skill",
                 title="Verified",
-                description="Had a skill peer-verified.",
+                description="Had a skill verified.",
             )
         )
+
+
+# --- AI assessment path ---------------------------------------------------
+
+def _quiz_public(assessment: SkillAssessment) -> dict:
+    """The client view of a quiz — questions + options only, no answer keys."""
+    return {
+        "id": assessment.id,
+        "skill_name": assessment.skill_name,
+        "status": assessment.status,
+        "questions": [
+            {"question": q["question"], "options": q["options"]}
+            for q in assessment.questions
+        ],
+    }
+
+
+@router.post(
+    "/assessment",
+    dependencies=[Depends(require_feature("verification")), Depends(consume_ai_token)],
+)
+async def start_assessment(
+    payload: VerificationQuizStart,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> object:
+    """Generate an AI quiz to verify a skill (an alternative to peer review)."""
+    skill_name = payload.skill_name.strip()
+    if len(skill_name) < 2:
+        return error("Enter the skill you want to verify.", status_code=400, code="invalid")
+    questions = await generate_quiz(skill_name)
+    assessment = SkillAssessment(
+        user_id=user.id,
+        skill_name=skill_name,
+        skill_normalized=skill_name.lower(),
+        questions=questions,
+        status="pending",
+    )
+    session.add(assessment)
+    await session.commit()
+    await session.refresh(assessment)
+    return ok(data=_quiz_public(assessment), message="Quiz ready", status_code=201)
+
+
+@router.post("/assessment/{assessment_id}/submit")
+async def submit_assessment(
+    assessment_id: int,
+    payload: AssessmentSubmit,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> object:
+    """Grade the quiz. A passing score verifies the skill immediately."""
+    assessment = await session.get(SkillAssessment, assessment_id)
+    if assessment is None or assessment.user_id != user.id:
+        return error("Assessment not found.", status_code=404, code="not_found")
+    if assessment.status != "pending":
+        return error("This assessment is already complete.", status_code=409, code="done")
+
+    questions = assessment.questions
+    answers = payload.answers
+    correct = sum(
+        1
+        for i, q in enumerate(questions)
+        if i < len(answers) and answers[i] == q["answer"]
+    )
+    total = len(questions)
+    passed = total > 0 and correct >= round(ASSESSMENT_PASS * total)
+
+    assessment.score = correct
+    assessment.status = "passed" if passed else "failed"
+    assessment.submitted_at = datetime.now(timezone.utc)
+    if passed:
+        await mark_skill_verified(session, user.id, assessment.skill_normalized)
+    await session.commit()
+
+    return ok(
+        data={
+            "passed": passed,
+            "score": correct,
+            "total": total,
+            "skill_name": assessment.skill_name,
+        },
+        message="Skill verified! 🎉" if passed else "Not quite — review and try again.",
+    )

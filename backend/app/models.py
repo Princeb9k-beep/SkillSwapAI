@@ -794,3 +794,29 @@ class AiWallet(Base):
     )
     # Purchased top-up tokens remaining (do not expire).
     purchased: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+
+
+class SkillAssessment(Base):
+    """An AI-generated quiz that verifies a skill without peer review. Questions
+    (with the correct answer index) are stored server-side; the client only ever
+    sees the questions. A passing score marks the matching skill verified."""
+
+    __tablename__ = "skill_assessments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    skill_name: Mapped[str] = mapped_column(String(255))
+    skill_normalized: Mapped[str] = mapped_column(String(255), index=True, default="")
+    # [{"question": str, "options": [str,...], "answer": int}, ...]
+    questions: Mapped[list] = mapped_column(JSON, default=list)
+    # pending | passed | failed
+    status: Mapped[str] = mapped_column(String(20), default="pending", index=True)
+    score: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    submitted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
