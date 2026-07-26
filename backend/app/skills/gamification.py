@@ -89,14 +89,20 @@ async def record_activity(
     if newly and getattr(user, "notify_achievements", True):
         # Local import avoids a circular import (skills package ↔ models).
         from .notifications import create_notification
+        from ..mailer import send_event_email
 
         for ach in newly:
+            title = f"Achievement unlocked: {ach.title}"
             create_notification(
                 session,
                 user.id,
                 type="achievement",
-                title=f"Achievement unlocked: {ach.title}",
+                title=title,
                 body=ach.description,
                 link="/progress",
             )
+            try:  # best-effort email (no-op if SMTP off / pref disabled)
+                await send_event_email(user, "achievement", title, ach.description, "/progress")
+            except Exception:
+                pass
     return newly

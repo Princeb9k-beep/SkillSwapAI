@@ -829,6 +829,25 @@ def test_signup_sends_email_when_configured(client, monkeypatch):
     assert sent["to"] == "emailed@example.com" and sent["token"]
 
 
+def test_message_emails_recipient(client, monkeypatch):
+    """A new message triggers a pref-gated email to the recipient."""
+    import app.routers.messages as messages_router
+
+    sent = []
+
+    async def _fake(user, type, title, body, link):
+        sent.append((user.email, type, title))
+        return True
+
+    monkeypatch.setattr(messages_router, "send_event_email", _fake)
+
+    a = _auth(client, "mail_a@example.com", "Mail A")
+    b = _auth(client, "mail_b@example.com", "Mail B")
+    b_id = client.get("/users/me", headers=b).json()["data"]["id"]
+    assert client.post(f"/messages/{b_id}", json={"body": "ping"}, headers=a).status_code == 201
+    assert sent and sent[0][0] == "mail_b@example.com" and sent[0][1] == "message"
+
+
 def test_realtime_message_delivery(client):
     a = _auth(client, "rt_sender@example.com", "RT Sender")
     b = _auth(client, "rt_recipient@example.com", "RT Recipient")

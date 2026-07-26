@@ -17,6 +17,7 @@ from ..database import get_session
 from ..deps import get_current_user, get_user_by_email
 from ..mailer import (
     email_configured,
+    send_event_email,
     send_password_reset_email,
     send_verification_email,
 )
@@ -103,6 +104,16 @@ async def signup(
             body=f"You earned {bonus} bonus AI tokens.",
             link="/settings",
         )
+        try:
+            await send_event_email(
+                referrer,
+                "referral",
+                "Someone joined with your invite! 🎉",
+                f"You earned {bonus} bonus AI tokens. Thanks for spreading the word!",
+                "/settings",
+            )
+        except Exception:
+            pass
 
     # Greet the new user so their notification bell isn't empty.
     create_notification(
