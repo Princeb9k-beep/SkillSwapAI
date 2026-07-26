@@ -2258,3 +2258,77 @@ a:focus-visible {
   margin-top: 0.25rem;
   font-size: 0.9rem;
 }
+
+/* ---- Public profile ---- */
+.profile-head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.profile-avatar {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, #a855f7, #4f46e5);
+}
+.profile-head h1 {
+  margin: 0 0 0.15rem;
+}
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  text-align: center;
+  padding: 1rem 0.5rem;
+}
+.stat-num {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.6rem;
+}
+.badge-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.badge-medal {
+  font-size: 1.3rem;
+}
+.badge-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.tag-verified {
+  border-color: var(--success);
+  color: var(--success);
+}
+.lb-name {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+.lb-name:hover {
+  text-decoration: underline;
+}
