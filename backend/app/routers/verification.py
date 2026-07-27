@@ -196,8 +196,13 @@ async def mark_skill_verified(
             Skill.name_normalized == skill_normalized,
         )
     )
-    for skill in skills.scalars().all():
+    matched = skills.scalars().all()
+    for skill in matched:
         skill.verified = True
+    if matched:
+        from ..skills.feed import record_activity as _feed
+
+        _feed(session, user_id, "verified", f"verified {matched[0].name}")
 
     have_badge = await session.execute(
         select(Achievement.id).where(

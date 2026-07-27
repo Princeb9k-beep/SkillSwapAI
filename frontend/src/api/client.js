@@ -318,6 +318,8 @@ export const api = {
   reactMessage: (messageId, emoji) =>
     request(`/messages/${messageId}/react`, { method: "POST", body: { emoji } }),
   icebreakers: (partnerId) => request(`/matches/${partnerId}/icebreakers`),
+  feed: () => request("/feed"),
+  kudos: (activityId) => request(`/feed/${activityId}/kudos`, { method: "POST" }),
   sessions: () => request("/sessions"),
   proposeSession: (data) => request("/sessions", { method: "POST", body: data }),
   respondSession: (id, accept) =>

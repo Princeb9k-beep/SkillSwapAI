@@ -833,6 +833,39 @@ class RefreshToken(Base):
     )
 
 
+class Activity(Base):
+    """A public milestone in the activity feed (verified a skill, hit a streak,
+    finished a course, leveled up). Other learners can give kudos."""
+
+    __tablename__ = "activities"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    kind: Mapped[str] = mapped_column(String(30), index=True)
+    text: Mapped[str] = mapped_column(String(255))
+    kudos: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+
+
+class ActivityKudos(Base):
+    """One kudos from a user on an activity (prevents double-kudos)."""
+
+    __tablename__ = "activity_kudos"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    activity_id: Mapped[int] = mapped_column(
+        ForeignKey("activities.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    __table_args__ = (UniqueConstraint("activity_id", "user_id", name="uq_activity_kudos"),)
+
+
 class Session(Base):
     """A 1:1 booked learning session between two users. The host proposes a time;
     the guest confirms or declines. `is_trial` marks a short free intro."""
