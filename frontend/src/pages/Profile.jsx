@@ -54,6 +54,12 @@ export default function Profile() {
           {memberSince(p.member_since) && (
             <p className="field-hint">Member since {memberSince(p.member_since)}</p>
           )}
+          {p.availability_note && (
+            <p className="field-hint">🗓 Usually free: {p.availability_note}</p>
+          )}
+          <Link className="btn btn-primary profile-book" to={`/sessions?to=${p.id}&name=${encodeURIComponent(p.name)}`}>
+            Book a session
+          </Link>
         </div>
       </div>
 

@@ -170,6 +170,19 @@ class FlashcardReview(BaseModel):
     grade: str = Field(pattern="^(again|good|easy)$")
 
 
+class SessionCreate(BaseModel):
+    partner_id: int
+    scheduled_at: datetime
+    duration_min: int = Field(default=30, ge=15, le=180)
+    skill: str | None = Field(default=None, max_length=255)
+    is_trial: bool = False
+    note: str | None = Field(default=None, max_length=1000)
+
+
+class SessionRespond(BaseModel):
+    accept: bool
+
+
 # --- Web Push -------------------------------------------------------------
 class PushSubscribe(BaseModel):
     endpoint: str = Field(min_length=1, max_length=500)
@@ -302,6 +315,7 @@ class ProfileUpdate(BaseModel):
     notify_achievements: bool | None = None
     notify_product: bool | None = None
     daily_reminder: bool | None = None
+    availability_note: str | None = Field(default=None, max_length=255)
     onboarded: bool | None = None
 
 
@@ -316,6 +330,7 @@ class UserOut(BaseModel):
     notify_achievements: bool
     notify_product: bool
     daily_reminder: bool
+    availability_note: str | None
     onboarded: bool
     email_verified: bool
     tier: str

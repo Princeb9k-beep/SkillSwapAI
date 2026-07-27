@@ -67,6 +67,8 @@ class User(Base):
         Boolean, default=False, server_default="0"
     )
     last_reminded_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # Free-text availability shown to partners when booking (e.g. "Weekday eves ET").
+    availability_note: Mapped[str | None] = mapped_column(String(255), nullable=True)
     # True once the user finishes (or skips) first-run onboarding.
     onboarded: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default="0"
@@ -826,6 +828,31 @@ class RefreshToken(Base):
     revoked: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     user_agent: Mapped[str | None] = mapped_column(String(255), nullable=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class Session(Base):
+    """A 1:1 booked learning session between two users. The host proposes a time;
+    the guest confirms or declines. `is_trial` marks a short free intro."""
+
+    __tablename__ = "sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    host_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    guest_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    skill: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    scheduled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    duration_min: Mapped[int] = mapped_column(Integer, default=30)
+    is_trial: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # proposed | confirmed | declined | cancelled
+    status: Mapped[str] = mapped_column(String(20), default="proposed", index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

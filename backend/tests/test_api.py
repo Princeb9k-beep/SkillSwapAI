@@ -993,6 +993,39 @@ def test_message_emails_recipient(client, monkeypatch):
     assert sent and sent[0][0] == "mail_b@example.com" and sent[0][1] == "message"
 
 
+def test_session_scheduling(client):
+    host = _auth(client, "host@example.com", "Host")
+    guest = _auth(client, "guest@example.com", "Guest")
+    guest_id = client.get("/users/me", headers=guest).json()["data"]["id"]
+
+    when = "2099-01-01T15:00:00Z"
+    prop = client.post(
+        "/sessions",
+        json={"partner_id": guest_id, "scheduled_at": when, "skill": "Guitar", "is_trial": True},
+        headers=host,
+    )
+    assert prop.status_code == 201
+    s = prop.json()["data"]
+    assert s["status"] == "proposed" and s["is_trial"] and s["duration_min"] == 15
+
+    # It shows up for both parties.
+    assert len(client.get("/sessions", headers=host).json()["data"]) == 1
+    assert len(client.get("/sessions", headers=guest).json()["data"]) == 1
+
+    # Only the guest can respond; confirming works.
+    assert client.post(f"/sessions/{s['id']}/respond", json={"accept": True}, headers=host).status_code == 404
+    conf = client.post(f"/sessions/{s['id']}/respond", json={"accept": True}, headers=guest)
+    assert conf.status_code == 200 and conf.json()["data"]["status"] == "confirmed"
+
+    # Past times and self-booking are rejected.
+    assert client.post("/sessions", json={"partner_id": guest_id, "scheduled_at": "2000-01-01T00:00:00Z"}, headers=host).status_code == 400
+
+    # Availability note round-trips through the profile.
+    client.patch("/users/me", json={"availability_note": "Weekday evenings ET"}, headers=guest)
+    prof = client.get(f"/users/{guest_id}/profile", headers=host).json()["data"]
+    assert prof["availability_note"] == "Weekday evenings ET"
+
+
 def test_flashcards_spaced_repetition(client):
     hdr = _auth(client, "cards@example.com", "Cards")
     gen = client.post("/flashcards/generate", json={"topic": "Python decorators"}, headers=hdr)

@@ -318,6 +318,11 @@ export const api = {
   reactMessage: (messageId, emoji) =>
     request(`/messages/${messageId}/react`, { method: "POST", body: { emoji } }),
   icebreakers: (partnerId) => request(`/matches/${partnerId}/icebreakers`),
+  sessions: () => request("/sessions"),
+  proposeSession: (data) => request("/sessions", { method: "POST", body: data }),
+  respondSession: (id, accept) =>
+    request(`/sessions/${id}/respond`, { method: "POST", body: { accept } }),
+  cancelSession: (id) => request(`/sessions/${id}/cancel`, { method: "POST" }),
   unreadCount: () => request("/messages/unread/count"),
   // video practice rooms
   listRooms: () => request("/rooms"),

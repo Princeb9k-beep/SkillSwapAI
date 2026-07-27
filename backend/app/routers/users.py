@@ -58,6 +58,7 @@ async def public_profile(
             "xp": target.xp,
             "streak": target.streak,
             "tier": target.tier,
+            "availability_note": target.availability_note,
             "member_since": target.created_at.isoformat() if target.created_at else None,
             "skills": [
                 {"name": s.name, "level": s.level, "verified": s.verified}
@@ -93,6 +94,8 @@ async def update_me(
         user.notify_product = payload.notify_product
     if payload.daily_reminder is not None:
         user.daily_reminder = payload.daily_reminder
+    if payload.availability_note is not None:
+        user.availability_note = payload.availability_note.strip() or None
     if payload.onboarded is not None:
         user.onboarded = payload.onboarded
     await session.commit()
