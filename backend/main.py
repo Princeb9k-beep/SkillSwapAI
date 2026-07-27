@@ -71,6 +71,7 @@ from app.routers import (
     rooms,
     scanner,
     search,
+    sessions,
     translate,
     twin,
     skills,
@@ -215,6 +216,7 @@ app.include_router(users.router)
 app.include_router(skills.router)
 app.include_router(matches.router)
 app.include_router(search.router)
+app.include_router(sessions.router)
 app.include_router(meetups.router)
 app.include_router(messages.router)
 app.include_router(moderation.router)

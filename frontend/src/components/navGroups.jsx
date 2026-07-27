@@ -92,6 +92,7 @@ export const NAV_GROUPS = [
       { to: "/rooms", label: "Rooms", plan: "pro" },
       { to: "/community", label: "Community" },
       { to: "/meetups", label: "Meetups" },
+      { to: "/sessions", label: "Sessions" },
       { to: "/search", label: "Search" },
     ],
   },

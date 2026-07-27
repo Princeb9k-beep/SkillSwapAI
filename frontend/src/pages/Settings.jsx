@@ -45,6 +45,7 @@ export default function Settings() {
     name: user?.name || "",
     goal: user?.goal || "",
     target_income: user?.target_income ?? "",
+    availability_note: user?.availability_note || "",
   });
   const [saving, setSaving] = useState(false);
   const [theme, setThemeState] = useState(getTheme());
@@ -137,6 +138,7 @@ export default function Settings() {
         goal: form.goal.trim() || null,
         target_income:
           form.target_income === "" ? null : Number(form.target_income),
+        availability_note: form.availability_note.trim() || null,
       };
       const updated = await api.updateProfile(payload);
       updateUser(updated);
@@ -303,6 +305,16 @@ export default function Settings() {
             value={form.target_income}
             placeholder="80000"
             onChange={(e) => setForm((f) => ({ ...f, target_income: e.target.value }))}
+          />
+        </label>
+        <label>
+          Availability <span className="field-hint">(shown to partners when booking)</span>
+          <input
+            type="text"
+            maxLength={255}
+            value={form.availability_note}
+            placeholder="e.g. Weekday evenings ET"
+            onChange={(e) => setForm((f) => ({ ...f, availability_note: e.target.value }))}
           />
         </label>
         <button className="btn btn-primary" disabled={saving} aria-busy={saving}>

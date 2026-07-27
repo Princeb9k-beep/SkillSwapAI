@@ -247,6 +247,12 @@ export default function Messages() {
                   </span>
                 </h3>
                 <div className="conversation-mod">
+                  <Link
+                    className="link-btn"
+                    to={`/sessions?to=${active.partner_id}&name=${encodeURIComponent(active.partner_name)}`}
+                  >
+                    Schedule
+                  </Link>
                   <button type="button" className="link-btn" onClick={reportPartner}>
                     Report
                   </button>
