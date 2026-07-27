@@ -42,19 +42,46 @@ def xp_for_level(level: int) -> int:
     return 50 * level * (level - 1)
 
 
-def award_xp(user: User, amount: int) -> None:
-    """Add XP and recompute level (no commit)."""
-    user.xp = (user.xp or 0) + max(0, amount)
+def week_key(day: date | None = None) -> str:
+    """ISO year+week identifier, e.g. '2026-30'."""
+    d = day or date.today()
+    y, w, _ = d.isocalendar()
+    return f"{y}-{w:02d}"
+
+
+def award_xp(user: User, amount: int, today: date | None = None) -> None:
+    """Add XP, recompute level, and roll the daily + weekly counters (no commit)."""
+    amount = max(0, amount)
+    today = today or date.today()
+    user.xp = (user.xp or 0) + amount
     user.level = level_for_xp(user.xp)
+
+    # Daily counter (for the daily goal), reset when the day changes.
+    if getattr(user, "day_xp_on", None) != today:
+        user.day_xp = 0
+        user.day_xp_on = today
+    user.day_xp = (user.day_xp or 0) + amount
+
+    # Weekly counter (for leagues), reset when the ISO week changes.
+    wk = week_key(today)
+    if getattr(user, "week_key", None) != wk:
+        user.week_xp = 0
+        user.week_key = wk
+    user.week_xp = (user.week_xp or 0) + amount
 
 
 def touch_streak(user: User, today: date | None = None) -> None:
-    """Update the daily streak based on last activity (no commit)."""
+    """Update the daily streak based on last activity (no commit). A single
+    missed day is forgiven if the user has a streak freeze to spend."""
     today = today or date.today()
     last = user.last_active_on
     if last == today:
         return  # already counted today
     if last == today - timedelta(days=1):
+        user.streak = (user.streak or 0) + 1
+    elif last == today - timedelta(days=2) and (user.streak_freezes or 0) > 0:
+        # Missed exactly one day — spend a freeze to keep the streak alive.
+        user.streak_freezes -= 1
         user.streak = (user.streak or 0) + 1
     else:
         user.streak = 1

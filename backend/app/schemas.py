@@ -157,6 +157,10 @@ class ReactRequest(BaseModel):
     emoji: str | None = Field(default=None, max_length=16)
 
 
+class DailyGoalRequest(BaseModel):
+    xp: int = Field(ge=10, le=500)
+
+
 # --- Web Push -------------------------------------------------------------
 class PushSubscribe(BaseModel):
     endpoint: str = Field(min_length=1, max_length=500)
