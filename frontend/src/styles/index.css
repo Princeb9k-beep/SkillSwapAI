@@ -2537,3 +2537,30 @@ a:focus-visible {
   opacity: 1;
   background: color-mix(in srgb, var(--primary) 12%, transparent);
 }
+
+/* ---- AI icebreakers ---- */
+.convo-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+.icebreakers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.icebreaker-chip {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.icebreaker-chip:hover {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+}
