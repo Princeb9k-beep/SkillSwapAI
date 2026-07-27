@@ -77,6 +77,7 @@ export const NAV_GROUPS = [
       { to: "/academy", label: "Academy", plan: "pro" },
       { to: "/dashboard", label: "Dashboard" },
       { to: "/lessons", label: "Lessons" },
+      { to: "/flashcards", label: "Flashcards" },
       { to: "/challenges", label: "Challenges" },
       { to: "/progress", label: "Progress" },
     ],

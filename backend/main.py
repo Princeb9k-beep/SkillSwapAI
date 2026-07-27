@@ -46,6 +46,7 @@ from app.routers import (
     challenges,
     coach,
     communities,
+    flashcards,
     health,
     interview,
     lessons,
@@ -229,6 +230,7 @@ app.include_router(marketplace.router)
 app.include_router(coach.router)
 app.include_router(scanner.router)
 app.include_router(challenges.router)
+app.include_router(flashcards.router)
 app.include_router(twin.router)
 app.include_router(translate.router)
 app.include_router(rooms.router)

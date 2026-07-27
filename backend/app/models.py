@@ -831,6 +831,28 @@ class RefreshToken(Base):
     )
 
 
+class Flashcard(Base):
+    """A spaced-repetition review card (front/back) generated from a topic or
+    completed lesson. Scheduling uses a light SM-2-style interval."""
+
+    __tablename__ = "flashcards"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    topic: Mapped[str] = mapped_column(String(255), default="")
+    front: Mapped[str] = mapped_column(Text)
+    back: Mapped[str] = mapped_column(Text)
+    interval_days: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    reps: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    due_on: Mapped[date] = mapped_column(Date, index=True)
+    last_reviewed_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
 class SkillAssessment(Base):
     """An AI-generated quiz that verifies a skill without peer review. Questions
     (with the correct answer index) are stored server-side; the client only ever

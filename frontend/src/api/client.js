@@ -138,6 +138,7 @@ const AI_TOKEN_PREFIXES = [
   "/interview",
   "/twin",
   "/verifications/assessment",
+  "/flashcards/generate",
   "/billing/tokens/buy",
   "/billing/subscribe",
 ];
@@ -194,6 +195,12 @@ export const api = {
   getProgress: () => request("/progress"),
   getLeaderboard: () => request("/leaderboard"),
   getLeague: () => request("/league"),
+  flashcards: () => request("/flashcards"),
+  generateFlashcards: (topic, lesson_id) =>
+    request("/flashcards/generate", { method: "POST", body: { topic, lesson_id: lesson_id ?? null } }),
+  reviewFlashcard: (id, grade) =>
+    request(`/flashcards/${id}/review`, { method: "POST", body: { grade } }),
+  deleteFlashcard: (id) => request(`/flashcards/${id}`, { method: "DELETE" }),
   setDailyGoal: (xp) => request("/progress/daily-goal", { method: "POST", body: { xp } }),
   buyStreakFreeze: () => request("/progress/buy-freeze", { method: "POST" }),
   // communities
