@@ -193,6 +193,9 @@ export const api = {
   // gamification
   getProgress: () => request("/progress"),
   getLeaderboard: () => request("/leaderboard"),
+  getLeague: () => request("/league"),
+  setDailyGoal: (xp) => request("/progress/daily-goal", { method: "POST", body: { xp } }),
+  buyStreakFreeze: () => request("/progress/buy-freeze", { method: "POST" }),
   // communities
   getCommunities: () => request("/communities"),
   createCommunity: (data) => request("/communities", { method: "POST", body: data }),

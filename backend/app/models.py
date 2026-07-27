@@ -43,6 +43,15 @@ class User(Base):
     level: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
     streak: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     last_active_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # Streak freezes: auto-consumed to save a streak after a single missed day.
+    streak_freezes: Mapped[int] = mapped_column(Integer, default=2, server_default="2")
+    # Daily XP goal + per-day counter (resets when the day changes).
+    daily_goal: Mapped[int] = mapped_column(Integer, default=30, server_default="30")
+    day_xp: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    day_xp_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # Weekly XP for leagues (resets when the ISO week changes).
+    week_xp: Mapped[int] = mapped_column(Integer, default=0, server_default="0", index=True)
+    week_key: Mapped[str | None] = mapped_column(String(8), nullable=True, index=True)
     # --- Notification preferences ---
     notify_messages: Mapped[bool] = mapped_column(
         Boolean, default=True, server_default="1"

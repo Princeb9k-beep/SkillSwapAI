@@ -3,26 +3,60 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
+import { useApp } from "../context/AppContext.jsx";
 import { ErrorBanner } from "../components/States.jsx";
 import { SkeletonPage } from "../components/Skeleton.jsx";
 
+const GOALS = [20, 30, 50, 100];
+
 export default function Progress() {
+  const { notify } = useApp();
   const [prog, setProg] = useState(null);
   const [board, setBoard] = useState([]);
+  const [league, setLeague] = useState(null);
   const [status, setStatus] = useState("loading");
   const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   async function load() {
     setStatus("loading");
     setError(null);
     try {
-      const [p, b] = await Promise.all([api.getProgress(), api.getLeaderboard()]);
+      const [p, b, l] = await Promise.all([
+        api.getProgress(),
+        api.getLeaderboard(),
+        api.getLeague().catch(() => null),
+      ]);
       setProg(p);
       setBoard(b);
+      setLeague(l);
       setStatus("ready");
     } catch (err) {
       setError(err.message);
       setStatus("error");
+    }
+  }
+
+  async function chooseGoal(xp) {
+    try {
+      await api.setDailyGoal(xp);
+      setProg((p) => ({ ...p, daily_goal: xp, daily_goal_pct: Math.min(100, Math.round((100 * p.day_xp) / xp)), daily_goal_met: p.day_xp >= xp }));
+    } catch (err) {
+      notify(err.message, "error");
+    }
+  }
+
+  async function buyFreeze() {
+    setBusy(true);
+    try {
+      const res = await api.buyStreakFreeze();
+      setProg((p) => ({ ...p, streak_freezes: res.streak_freezes }));
+      notify("Streak freeze added", "success");
+      window.dispatchEvent(new Event("tokens:changed"));
+    } catch (err) {
+      notify(err.message, "error");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -50,6 +84,41 @@ export default function Progress() {
           <span className="stat-num">{prog.streak}</span>
           <span className="muted">Day streak</span>
         </div>
+      </div>
+
+      {/* Daily goal */}
+      <div className="card">
+        <div className="row-between">
+          <strong>Today's goal</strong>
+          <span className="muted">{prog.day_xp} / {prog.daily_goal} XP</span>
+        </div>
+        <div className="progress" role="progressbar" aria-valuenow={prog.daily_goal_pct} aria-valuemin={0} aria-valuemax={100}>
+          <div className="progress-bar" style={{ width: `${prog.daily_goal_pct}%` }} />
+        </div>
+        <div className="goal-picker">
+          <span className="muted">Set goal:</span>
+          {GOALS.map((g) => (
+            <button
+              key={g}
+              type="button"
+              className={`chip${prog.daily_goal === g ? " active" : ""}`}
+              onClick={() => chooseGoal(g)}
+            >
+              {g} XP
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Streak freezes */}
+      <div className="card row-between">
+        <div>
+          <strong>❄️ Streak freezes: {prog.streak_freezes}</strong>
+          <p className="muted xp-hint">Automatically saves your streak after one missed day.</p>
+        </div>
+        <button type="button" className="btn" onClick={buyFreeze} disabled={busy}>
+          {busy ? "…" : "Buy (20 tokens)"}
+        </button>
       </div>
 
       <div className="card">
@@ -87,7 +156,33 @@ export default function Progress() {
         </div>
       )}
 
-      <h2>Leaderboard</h2>
+      {league && (
+        <>
+          <h2>{league.division} League · this week</h2>
+          <div className="card lb-card">
+            <table className="leaderboard">
+              <thead>
+                <tr><th>#</th><th>Learner</th><th>Weekly XP</th></tr>
+              </thead>
+              <tbody>
+                {league.entries.length === 0 ? (
+                  <tr><td colSpan={3} className="muted">No one has earned XP this week yet.</td></tr>
+                ) : (
+                  league.entries.map((e) => (
+                    <tr key={e.user_id} className={e.is_me ? "lb-me" : ""}>
+                      <td>{e.rank}</td>
+                      <td><Link className="lb-name" to={`/u/${e.user_id}`}>{e.name}</Link>{e.is_me && " (you)"}</td>
+                      <td>{e.week_xp}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      <h2>All-time leaderboard</h2>
       <div className="card lb-card">
         <table className="leaderboard">
           <thead>

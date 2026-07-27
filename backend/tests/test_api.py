@@ -993,6 +993,26 @@ def test_message_emails_recipient(client, monkeypatch):
     assert sent and sent[0][0] == "mail_b@example.com" and sent[0][1] == "message"
 
 
+def test_gamification_extras(client):
+    hdr = _auth(client, "gamer@example.com", "Gamer")
+    prog = client.get("/progress", headers=hdr).json()["data"]
+    assert prog["daily_goal"] == 30 and prog["streak_freezes"] == 2 and "daily_goal_pct" in prog
+
+    # Set + validate the daily goal.
+    assert client.post("/progress/daily-goal", json={"xp": 50}, headers=hdr).json()["data"]["daily_goal"] == 50
+    assert client.post("/progress/daily-goal", json={"xp": 5}, headers=hdr).status_code == 422
+
+    # League standings for the user's (Bronze) division.
+    lg = client.get("/league", headers=hdr).json()["data"]
+    assert lg["division"] == "Bronze" and isinstance(lg["entries"], list)
+
+    # A free user can't afford a freeze (needs 20 tokens); Elite gets it free.
+    assert client.post("/progress/buy-freeze", headers=hdr).status_code == 402
+    client.post("/billing/subscribe", json={"tier": "elite"}, headers=hdr)
+    r = client.post("/progress/buy-freeze", headers=hdr)
+    assert r.status_code == 200 and r.json()["data"]["streak_freezes"] == 3
+
+
 def test_match_icebreakers(client):
     a = _auth(client, "ice_a@example.com", "Ice A")
     b = _auth(client, "ice_b@example.com", "Ice B")
