@@ -47,5 +47,18 @@ class UserHub:
                 logger.debug("realtime send failed for user %s: %s", user_id, exc)
                 await self.disconnect(user_id, ws)
 
+    def is_online(self, user_id: int) -> bool:
+        return bool(self._peers.get(user_id))
+
+    def online_ids(self) -> set[int]:
+        return {uid for uid, conns in self._peers.items() if conns}
+
+    async def broadcast(self, payload: dict, exclude: int | None = None) -> None:
+        """Send a payload to every connected user (small-scale presence fan-out)."""
+        for uid in list(self._peers.keys()):
+            if uid == exclude:
+                continue
+            await self.send_to_user(uid, payload)
+
 
 hub = UserHub()

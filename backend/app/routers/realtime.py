@@ -7,6 +7,8 @@ relies on app code calling `hub.send_to_user(...)` to push events.
 
 from __future__ import annotations
 
+import json
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from ..auth import decode_access_token
@@ -38,16 +40,30 @@ async def user_stream(websocket: WebSocket) -> None:
         await websocket.close(code=4401)
         return
 
+    was_online = hub.is_online(user_id)
     await hub.connect(user_id, websocket)
     await websocket.send_json({"type": "ready"})
+    # Tell everyone this user just came online (first connection only).
+    if not was_online:
+        await hub.broadcast({"type": "presence", "user_id": user_id, "online": True}, exclude=user_id)
     try:
         while True:
-            # We don't need inbound data; this also answers client pings and
-            # detects disconnects.
             msg = await websocket.receive_text()
             if msg == "ping":
                 await websocket.send_json({"type": "pong"})
+                continue
+            # Typing relay: {"type":"typing","to":<user_id>}.
+            try:
+                data = json.loads(msg)
+            except (ValueError, TypeError):
+                continue
+            if data.get("type") == "typing" and isinstance(data.get("to"), int):
+                await hub.send_to_user(
+                    data["to"], {"type": "typing", "from_id": user_id}
+                )
     except WebSocketDisconnect:
         pass
     finally:
         await hub.disconnect(user_id, websocket)
+        if not hub.is_online(user_id):
+            await hub.broadcast({"type": "presence", "user_id": user_id, "online": False})

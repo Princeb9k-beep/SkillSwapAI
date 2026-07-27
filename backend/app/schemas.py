@@ -152,6 +152,11 @@ class MessageCreate(BaseModel):
     body: str = Field(min_length=1, max_length=4000)
 
 
+class ReactRequest(BaseModel):
+    # An emoji to set, or null/empty to clear the reaction.
+    emoji: str | None = Field(default=None, max_length=16)
+
+
 # --- Web Push -------------------------------------------------------------
 class PushSubscribe(BaseModel):
     endpoint: str = Field(min_length=1, max_length=500)

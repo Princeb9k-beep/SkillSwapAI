@@ -993,6 +993,25 @@ def test_message_emails_recipient(client, monkeypatch):
     assert sent and sent[0][0] == "mail_b@example.com" and sent[0][1] == "message"
 
 
+def test_message_reactions(client):
+    a = _auth(client, "react_a@example.com", "React A")
+    b = _auth(client, "react_b@example.com", "React B")
+    b_id = client.get("/users/me", headers=b).json()["data"]["id"]
+    msg = client.post(f"/messages/{b_id}", json={"body": "hey"}, headers=a).json()["data"]
+    assert msg["reaction"] is None
+
+    # B reacts to A's message.
+    r = client.post(f"/messages/{msg['id']}/react", json={"emoji": "❤️"}, headers=b)
+    assert r.status_code == 200 and r.json()["data"]["reaction"] == "❤️"
+    # It shows up in the conversation.
+    convo = client.get(f"/messages/{b_id}", headers=a).json()["data"]
+    assert any(m["id"] == msg["id"] and m["reaction"] == "❤️" for m in convo["messages"])
+    # Clearing works, and outsiders can't react.
+    assert client.post(f"/messages/{msg['id']}/react", json={"emoji": None}, headers=b).json()["data"]["reaction"] is None
+    outsider = _auth(client, "react_c@example.com", "React C")
+    assert client.post(f"/messages/{msg['id']}/react", json={"emoji": "👍"}, headers=outsider).status_code == 404
+
+
 def test_realtime_message_delivery(client):
     a = _auth(client, "rt_sender@example.com", "RT Sender")
     b = _auth(client, "rt_recipient@example.com", "RT Recipient")

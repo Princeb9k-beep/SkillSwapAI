@@ -2471,3 +2471,69 @@ a:focus-visible {
   background: color-mix(in srgb, var(--error) 10%, var(--surface));
   color: var(--error);
 }
+
+/* ---- Presence, typing, and message reactions ---- */
+.online-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  margin-right: 0.4rem;
+  vertical-align: middle;
+}
+.conversation-presence {
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-left: 0.5rem;
+}
+.bubble-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+}
+.bubble-row-mine {
+  align-items: flex-end;
+}
+.bubble {
+  position: relative;
+}
+.bubble-reaction {
+  position: absolute;
+  bottom: -0.7rem;
+  right: 0.3rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 0.25rem;
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+.bubble-react-bar {
+  display: none;
+  gap: 0.1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.1rem 0.25rem;
+  box-shadow: var(--shadow);
+}
+.bubble-row:hover .bubble-react-bar,
+.bubble-row:focus-within .bubble-react-bar {
+  display: inline-flex;
+}
+.react-emoji {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.1rem 0.15rem;
+  border-radius: 6px;
+  opacity: 0.7;
+}
+.react-emoji:hover,
+.react-emoji.active {
+  opacity: 1;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
