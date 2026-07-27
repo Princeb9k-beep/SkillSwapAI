@@ -183,6 +183,10 @@ class SessionRespond(BaseModel):
     accept: bool
 
 
+class BuddyInvite(BaseModel):
+    partner_id: int
+
+
 # --- Web Push -------------------------------------------------------------
 class PushSubscribe(BaseModel):
     endpoint: str = Field(min_length=1, max_length=500)
