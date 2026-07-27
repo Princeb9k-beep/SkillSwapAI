@@ -833,6 +833,30 @@ class RefreshToken(Base):
     )
 
 
+class Buddy(Base):
+    """A learning-buddy pairing with a SHARED streak that advances only when both
+    partners check in on the same day (mutual accountability)."""
+
+    __tablename__ = "buddies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    inviter_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    partner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    # pending | active | ended
+    status: Mapped[str] = mapped_column(String(10), default="pending", index=True)
+    streak: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    inviter_checked_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    partner_checked_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    last_advanced_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
 class Activity(Base):
     """A public milestone in the activity feed (verified a skill, hit a streak,
     finished a course, leveled up). Other learners can give kudos."""

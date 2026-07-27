@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { api } from "../api/client.js";
+import { useApp } from "../context/AppContext.jsx";
 import { ErrorBanner } from "../components/States.jsx";
 import { SkeletonPage } from "../components/Skeleton.jsx";
 
@@ -13,7 +14,21 @@ const memberSince = (iso) =>
 
 export default function Profile() {
   const { id } = useParams();
+  const { notify } = useApp();
   const [p, setP] = useState(null);
+  const [buddyBusy, setBuddyBusy] = useState(false);
+
+  async function addBuddy() {
+    setBuddyBusy(true);
+    try {
+      await api.inviteBuddy(Number(id));
+      notify("Buddy request sent", "success");
+    } catch (err) {
+      notify(err.message, "error");
+    } finally {
+      setBuddyBusy(false);
+    }
+  }
   const [status, setStatus] = useState("loading");
   const [error, setError] = useState(null);
 
@@ -57,9 +72,14 @@ export default function Profile() {
           {p.availability_note && (
             <p className="field-hint">🗓 Usually free: {p.availability_note}</p>
           )}
-          <Link className="btn btn-primary profile-book" to={`/sessions?to=${p.id}&name=${encodeURIComponent(p.name)}`}>
-            Book a session
-          </Link>
+          <div className="profile-actions">
+            <Link className="btn btn-primary" to={`/sessions?to=${p.id}&name=${encodeURIComponent(p.name)}`}>
+              Book a session
+            </Link>
+            <button className="btn" onClick={addBuddy} disabled={buddyBusy}>
+              {buddyBusy ? "Sending…" : "Add as learning buddy"}
+            </button>
+          </div>
         </div>
       </div>
 

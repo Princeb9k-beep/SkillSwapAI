@@ -993,6 +993,34 @@ def test_message_emails_recipient(client, monkeypatch):
     assert sent and sent[0][0] == "mail_b@example.com" and sent[0][1] == "message"
 
 
+def test_buddy_shared_streak(client):
+    a = _auth(client, "buddy_a@example.com", "Buddy A")
+    b = _auth(client, "buddy_b@example.com", "Buddy B")
+    b_id = client.get("/users/me", headers=b).json()["data"]["id"]
+
+    inv = client.post("/buddies", json={"partner_id": b_id}, headers=a)
+    assert inv.status_code == 201 and inv.json()["data"]["status"] == "pending"
+    bid = inv.json()["data"]["id"]
+
+    # Only the invited partner can accept.
+    assert client.post(f"/buddies/{bid}/accept", headers=a).status_code == 404
+    assert client.post(f"/buddies/{bid}/accept", headers=b).json()["data"]["status"] == "active"
+
+    # One-sided check-in doesn't advance the shared streak.
+    r = client.post(f"/buddies/{bid}/checkin", headers=a).json()["data"]
+    assert r["advanced"] is False and r["streak"] == 0
+    # Both checked in today -> streak advances to 1.
+    r2 = client.post(f"/buddies/{bid}/checkin", headers=b).json()["data"]
+    assert r2["advanced"] is True and r2["streak"] == 1 and r2["both_today"] is True
+
+    # Duplicate invite is rejected.
+    assert client.post("/buddies", json={"partner_id": b_id}, headers=a).status_code == 409
+
+    # Both see the pairing with the shared streak.
+    mine = client.get("/buddies", headers=a).json()["data"]
+    assert mine[0]["streak"] == 1 and mine[0]["partner_name"] == "Buddy B"
+
+
 def test_activity_feed_and_kudos(client):
     doer = _auth(client, "feeddoer@example.com", "Feed Doer")
     client.post("/billing/subscribe", json={"tier": "elite"}, headers=doer)

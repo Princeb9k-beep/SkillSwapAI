@@ -2668,3 +2668,18 @@ a:focus-visible {
   background: color-mix(in srgb, var(--primary) 12%, var(--surface));
   color: var(--primary);
 }
+
+/* ---- Learning buddies ---- */
+.profile-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+}
+.buddy-streak {
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+.buddy-card h3 {
+  margin: 0;
+}

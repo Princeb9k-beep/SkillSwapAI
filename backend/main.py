@@ -43,6 +43,7 @@ from app.routers import (
     academy,
     auth,
     billing,
+    buddies,
     challenges,
     coach,
     communities,
@@ -233,6 +234,7 @@ app.include_router(marketplace.router)
 app.include_router(coach.router)
 app.include_router(scanner.router)
 app.include_router(challenges.router)
+app.include_router(buddies.router)
 app.include_router(feed.router)
 app.include_router(flashcards.router)
 app.include_router(twin.router)
