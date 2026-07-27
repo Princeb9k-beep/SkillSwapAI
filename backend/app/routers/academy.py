@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
 from ..deps import get_current_user
-from ..models import SkillEnrollment, SkillProgress, User
+from ..models import Certificate, SkillEnrollment, SkillProgress, User
 from ..plans import require_feature
 from ..responses import error, ok
 from ..schemas import LessonAssistRequest
@@ -230,6 +230,27 @@ async def complete_lesson(
 
     done = await _completed_keys(session, user.id, slug)
     total = len(catalog.all_lesson_keys(slug))
+
+    # Finishing the course issues a completion certificate + a feed milestone.
+    certificate = None
+    if total and len(done) >= total:
+        from .certificates import issue_certificate
+        from ..skills.feed import record_activity as _feed
+
+        path = catalog.get_path(slug)
+        title = path["title"] if path else slug
+        was_new = (
+            await session.execute(
+                select(Certificate).where(
+                    Certificate.user_id == user.id, Certificate.path_slug == slug
+                )
+            )
+        ).scalar_one_or_none() is None
+        certificate = await issue_certificate(session, user.id, slug, title)
+        if was_new:
+            _feed(session, user.id, "completion", f"completed {title}")
+        await session.commit()
+
     return ok(
         data={
             "completed": len(done),
@@ -237,6 +258,7 @@ async def complete_lesson(
             "progress": round(100 * len(done) / total) if total else 0,
             "xp": user.xp,
             "new_achievements": [a.title for a in new_achievements],
+            "certificate_code": certificate.code if certificate else None,
         },
         message="Lesson complete",
     )

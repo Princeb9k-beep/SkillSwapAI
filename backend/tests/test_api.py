@@ -993,6 +993,45 @@ def test_message_emails_recipient(client, monkeypatch):
     assert sent and sent[0][0] == "mail_b@example.com" and sent[0][1] == "message"
 
 
+def test_peer_endorsements(client):
+    subject = _auth(client, "endorse_subj@example.com", "Endorse Subject")
+    client.post("/skills", json={"name": "Python", "kind": "have"}, headers=subject)
+    subj_id = client.get("/users/me", headers=subject).json()["data"]["id"]
+
+    endorser = _auth(client, "endorser@example.com", "Endorser")
+    # Can't endorse yourself.
+    assert client.post(f"/users/{subj_id}/endorse", json={"skill": "Python"}, headers=subject).status_code == 400
+    # Endorse works; duplicate is rejected.
+    r = client.post(f"/users/{subj_id}/endorse", json={"skill": "Python"}, headers=endorser)
+    assert r.status_code == 200 and r.json()["data"]["endorsements"] == 1
+    assert client.post(f"/users/{subj_id}/endorse", json={"skill": "Python"}, headers=endorser).status_code == 409
+    # Count shows on the public profile skill.
+    prof = client.get(f"/users/{subj_id}/profile", headers=endorser).json()["data"]
+    py = next(s for s in prof["skills"] if s["name"] == "Python")
+    assert py["endorsements"] == 1
+
+
+def test_course_certificate(client):
+    hdr = _auth(client, "certuser@example.com", "Cert User")
+    client.post("/billing/subscribe", json={"tier": "elite"}, headers=hdr)
+    slug = client.get("/academy/paths", headers=hdr).json()["data"][0]["slug"]
+    client.post(f"/academy/paths/{slug}/enroll", headers=hdr)
+
+    path = client.get(f"/academy/paths/{slug}", headers=hdr).json()["data"]
+    keys = [l["key"] for m in path["modules"] for l in m["lessons"]]
+    last = None
+    for k in keys:
+        last = client.post(f"/academy/paths/{slug}/lessons/{k}/complete", headers=hdr).json()["data"]
+    assert last["progress"] == 100 and last["certificate_code"]
+
+    certs = client.get("/certificates", headers=hdr).json()["data"]
+    assert len(certs) == 1
+    # Public verify (no auth) returns the holder + title.
+    v = client.get(f"/certificates/verify/{last['certificate_code']}")
+    assert v.status_code == 200 and v.json()["data"]["holder"] == "Cert User"
+    assert client.get("/certificates/verify/deadbeef").status_code == 404
+
+
 def test_buddy_shared_streak(client):
     a = _auth(client, "buddy_a@example.com", "Buddy A")
     b = _auth(client, "buddy_b@example.com", "Buddy B")

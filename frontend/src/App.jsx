@@ -44,6 +44,7 @@ const Buddies = lazy(() => import("./pages/Buddies.jsx"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail.jsx"));
 const Profile = lazy(() => import("./pages/Profile.jsx"));
 const OAuthCallback = lazy(() => import("./pages/OAuthCallback.jsx"));
+const VerifyCertificate = lazy(() => import("./pages/VerifyCertificate.jsx"));
 
 function AuthedApp() {
   const { user } = useApp();
@@ -127,6 +128,15 @@ function Shell() {
       <ErrorBoundary>
         <Suspense fallback={<LoadingState />}>
           <OAuthCallback />
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
+  if (window.location.pathname === "/verify-cert") {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingState />}>
+          <VerifyCertificate />
         </Suspense>
       </ErrorBoundary>
     );
