@@ -8,7 +8,9 @@ import { api } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import { ErrorBanner, EmptyState } from "../components/States.jsx";
 import { SkeletonPage } from "../components/Skeleton.jsx";
-import { onRealtime } from "../realtime.js";
+import { onRealtime, sendRealtime } from "../realtime.js";
+
+const REACTIONS = ["👍", "❤️", "😂", "🎉", "👏"];
 
 export default function Messages() {
   const { notify } = useApp();
@@ -21,11 +23,21 @@ export default function Messages() {
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [online, setOnline] = useState(() => new Set());
+  const [partnerTyping, setPartnerTyping] = useState(false);
   const logRef = useRef(null);
+  const typingSentAt = useRef(0);
+  const typingClearTimer = useRef(null);
 
   const loadThreads = useCallback(async () => {
     try {
-      setThreads(await api.messageThreads());
+      const data = await api.messageThreads();
+      setThreads(data);
+      setOnline((prev) => {
+        const next = new Set(prev);
+        data.forEach((t) => (t.online ? next.add(t.partner_id) : next.delete(t.partner_id)));
+        return next;
+      });
       setStatus("ready");
     } catch (err) {
       setError(err.message);
@@ -62,19 +74,59 @@ export default function Messages() {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [messages]);
 
-  // Live updates: a new message refreshes the thread list, and if it belongs to
-  // the open conversation, reload it (which also marks it read).
+  // Live updates: messages, presence, typing, and reactions.
   useEffect(() => {
     const off = onRealtime((e) => {
-      if (e.type !== "message") return;
-      loadThreads();
-      const partnerId = e.data.to_id ?? e.data.from_id;
-      if (active && active.partner_id === partnerId) {
-        openConversation(partnerId, active.partner_name);
+      if (e.type === "message") {
+        loadThreads();
+        const partnerId = e.data.to_id ?? e.data.from_id;
+        if (active && active.partner_id === partnerId) {
+          setPartnerTyping(false);
+          openConversation(partnerId, active.partner_name);
+        }
+      } else if (e.type === "presence") {
+        setOnline((prev) => {
+          const next = new Set(prev);
+          if (e.online) next.add(e.user_id);
+          else next.delete(e.user_id);
+          return next;
+        });
+      } else if (e.type === "typing") {
+        if (active && e.from_id === active.partner_id) {
+          setPartnerTyping(true);
+          clearTimeout(typingClearTimer.current);
+          typingClearTimer.current = setTimeout(() => setPartnerTyping(false), 3500);
+        }
+      } else if (e.type === "reaction") {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === e.data.id ? { ...m, reaction: e.data.reaction } : m)),
+        );
       }
     });
     return off;
   }, [active, loadThreads, openConversation]);
+
+  function onDraftChange(value) {
+    setDraft(value);
+    // Throttle typing signals to the partner to once every ~2s.
+    const now = Date.now();
+    if (active && now - typingSentAt.current > 2000) {
+      typingSentAt.current = now;
+      sendRealtime({ type: "typing", to: active.partner_id });
+    }
+  }
+
+  async function setReaction(messageId, emoji) {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === messageId ? { ...m, reaction: m.reaction === emoji ? null : emoji } : m)),
+    );
+    try {
+      const cur = messages.find((m) => m.id === messageId);
+      await api.reactMessage(messageId, cur?.reaction === emoji ? null : emoji);
+    } catch (err) {
+      notify(err.message, "error");
+    }
+  }
 
   async function blockPartner() {
     if (!active) return;
@@ -150,7 +202,10 @@ export default function Messages() {
                 onClick={() => openConversation(t.partner_id, t.partner_name)}
               >
                 <span className="thread-top">
-                  <strong>{t.partner_name}</strong>
+                  <strong>
+                    {online.has(t.partner_id) && <span className="online-dot" aria-label="online" />}
+                    {t.partner_name}
+                  </strong>
                   {t.unread > 0 && <span className="thread-badge">{t.unread}</span>}
                 </span>
                 <span className="thread-preview muted">
@@ -168,7 +223,13 @@ export default function Messages() {
           ) : (
             <>
               <div className="row-between conversation-head">
-                <h3 className="conversation-title">{active.partner_name}</h3>
+                <h3 className="conversation-title">
+                  {online.has(active.partner_id) && <span className="online-dot" aria-label="online" />}
+                  {active.partner_name}
+                  <span className="conversation-presence muted">
+                    {partnerTyping ? "typing…" : online.has(active.partner_id) ? "online" : "offline"}
+                  </span>
+                </h3>
                 <div className="conversation-mod">
                   <button type="button" className="link-btn" onClick={reportPartner}>
                     Report
@@ -183,11 +244,24 @@ export default function Messages() {
                   <p className="muted">No messages yet — say hello.</p>
                 ) : (
                   messages.map((m) => (
-                    <div
-                      key={m.id}
-                      className={`bubble${m.mine ? " bubble-mine" : ""}`}
-                    >
-                      {m.body}
+                    <div key={m.id} className={`bubble-row${m.mine ? " bubble-row-mine" : ""}`}>
+                      <div className={`bubble${m.mine ? " bubble-mine" : ""}`}>
+                        {m.body}
+                        {m.reaction && <span className="bubble-reaction">{m.reaction}</span>}
+                      </div>
+                      <div className="bubble-react-bar">
+                        {REACTIONS.map((emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            className={`react-emoji${m.reaction === emoji ? " active" : ""}`}
+                            onClick={() => setReaction(m.id, emoji)}
+                            aria-label={`React ${emoji}`}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   ))
                 )}
@@ -196,7 +270,7 @@ export default function Messages() {
                 <input
                   value={draft}
                   placeholder="Type a message…"
-                  onChange={(e) => setDraft(e.target.value)}
+                  onChange={(e) => onDraftChange(e.target.value)}
                 />
                 <button className="btn btn-primary" disabled={sending || !draft.trim()}>
                   Send

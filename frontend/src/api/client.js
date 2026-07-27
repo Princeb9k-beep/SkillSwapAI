@@ -305,6 +305,8 @@ export const api = {
   conversation: (partnerId) => request(`/messages/${partnerId}`),
   sendMessage: (partnerId, body) =>
     request(`/messages/${partnerId}`, { method: "POST", body: { body } }),
+  reactMessage: (messageId, emoji) =>
+    request(`/messages/${messageId}/react`, { method: "POST", body: { emoji } }),
   unreadCount: () => request("/messages/unread/count"),
   // video practice rooms
   listRooms: () => request("/rooms"),

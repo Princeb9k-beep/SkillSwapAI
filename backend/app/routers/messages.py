@@ -22,7 +22,7 @@ from ..mailer import send_event_email
 from ..models import Message, User
 from ..realtime import hub
 from ..responses import error, ok
-from ..schemas import MessageCreate
+from ..schemas import MessageCreate, ReactRequest
 from ..skills.notifications import create_notification
 from ..skills.webpush import push_to_user
 
@@ -35,6 +35,7 @@ def _msg_dict(m: Message, me_id: int) -> dict:
         "body": m.body,
         "mine": m.sender_id == me_id,
         "read": m.read,
+        "reaction": m.reaction,
         "created_at": m.created_at.isoformat() if m.created_at else None,
     }
 
@@ -81,6 +82,7 @@ async def list_threads(
         )
         for pid, t in threads.items():
             t["partner_name"] = names.get(pid) or f"Learner #{pid}"
+            t["online"] = hub.is_online(pid)
 
     data = sorted(threads.values(), key=lambda t: t["last_at"] or "", reverse=True)
     return ok(data=data)
@@ -213,6 +215,28 @@ async def send_message(
         run_in_background(_deliver(), name="message-side-effects")
 
     return ok(data=_msg_dict(message, user.id), message="Sent", status_code=201)
+
+
+@router.post("/{message_id}/react")
+async def react(
+    message_id: int,
+    payload: ReactRequest,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> object:
+    """Set or clear an emoji reaction on a message in your conversation."""
+    message = await session.get(Message, message_id)
+    if message is None or user.id not in (message.sender_id, message.recipient_id):
+        return error("Message not found.", status_code=404, code="not_found")
+    message.reaction = (payload.emoji or "").strip() or None
+    await session.commit()
+    # Live-update the other participant's open tabs.
+    other = message.recipient_id if message.sender_id == user.id else message.sender_id
+    await hub.send_to_user(
+        other,
+        {"type": "reaction", "data": {"id": message.id, "reaction": message.reaction}},
+    )
+    return ok(data={"id": message.id, "reaction": message.reaction})
 
 
 @router.get("/unread/count")

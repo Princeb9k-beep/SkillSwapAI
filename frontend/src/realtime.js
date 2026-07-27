@@ -94,3 +94,14 @@ export function onRealtime(handler) {
   listeners.add(handler);
   return () => listeners.delete(handler);
 }
+
+// Send a small JSON message up the socket (e.g. typing signals). No-op if closed.
+export function sendRealtime(payload) {
+  if (socket?.readyState === WebSocket.OPEN) {
+    try {
+      socket.send(JSON.stringify(payload));
+    } catch {
+      /* ignore */
+    }
+  }
+}
