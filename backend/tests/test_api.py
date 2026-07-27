@@ -993,6 +993,21 @@ def test_message_emails_recipient(client, monkeypatch):
     assert sent and sent[0][0] == "mail_b@example.com" and sent[0][1] == "message"
 
 
+def test_match_icebreakers(client):
+    a = _auth(client, "ice_a@example.com", "Ice A")
+    b = _auth(client, "ice_b@example.com", "Ice B")
+    client.post("/skills", json={"name": "Guitar", "kind": "have"}, headers=b)
+    client.post("/skills", json={"name": "Guitar", "kind": "want"}, headers=a)
+    b_id = client.get("/users/me", headers=b).json()["data"]["id"]
+
+    res = client.get(f"/matches/{b_id}/icebreakers", headers=a)
+    assert res.status_code == 200
+    openers = res.json()["data"]["icebreakers"]
+    assert isinstance(openers, list) and len(openers) >= 2
+    # Unknown partner 404s.
+    assert client.get("/matches/999999/icebreakers", headers=a).status_code == 404
+
+
 def test_message_reactions(client):
     a = _auth(client, "react_a@example.com", "React A")
     b = _auth(client, "react_b@example.com", "React B")

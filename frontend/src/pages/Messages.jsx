@@ -25,6 +25,8 @@ export default function Messages() {
   const [sending, setSending] = useState(false);
   const [online, setOnline] = useState(() => new Set());
   const [partnerTyping, setPartnerTyping] = useState(false);
+  const [icebreakers, setIcebreakers] = useState([]);
+  const [loadingIce, setLoadingIce] = useState(false);
   const logRef = useRef(null);
   const typingSentAt = useRef(0);
   const typingClearTimer = useRef(null);
@@ -50,6 +52,7 @@ export default function Messages() {
       const data = await api.conversation(partnerId);
       setActive({ partner_id: partnerId, partner_name: data.partner_name || fallbackName });
       setMessages(data.messages);
+      setIcebreakers([]);
     } catch (err) {
       notify(err.message, "error");
     }
@@ -113,6 +116,19 @@ export default function Messages() {
     if (active && now - typingSentAt.current > 2000) {
       typingSentAt.current = now;
       sendRealtime({ type: "typing", to: active.partner_id });
+    }
+  }
+
+  async function suggestIcebreakers() {
+    if (!active) return;
+    setLoadingIce(true);
+    try {
+      const res = await api.icebreakers(active.partner_id);
+      setIcebreakers(res.icebreakers || []);
+    } catch (err) {
+      notify(err.message, "error");
+    } finally {
+      setLoadingIce(false);
     }
   }
 
@@ -241,7 +257,32 @@ export default function Messages() {
               </div>
               <div className="conversation-log" ref={logRef}>
                 {messages.length === 0 ? (
-                  <p className="muted">No messages yet — say hello.</p>
+                  <div className="convo-empty">
+                    <p className="muted">No messages yet — say hello.</p>
+                    {icebreakers.length === 0 ? (
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={suggestIcebreakers}
+                        disabled={loadingIce}
+                      >
+                        {loadingIce ? "Thinking…" : "✨ Suggest openers"}
+                      </button>
+                    ) : (
+                      <div className="icebreakers">
+                        {icebreakers.map((ib, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            className="icebreaker-chip"
+                            onClick={() => setDraft(ib)}
+                          >
+                            {ib}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   messages.map((m) => (
                     <div key={m.id} className={`bubble-row${m.mine ? " bubble-row-mine" : ""}`}>
