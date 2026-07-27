@@ -37,6 +37,7 @@ const Academy = lazy(() => import("./pages/Academy.jsx"));
 const Plans = lazy(() => import("./pages/Plans.jsx"));
 const Onboarding = lazy(() => import("./pages/Onboarding.jsx"));
 const Search = lazy(() => import("./pages/Search.jsx"));
+const Flashcards = lazy(() => import("./pages/Flashcards.jsx"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail.jsx"));
 const Profile = lazy(() => import("./pages/Profile.jsx"));
 const OAuthCallback = lazy(() => import("./pages/OAuthCallback.jsx"));
@@ -88,6 +89,7 @@ function AuthedApp() {
             <Route path="/market" element={<Marketplace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/lessons" element={<Lessons />} />
+            <Route path="/flashcards" element={<Flashcards />} />
             <Route path="/career" element={<Career initialTab="portfolio" />} />
             {/* Back-compat deep links open the matching Career sub-tab */}
             <Route path="/resume" element={<Career initialTab="resume" />} />

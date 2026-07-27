@@ -161,6 +161,15 @@ class DailyGoalRequest(BaseModel):
     xp: int = Field(ge=10, le=500)
 
 
+class FlashcardGenerate(BaseModel):
+    topic: str = Field(default="", max_length=255)
+    lesson_id: int | None = None
+
+
+class FlashcardReview(BaseModel):
+    grade: str = Field(pattern="^(again|good|easy)$")
+
+
 # --- Web Push -------------------------------------------------------------
 class PushSubscribe(BaseModel):
     endpoint: str = Field(min_length=1, max_length=500)

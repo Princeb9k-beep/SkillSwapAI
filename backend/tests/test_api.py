@@ -993,6 +993,29 @@ def test_message_emails_recipient(client, monkeypatch):
     assert sent and sent[0][0] == "mail_b@example.com" and sent[0][1] == "message"
 
 
+def test_flashcards_spaced_repetition(client):
+    hdr = _auth(client, "cards@example.com", "Cards")
+    gen = client.post("/flashcards/generate", json={"topic": "Python decorators"}, headers=hdr)
+    assert gen.status_code == 201
+    cards = gen.json()["data"]["cards"]
+    assert len(cards) >= 2 and cards[0]["front"] and cards[0]["back"]
+
+    # They're due today.
+    due = client.get("/flashcards", headers=hdr).json()["data"]
+    assert due["due_count"] == len(cards) and due["total"] == len(cards)
+
+    # Reviewing "good" pushes the due date into the future (drops from due list).
+    cid = cards[0]["id"]
+    rev = client.post(f"/flashcards/{cid}/review", json={"grade": "good"}, headers=hdr)
+    assert rev.status_code == 200 and rev.json()["data"]["interval_days"] >= 2
+    after = client.get("/flashcards", headers=hdr).json()["data"]
+    assert after["due_count"] == len(cards) - 1
+
+    # Bad grade rejected; deleting works.
+    assert client.post(f"/flashcards/{cid}/review", json={"grade": "meh"}, headers=hdr).status_code == 422
+    assert client.delete(f"/flashcards/{cid}", headers=hdr).status_code == 200
+
+
 def test_gamification_extras(client):
     hdr = _auth(client, "gamer@example.com", "Gamer")
     prog = client.get("/progress", headers=hdr).json()["data"]

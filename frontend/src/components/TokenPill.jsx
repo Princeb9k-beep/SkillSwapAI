@@ -20,6 +20,7 @@ const AI_PREFIXES = [
   "/academy",
   "/verify",
   "/lessons",
+  "/flashcards",
   "/dashboard",
 ];
 

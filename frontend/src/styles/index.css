@@ -2577,3 +2577,41 @@ a:focus-visible {
   background: color-mix(in srgb, var(--primary) 10%, transparent);
   font-weight: 600;
 }
+
+/* ---- Flashcards ---- */
+.flashcard-gen {
+  margin-bottom: 1rem;
+}
+.flashcard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 180px;
+  cursor: pointer;
+}
+.flashcard-progress {
+  font-size: 0.8rem;
+}
+.flashcard-front {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.flashcard-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  width: 100%;
+  margin: 0;
+}
+.flashcard-back {
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+.flashcard-grades {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+.flashcard-grades .btn {
+  flex: 1;
+  justify-content: center;
+}
