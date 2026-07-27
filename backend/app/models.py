@@ -833,6 +833,46 @@ class RefreshToken(Base):
     )
 
 
+class Certificate(Base):
+    """A completion certificate for an Academy course, with a public verify code."""
+
+    __tablename__ = "certificates"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    path_slug: Mapped[str] = mapped_column(String(80), index=True)
+    title: Mapped[str] = mapped_column(String(255))
+    code: Mapped[str] = mapped_column(String(16), unique=True, index=True)
+    issued_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    __table_args__ = (UniqueConstraint("user_id", "path_slug", name="uq_certificate_course"),)
+
+
+class Endorsement(Base):
+    """A peer endorsement of a user's skill (one per endorser + skill)."""
+
+    __tablename__ = "endorsements"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    endorser_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    subject_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    skill: Mapped[str] = mapped_column(String(255))
+    skill_normalized: Mapped[str] = mapped_column(String(255), index=True, default="")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    __table_args__ = (
+        UniqueConstraint("endorser_id", "subject_id", "skill_normalized", name="uq_endorsement"),
+    )
+
+
 class Buddy(Base):
     """A learning-buddy pairing with a SHARED streak that advances only when both
     partners check in on the same day (mutual accountability)."""

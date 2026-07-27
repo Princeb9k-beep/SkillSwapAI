@@ -187,6 +187,10 @@ class BuddyInvite(BaseModel):
     partner_id: int
 
 
+class EndorseRequest(BaseModel):
+    skill: str = Field(min_length=1, max_length=255)
+
+
 # --- Web Push -------------------------------------------------------------
 class PushSubscribe(BaseModel):
     endpoint: str = Field(min_length=1, max_length=500)

@@ -2683,3 +2683,55 @@ a:focus-visible {
 .buddy-card h3 {
   margin: 0;
 }
+
+/* ---- Endorsements + certificates ---- */
+.skill-endorse-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.skill-endorse-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.endorse-count {
+  font-size: 0.85rem;
+}
+.endorse-btn {
+  margin-left: auto;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.6rem;
+}
+.cert-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.cert-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.cert-verify {
+  text-align: center;
+}
+.cert-seal {
+  font-size: 3rem;
+}
+.cert-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0.2rem 0;
+}
+.cert-holder {
+  font-size: 1.1rem;
+  margin: 0.2rem 0 0;
+}

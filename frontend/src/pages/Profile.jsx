@@ -14,9 +14,14 @@ const memberSince = (iso) =>
 
 export default function Profile() {
   const { id } = useParams();
-  const { notify } = useApp();
+  const { notify, user } = useApp();
   const [p, setP] = useState(null);
+  const [certs, setCerts] = useState([]);
   const [buddyBusy, setBuddyBusy] = useState(false);
+  const [status, setStatus] = useState("loading");
+  const [error, setError] = useState(null);
+
+  const isOwn = user?.id === Number(id);
 
   async function addBuddy() {
     setBuddyBusy(true);
@@ -29,8 +34,21 @@ export default function Profile() {
       setBuddyBusy(false);
     }
   }
-  const [status, setStatus] = useState("loading");
-  const [error, setError] = useState(null);
+
+  async function endorse(skill) {
+    try {
+      const res = await api.endorse(Number(id), skill);
+      setP((prev) => ({
+        ...prev,
+        skills: prev.skills.map((s) =>
+          s.name === skill ? { ...s, endorsements: res.endorsements, endorsed: true } : s,
+        ),
+      }));
+      notify(`Endorsed ${skill}`, "success");
+    } catch (err) {
+      notify(err.message, "error");
+    }
+  }
 
   const load = useCallback(async () => {
     setStatus("loading");
@@ -46,6 +64,10 @@ export default function Profile() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (isOwn) api.myCertificates().then(setCerts).catch(() => {});
+  }, [isOwn]);
 
   if (status === "loading") return <SkeletonPage cards={3} label="Loading profile…" />;
   if (status === "error") return <ErrorBanner message={error} onRetry={load} />;
@@ -97,16 +119,57 @@ export default function Profile() {
         {p.skills.length === 0 ? (
           <p className="field-hint">No skills listed yet.</p>
         ) : (
-          <div className="tags">
+          <ul className="skill-endorse-list">
             {p.skills.map((s) => (
-              <span key={s.name} className={`tag${s.verified ? " tag-verified" : ""}`}>
-                {s.name}
-                {s.verified && " ✓"}
-              </span>
+              <li key={s.name} className="skill-endorse-row">
+                <span className={`tag${s.verified ? " tag-verified" : ""}`}>
+                  {s.name}
+                  {s.verified && " ✓"}
+                </span>
+                {s.endorsements > 0 && (
+                  <span className="endorse-count muted">👍 {s.endorsements}</span>
+                )}
+                {!isOwn && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost endorse-btn"
+                    disabled={s.endorsed}
+                    onClick={() => endorse(s.name)}
+                  >
+                    {s.endorsed ? "Endorsed" : "Endorse"}
+                  </button>
+                )}
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </div>
+
+      {isOwn && certs.length > 0 && (
+        <div className="card">
+          <h3>Certificates</h3>
+          <ul className="cert-list">
+            {certs.map((c) => (
+              <li key={c.id} className="cert-row">
+                <span>🎓 {c.title}</span>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    const url = `${window.location.origin}/verify-cert?code=${c.code}`;
+                    navigator.clipboard?.writeText(url).then(
+                      () => notify("Verify link copied", "success"),
+                      () => notify(url, "info"),
+                    );
+                  }}
+                >
+                  Copy verify link
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="card">
         <h3>Badges</h3>

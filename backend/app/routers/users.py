@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
 from ..deps import get_current_user, user_is_admin
-from ..models import Achievement, Skill, User
+from ..models import Achievement, Endorsement, Skill, User
 from ..responses import error, ok
-from ..schemas import ProfileUpdate, UserOut
+from ..schemas import EndorseRequest, ProfileUpdate, UserOut
 from ..skills.reputation import score_for
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -49,6 +49,16 @@ async def public_profile(
     ).scalars().all()
     reputation = await score_for(session, user_id)
 
+    # Endorsement counts per skill (normalized name -> count).
+    endo_rows = (
+        await session.execute(
+            select(Endorsement.skill_normalized, func.count())
+            .where(Endorsement.subject_id == user_id)
+            .group_by(Endorsement.skill_normalized)
+        )
+    ).all()
+    endo = {name: int(n) for name, n in endo_rows}
+
     return ok(
         data={
             "id": target.id,
@@ -61,7 +71,12 @@ async def public_profile(
             "availability_note": target.availability_note,
             "member_since": target.created_at.isoformat() if target.created_at else None,
             "skills": [
-                {"name": s.name, "level": s.level, "verified": s.verified}
+                {
+                    "name": s.name,
+                    "level": s.level,
+                    "verified": s.verified,
+                    "endorsements": endo.get((s.name or "").lower(), 0),
+                }
                 for s in skills
             ],
             "badges": [
@@ -71,6 +86,48 @@ async def public_profile(
             "reputation": reputation,
         }
     )
+
+
+@router.post("/{user_id}/endorse")
+async def endorse(
+    user_id: int,
+    payload: EndorseRequest,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> object:
+    """Endorse another learner for a skill (one endorsement per skill)."""
+    if user_id == user.id:
+        return error("You can't endorse yourself.", status_code=400, code="invalid")
+    target = await session.get(User, user_id)
+    if target is None:
+        return error("User not found.", status_code=404, code="not_found")
+    skill = payload.skill.strip()
+    norm = skill.lower()
+    existing = (
+        await session.execute(
+            select(Endorsement).where(
+                Endorsement.endorser_id == user.id,
+                Endorsement.subject_id == user_id,
+                Endorsement.skill_normalized == norm,
+            )
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        return error("You've already endorsed this skill.", status_code=409, code="exists")
+    session.add(
+        Endorsement(
+            endorser_id=user.id, subject_id=user_id, skill=skill, skill_normalized=norm
+        )
+    )
+    await session.commit()
+    count = (
+        await session.execute(
+            select(func.count())
+            .select_from(Endorsement)
+            .where(Endorsement.subject_id == user_id, Endorsement.skill_normalized == norm)
+        )
+    ).scalar_one()
+    return ok(data={"skill": skill, "endorsements": int(count)}, message="Endorsed!")
 
 
 @router.patch("/me")
