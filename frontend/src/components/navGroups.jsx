@@ -89,6 +89,7 @@ export const NAV_GROUPS = [
     links: [
       { to: "/matches", label: "Matches" },
       { to: "/messages", label: "Messages" },
+      { to: "/feed", label: "Activity" },
       { to: "/rooms", label: "Rooms", plan: "pro" },
       { to: "/community", label: "Community" },
       { to: "/meetups", label: "Meetups" },

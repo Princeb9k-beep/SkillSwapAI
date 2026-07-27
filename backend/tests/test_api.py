@@ -993,6 +993,26 @@ def test_message_emails_recipient(client, monkeypatch):
     assert sent and sent[0][0] == "mail_b@example.com" and sent[0][1] == "message"
 
 
+def test_activity_feed_and_kudos(client):
+    doer = _auth(client, "feeddoer@example.com", "Feed Doer")
+    client.post("/billing/subscribe", json={"tier": "elite"}, headers=doer)
+    client.post("/skills", json={"name": "Rust", "kind": "have", "level": "advanced"}, headers=doer)
+    q = client.post("/verifications/assessment", json={"skill_name": "Rust"}, headers=doer).json()["data"]
+    # Passing the assessment records a "verified" activity.
+    client.post(f"/verifications/assessment/{q['id']}/submit", json={"answers": [3, 2, 2, 2, 2]}, headers=doer)
+
+    viewer = _auth(client, "feedviewer@example.com", "Feed Viewer")
+    feed = client.get("/feed", headers=viewer).json()["data"]
+    act = next((a for a in feed if a["kind"] == "verified"), None)
+    assert act and act["kudos"] == 0 and act["kudoed"] is False
+
+    # Kudos toggles on and off.
+    k = client.post(f"/feed/{act['id']}/kudos", headers=viewer).json()["data"]
+    assert k["kudos"] == 1 and k["kudoed"] is True
+    k2 = client.post(f"/feed/{act['id']}/kudos", headers=viewer).json()["data"]
+    assert k2["kudos"] == 0 and k2["kudoed"] is False
+
+
 def test_session_scheduling(client):
     host = _auth(client, "host@example.com", "Host")
     guest = _auth(client, "guest@example.com", "Guest")

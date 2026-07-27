@@ -110,8 +110,14 @@ async def record_activity(
 
     Newly-earned achievements also queue an in-app notification when the user
     has achievement alerts enabled."""
+    from .feed import record_activity as _feed  # local import avoids a cycle
+
+    old_level = user.level or 1
     award_xp(user, xp)
     touch_streak(user)
+    if (user.level or 1) > old_level:
+        _feed(session, user.id, "level_up", f"reached level {user.level}")
+
     newly = await sync_achievements(session, user)
     if newly and getattr(user, "notify_achievements", True):
         # Local import avoids a circular import (skills package ↔ models).
@@ -119,6 +125,7 @@ async def record_activity(
         from ..mailer import send_event_email
 
         for ach in newly:
+            _feed(session, user.id, "achievement", f"earned '{ach.title}'")
             title = f"Achievement unlocked: {ach.title}"
             create_notification(
                 session,
