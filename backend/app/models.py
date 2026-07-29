@@ -69,6 +69,10 @@ class User(Base):
     last_reminded_on: Mapped[date | None] = mapped_column(Date, nullable=True)
     # Free-text availability shown to partners when booking (e.g. "Weekday eves ET").
     availability_note: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # IANA timezone (e.g. "America/New_York") for showing session/reminder times.
+    timezone: Mapped[str] = mapped_column(
+        String(64), default="UTC", server_default="UTC"
+    )
     # True once the user finishes (or skips) first-run onboarding.
     onboarded: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default="0"

@@ -1080,6 +1080,33 @@ def test_activity_feed_and_kudos(client):
     assert k2["kudos"] == 0 and k2["kudoed"] is False
 
 
+def test_timezone_localized_session_notification(client):
+    host = _auth(client, "tz_host@example.com", "TZ Host")
+    guest = _auth(client, "tz_guest@example.com", "TZ Guest")
+    guest_id = client.get("/users/me", headers=guest).json()["data"]["id"]
+
+    # Default timezone is UTC; the guest sets theirs to New York.
+    me = client.get("/users/me", headers=guest).json()["data"]
+    assert me["timezone"] == "UTC"
+    upd = client.patch("/users/me", json={"timezone": "America/New_York"}, headers=guest)
+    assert upd.status_code == 200 and upd.json()["data"]["timezone"] == "America/New_York"
+
+    # A proposed session notifies the guest with the time in THEIR timezone.
+    client.post(
+        "/sessions",
+        json={"partner_id": guest_id, "scheduled_at": "2099-06-01T18:00:00Z"},
+        headers=host,
+    )
+    notes = client.get("/notifications", headers=guest).json()["data"]
+    body = next(n["body"] for n in notes if n["type"] == "meetup")
+    # 18:00 UTC on Jun 1 is 2:00 PM EDT — rendered with the EDT abbreviation.
+    assert "EDT" in body and "2:00 PM" in body
+
+    # An invalid timezone is tolerated (falls back to UTC formatting, no crash).
+    client.patch("/users/me", json={"timezone": "Not/AZone"}, headers=guest)
+    assert client.get("/users/me", headers=guest).json()["data"]["timezone"] == "Not/AZone"
+
+
 def test_session_scheduling(client):
     host = _auth(client, "host@example.com", "Host")
     guest = _auth(client, "guest@example.com", "Guest")

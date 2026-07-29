@@ -317,6 +317,12 @@ export default function Settings() {
             onChange={(e) => setForm((f) => ({ ...f, availability_note: e.target.value }))}
           />
         </label>
+        {user?.timezone && (
+          <p className="field-hint">
+            🕓 Times are shown in your time zone (<strong>{user.timezone}</strong>), detected
+            automatically from this device.
+          </p>
+        )}
         <button className="btn btn-primary" disabled={saving} aria-busy={saving}>
           {saving ? "Saving…" : "Save profile"}
         </button>

@@ -153,6 +153,8 @@ async def update_me(
         user.daily_reminder = payload.daily_reminder
     if payload.availability_note is not None:
         user.availability_note = payload.availability_note.strip() or None
+    if payload.timezone is not None:
+        user.timezone = payload.timezone.strip() or "UTC"
     if payload.onboarded is not None:
         user.onboarded = payload.onboarded
     await session.commit()

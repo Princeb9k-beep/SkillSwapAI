@@ -21,6 +21,7 @@ from ..models import Session, User
 from ..responses import error, ok
 from ..schemas import SessionCreate, SessionRespond
 from ..skills.notifications import create_notification
+from ..timeutil import fmt_local
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -94,12 +95,13 @@ async def propose(
     session.add(s)
     host_name = user.name or f"Learner #{user.id}"
     kind = "a free intro session" if payload.is_trial else "a session"
+    when_local = fmt_local(when, partner.timezone)
     create_notification(
         session,
         payload.partner_id,
         type="meetup",
         title=f"{host_name} proposed {kind}",
-        body=f"{when.strftime('%b %d, %H:%M UTC')} · {s.duration_min} min",
+        body=f"{when_local} · {s.duration_min} min",
         link="/sessions",
     )
     await session.commit()
@@ -107,7 +109,7 @@ async def propose(
 
     if partner.notify_messages:
         title = f"{host_name} proposed {kind}"
-        body = f"{when.strftime('%b %d, %H:%M UTC')} · {s.duration_min} min. Open SkillSwap to confirm."
+        body = f"{when_local} · {s.duration_min} min. Open SkillSwap to confirm."
 
         async def _notify():
             async with get_sessionmaker()() as bg:
@@ -143,12 +145,13 @@ async def respond(
         return error("This session is already decided.", status_code=409, code="decided")
     s.status = "confirmed" if payload.accept else "declined"
     verb = "confirmed" if payload.accept else "declined"
+    host = await session.get(User, s.host_id)
     create_notification(
         session,
         s.host_id,
         type="meetup",
         title=f"{user.name or 'Your partner'} {verb} the session",
-        body=s.scheduled_at.strftime("%b %d, %H:%M UTC") if s.scheduled_at else "",
+        body=fmt_local(s.scheduled_at, host.timezone if host else "UTC") if s.scheduled_at else "",
         link="/sessions",
     )
     await session.commit()
