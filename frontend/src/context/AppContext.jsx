@@ -75,6 +75,20 @@ export function AppProvider({ children }) {
     return undefined;
   }, [token]);
 
+  // Keep the user's timezone in sync with their device (handles travel/DST).
+  useEffect(() => {
+    if (!token || !user) return;
+    let tz;
+    try {
+      tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+      return;
+    }
+    if (tz && tz !== user.timezone) {
+      api.updateProfile({ timezone: tz }).then((u) => updateUser(u)).catch(() => {});
+    }
+  }, [token, user, updateUser]);
+
   return (
     <AppContext.Provider
       value={{ token, user, isAuthed: !!token, login, logout, updateUser, notify }}

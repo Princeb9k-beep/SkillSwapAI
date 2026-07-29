@@ -324,6 +324,7 @@ class ProfileUpdate(BaseModel):
     notify_product: bool | None = None
     daily_reminder: bool | None = None
     availability_note: str | None = Field(default=None, max_length=255)
+    timezone: str | None = Field(default=None, max_length=64)
     onboarded: bool | None = None
 
 
@@ -339,6 +340,7 @@ class UserOut(BaseModel):
     notify_product: bool
     daily_reminder: bool
     availability_note: str | None
+    timezone: str
     onboarded: bool
     email_verified: bool
     tier: str
