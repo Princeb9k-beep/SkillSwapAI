@@ -402,6 +402,9 @@ export default function Settings() {
         <h3>About</h3>
         <p className="muted setting-about">SkillSwap AI · v1.0.0</p>
         {memberSince && <p className="muted setting-about">Member since {memberSince}</p>}
+        <p className="setting-about">
+          <a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a>
+        </p>
       </div>
 
       {/* Moderation (admins only) */}

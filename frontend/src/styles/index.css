@@ -2862,3 +2862,37 @@ a:focus-visible {
   flex-wrap: wrap;
   align-items: center;
 }
+
+/* ---- Legal pages ---- */
+.legal {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+.legal-back {
+  margin-bottom: 0.5rem;
+}
+.legal-body h2 {
+  font-size: 1.2rem;
+  margin: 1.6rem 0 0.5rem;
+}
+.legal-body p,
+.legal-body li {
+  line-height: 1.6;
+  color: var(--text);
+}
+.legal-body ul {
+  margin: 0.25rem 0 0.5rem 1.2rem;
+}
+.legal-foot {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.landing-footer-links {
+  margin-top: 0.35rem;
+}
+.auth-legal {
+  text-align: center;
+  margin-top: 0.75rem;
+}
