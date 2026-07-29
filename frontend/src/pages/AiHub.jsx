@@ -20,6 +20,7 @@ function forYou(user) {
     items.push({ to: "/lessons", emoji: "📖", text: `Continue toward: ${user.goal}` });
   }
   items.push(
+    { to: "/discover", emoji: "✨", text: "Discover new skills to learn" },
     { to: "/coach", emoji: "🧠", text: "Ask the AI coach a question" },
     { to: "/scanner", emoji: "🔍", text: "Get feedback on your resume or code" },
     { to: "/flashcards", emoji: "🃏", text: "Review today's flashcards" },

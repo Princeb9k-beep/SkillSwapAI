@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
@@ -11,8 +11,67 @@ from ..deps import get_current_user
 from ..models import Skill, User
 from ..responses import error, ok
 from ..schemas import SkillCreate, SkillOut
+from ..skill_catalog import SKILL_CATALOG
 
 router = APIRouter(prefix="/skills", tags=["skills"])
+
+
+@router.get("/discover")
+async def discover_skills(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> object:
+    """A personalized, TikTok-style feed of skills to explore.
+
+    Returns the curated catalog annotated with (a) the user's current status for
+    each skill ("have" / "want" / null) and (b) a real learner count computed from
+    how many distinct users on the platform list it as a "have" skill. New skills
+    the user doesn't have yet float to the top so the feed feels like discovery.
+    """
+    # The user's own skills, keyed by normalized name → kind.
+    mine = {
+        row[0]: row[1]
+        for row in (
+            await session.execute(
+                select(Skill.name_normalized, Skill.kind).where(Skill.user_id == user.id)
+            )
+        ).all()
+    }
+
+    # Real "learners" counts: distinct users who list each skill as a "have".
+    counts = {
+        row[0]: row[1]
+        for row in (
+            await session.execute(
+                select(Skill.name_normalized, func.count(func.distinct(Skill.user_id)))
+                .where(Skill.kind == "have")
+                .group_by(Skill.name_normalized)
+            )
+        ).all()
+    }
+
+    items = []
+    for spec in SKILL_CATALOG:
+        norm = spec["name"].strip().lower()
+        status = mine.get(norm)  # "have", "want", or None
+        items.append(
+            {
+                "name": spec["name"],
+                "category": spec["category"],
+                "emoji": spec["emoji"],
+                "blurb": spec["blurb"],
+                "hook": spec["hook"],
+                "difficulty": spec["difficulty"],
+                "learners": counts.get(norm, 0),
+                "status": status,
+            }
+        )
+
+    # Discovery order: brand-new skills first, then "want", then "have"; within a
+    # tier, more-popular skills lead.
+    rank = {None: 0, "want": 1, "have": 2}
+    items.sort(key=lambda i: (rank.get(i["status"], 0), -i["learners"]))
+    return ok(data=items)
 
 
 @router.get("")

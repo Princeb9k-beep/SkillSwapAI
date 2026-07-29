@@ -244,6 +244,26 @@ def test_community_create_post_and_moderation(client):
     assert detail["posts"] == []
 
 
+def test_skill_discover_feed(client):
+    me = _auth(client, "disco@example.com", "Disco")
+    # Mark Python as already known so it comes back tagged "have".
+    client.post("/skills", json={"name": "Python", "kind": "have"}, headers=me)
+
+    r = client.get("/skills/discover", headers=me)
+    assert r.status_code == 200
+    feed = r.json()["data"]
+    assert len(feed) >= 10
+    # Every card carries the fields the TikTok-style stream renders.
+    first = feed[0]
+    for key in ("name", "category", "emoji", "blurb", "hook", "difficulty", "learners", "status"):
+        assert key in first
+    # New (unknown) skills lead; a "have" skill is pushed toward the end.
+    assert feed[0]["status"] is None
+    py = next(c for c in feed if c["name"] == "Python")
+    assert py["status"] == "have"
+    assert py["learners"] >= 1  # our user counts as a learner
+
+
 def test_official_communities_are_seeded(client):
     # Startup seeding gives brand-new users something real to join on day one.
     me = _auth(client, "seedy@example.com", "Seedy")
