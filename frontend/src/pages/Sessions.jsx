@@ -122,7 +122,9 @@ export default function Sessions() {
 
       <h2>Upcoming & pending</h2>
       {list.length === 0 ? (
-        <EmptyState title="No sessions yet" hint="Propose one from a match or a partner's profile." />
+        <EmptyState icon="📆" title="No sessions yet" hint="Book your first 1-on-1 to practice with a partner in real time.">
+          <Link className="btn btn-primary" to="/matches">Find a partner</Link>
+        </EmptyState>
       ) : (
         <div className="grid">
           {list.map((s) => (

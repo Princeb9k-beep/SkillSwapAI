@@ -65,7 +65,14 @@ export default function Feed() {
       <p className="muted">See what the community is achieving — and cheer them on.</p>
 
       {items.length === 0 ? (
-        <EmptyState title="Nothing here yet" hint="Milestones show up as people verify skills, level up, and earn badges." />
+        <EmptyState
+          icon="📣"
+          title="The feed fills up as you go"
+          hint="Milestones appear here as you and your partners verify skills, level up, and earn badges. Do your first thing and you'll be the first post."
+        >
+          <Link className="btn btn-primary" to="/matches">Find a partner</Link>
+          <Link className="btn" to="/lessons">Start a lesson</Link>
+        </EmptyState>
       ) : (
         <div className="feed-list">
           {items.map((a) => (

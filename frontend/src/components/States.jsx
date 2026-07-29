@@ -29,9 +29,17 @@ export function ErrorBanner({ message, onRetry }) {
   );
 }
 
-export function EmptyState({ title, hint, children }) {
+// A friendly cold-start state. `icon` is a big emoji that gives blank sections a
+// face; `children` holds one or more call-to-action buttons that give a brand-new
+// user an obvious next move instead of a dead end.
+export function EmptyState({ icon, title, hint, children }) {
   return (
-    <div className="state">
+    <div className="state state-empty">
+      {icon && (
+        <div className="state-empty-icon" aria-hidden="true">
+          {icon}
+        </div>
+      )}
       <h3>{title}</h3>
       {hint && <p className="muted">{hint}</p>}
       {children && <div className="state-action">{children}</div>}

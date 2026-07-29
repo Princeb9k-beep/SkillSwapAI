@@ -244,6 +244,20 @@ def test_community_create_post_and_moderation(client):
     assert detail["posts"] == []
 
 
+def test_official_communities_are_seeded(client):
+    # Startup seeding gives brand-new users something real to join on day one.
+    me = _auth(client, "seedy@example.com", "Seedy")
+    listing = client.get("/communities", headers=me).json()["data"]
+    names = {c["name"] for c in listing}
+    assert "Welcome to SkillSwap" in names
+    assert "Coding & Web Dev" in names
+    # Official communities are platform-owned (no creator), so joining is possible.
+    welcome = next(c for c in listing if c["name"] == "Welcome to SkillSwap")
+    assert welcome["joined"] is False
+    joined = client.post(f"/communities/{welcome['id']}/join", headers=me)
+    assert joined.status_code == 200
+
+
 def test_skill_verification_peer_review(client):
     owner = _auth(client, "vera@example.com", "Vera")
     r1 = _auth(client, "rob@example.com", "Rob")

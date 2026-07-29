@@ -244,7 +244,7 @@ export default function Verify() {
 
       <h2>Review peers</h2>
       {queue.length === 0 ? (
-        <EmptyState title="Nothing to review" hint="Check back later for peer requests." />
+        <EmptyState icon="✅" title="Nothing to review" hint="Check back later for peer requests — you'll be asked to assess others as the community grows." />
       ) : (
         <div className="grid">
           {queue.map((r) => (

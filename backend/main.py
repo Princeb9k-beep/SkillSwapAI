@@ -33,12 +33,13 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.config import get_settings
-from app.database import dispose_engine, get_engine
+from app.database import dispose_engine, get_engine, get_sessionmaker
 from app.groq_client import init_groq
 from app.observability import configure_logging, init_sentry
 from app.redis_client import close_redis, init_redis
 from app.resilience import TokenBucketRateLimiter
 from app.responses import error, ok
+from app.seed import seed_starter_content
 from app.routers import (
     academy,
     auth,
@@ -113,6 +114,13 @@ async def lifespan(app: FastAPI):
     get_engine()            # create the async DB engine
     await init_redis()      # connect Redis (degrades gracefully if unavailable)
     init_groq()             # create Groq client if a key is configured
+    # Seed platform-owned starter content (official communities) so the app has
+    # something real to show on day one. Idempotent; never blocks startup.
+    try:
+        async with get_sessionmaker()() as session:
+            await seed_starter_content(session)
+    except Exception:
+        logger.exception("Skipping starter-content seed")
     try:
         yield
     finally:
