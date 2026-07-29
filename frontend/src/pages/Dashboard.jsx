@@ -41,7 +41,7 @@ export default function Dashboard() {
         title="No roadmap yet"
         hint="Tell us your goal and we'll build a personalized learning plan."
       >
-        <Link className="btn btn-primary" to="/">
+        <Link className="btn btn-primary" to="/goal">
           Create my roadmap
         </Link>
       </EmptyState>

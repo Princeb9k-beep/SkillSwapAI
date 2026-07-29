@@ -1,8 +1,11 @@
-// Single source of truth for how the app's tabs are organized into the five
-// bottom-navigation slots (spec: mobile app-style nav). Four category groups
-// plus a center "Create" (+) slot that jumps to goal/plan creation.
+// Single source of truth for the app's five-section navigation
+// (TikTok/Instagram-style): four hub destinations — AI Hub, Learn, Connect,
+// Grow — flank a center "Create" action dock. Both the mobile BottomNav and the
+// desktop Nav derive from this, and each hub page renders its group's `links` as
+// a card grid, so navigation never drifts apart.
 //
-// Icons are inline SVG (no emoji for controls) and inherit currentColor.
+// Control icons are inline SVG (inherit currentColor); hub cards use an `emoji`
+// + `desc` for a richer, scannable grid.
 
 function Icon({ children, ...rest }) {
   return (
@@ -56,62 +59,92 @@ const GrowIcon = () => (
   </Icon>
 );
 
-// The four category groups (left → right around the center "+").
+// The four hub groups. Each `to` is the hub landing page; each link is a card.
 export const NAV_GROUPS = [
   {
     key: "ai",
-    label: "AI",
+    label: "AI Hub",
+    to: "/",
+    end: true,
     Icon: AiIcon,
+    tagline: "Your AI copilots and instant tools.",
     links: [
-      { to: "/coach", label: "Coach" },
-      { to: "/twin", label: "AI Twin", plan: "pro" },
-      { to: "/scanner", label: "Scanner" },
-      { to: "/translate", label: "Translate" },
+      { to: "/coach", label: "Coach", emoji: "🧠", desc: "Ask anything, get a study plan." },
+      { to: "/twin", label: "AI Twin", emoji: "👤", desc: "Your teaching style, distilled.", plan: "pro" },
+      { to: "/scanner", label: "Scanner", emoji: "🔍", desc: "Upload a resume or code for feedback." },
+      { to: "/translate", label: "Translate", emoji: "🌐", desc: "Explain anything in plain language." },
     ],
   },
   {
     key: "learn",
     label: "Learn",
+    to: "/learn",
     Icon: LearnIcon,
+    tagline: "Your learning stream, gamified.",
     links: [
-      { to: "/academy", label: "Academy", plan: "pro" },
-      { to: "/dashboard", label: "Dashboard" },
-      { to: "/lessons", label: "Lessons" },
-      { to: "/flashcards", label: "Flashcards" },
-      { to: "/buddies", label: "Buddies" },
-      { to: "/challenges", label: "Challenges" },
-      { to: "/progress", label: "Progress" },
+      { to: "/academy", label: "Academy", emoji: "🎓", desc: "Structured courses toward your goal.", plan: "pro" },
+      { to: "/dashboard", label: "Dashboard", emoji: "📊", desc: "Your roadmap at a glance." },
+      { to: "/lessons", label: "Lessons", emoji: "📖", desc: "AI-written daily lessons." },
+      { to: "/flashcards", label: "Flashcards", emoji: "🃏", desc: "Spaced-repetition review." },
+      { to: "/challenges", label: "Challenges", emoji: "⚡", desc: "Daily practice challenges." },
+      { to: "/progress", label: "Progress", emoji: "🔥", desc: "Streaks, goals, and leagues." },
+      { to: "/buddies", label: "Buddies", emoji: "🤝", desc: "Keep a shared streak alive." },
     ],
   },
   {
     key: "connect",
     label: "Connect",
+    to: "/connect",
     Icon: ConnectIcon,
+    tagline: "Meet partners and learn together.",
     links: [
-      { to: "/matches", label: "Matches" },
-      { to: "/messages", label: "Messages" },
-      { to: "/feed", label: "Activity" },
-      { to: "/rooms", label: "Rooms", plan: "pro" },
-      { to: "/community", label: "Community" },
-      { to: "/meetups", label: "Meetups" },
-      { to: "/sessions", label: "Sessions" },
-      { to: "/search", label: "Search" },
+      { to: "/matches", label: "Matches", emoji: "🧭", desc: "Find complementary partners." },
+      { to: "/messages", label: "Messages", emoji: "💬", desc: "Chat with your partners." },
+      { to: "/feed", label: "Activity", emoji: "📣", desc: "See the community's wins." },
+      { to: "/rooms", label: "Rooms", emoji: "🎥", desc: "Live video practice rooms.", plan: "pro" },
+      { to: "/community", label: "Community", emoji: "🌱", desc: "Topic-based groups." },
+      { to: "/meetups", label: "Meetups", emoji: "📅", desc: "Group study sessions." },
+      { to: "/sessions", label: "Sessions", emoji: "📆", desc: "Book 1-on-1 practice." },
+      { to: "/search", label: "Search", emoji: "🔎", desc: "Find people and skills." },
     ],
   },
   {
     key: "grow",
     label: "Grow",
+    to: "/grow",
     Icon: GrowIcon,
+    tagline: "Level up your career and reach.",
     links: [
-      { to: "/career", label: "Career", plan: "pro" },
-      { to: "/market", label: "Market" },
-      { to: "/partners", label: "Partners" },
-      { to: "/verify", label: "Verify", plan: "elite" },
-      { to: "/plans", label: "Plans" },
-      { to: "/settings", label: "Settings" },
+      { to: "/career", label: "Career", emoji: "💼", desc: "Resume, portfolio, interviews.", plan: "pro" },
+      { to: "/market", label: "Market", emoji: "🏷️", desc: "Offer and book paid services." },
+      { to: "/partners", label: "Partners", emoji: "🤝", desc: "Your ongoing partnerships." },
+      { to: "/verify", label: "Verify", emoji: "✅", desc: "Prove your skills.", plan: "elite" },
+      { to: "/plans", label: "Plans", emoji: "⭐", desc: "Upgrade to Pro or Elite." },
+      { to: "/settings", label: "Settings", emoji: "⚙️", desc: "Account and preferences." },
     ],
   },
 ];
 
-// The center "+" slot: where you create goals and plans.
-export const CREATE_SLOT = { to: "/", label: "Create", Icon: CreateIcon };
+// The center "Create" slot opens the Action Dock (a bottom sheet), not a route.
+export const CREATE_SLOT = { key: "create", label: "Create", Icon: CreateIcon };
+
+// Quick-create actions shown in the Action Dock. Each links to the page where
+// that thing gets made, so "Create" is one tap from any screen.
+export const CREATE_ACTIONS = [
+  { to: "/goal", emoji: "🎯", label: "Set a new goal", desc: "Generate a roadmap toward it." },
+  { to: "/coach", emoji: "✨", label: "Launch an AI workflow", desc: "Coach, plan, or feedback." },
+  { to: "/challenges", emoji: "⚡", label: "Take a challenge", desc: "Practice something new today." },
+  { to: "/flashcards", emoji: "🃏", label: "Make a flashcard set", desc: "Turn a topic into review cards." },
+  { to: "/meetups", emoji: "📅", label: "Host a meetup", desc: "Rally people around a topic." },
+  { to: "/sessions", emoji: "📆", label: "Book a session", desc: "Schedule 1-on-1 practice." },
+  { to: "/market", emoji: "🏷️", label: "Offer a service", desc: "List a paid skill on the market." },
+];
+
+// Convenience: hub destinations in bottom-nav order (Create sits in the middle).
+export const HUBS = NAV_GROUPS.map(({ key, label, to, end, Icon }) => ({
+  key,
+  label,
+  to,
+  end,
+  Icon,
+}));

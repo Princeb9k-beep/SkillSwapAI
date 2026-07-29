@@ -1,0 +1,1 @@
+import{j as e,N as a}from"./index-CZBjhh-a.js";import{H as r}from"./Hub-DwcoxJ9k.js";const n=a.find(t=>t.key==="learn");function l(){return e.jsx(r,{title:"Learn",tagline:n.tagline,links:n.links,accent:"learn"})}export{l as default};
