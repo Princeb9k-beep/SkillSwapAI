@@ -1,0 +1,1 @@
+async function i({title:t,text:a,url:r}){if(typeof navigator<"u"&&navigator.share)try{return await navigator.share({title:t,text:a,url:r}),"shared"}catch(e){if(e&&e.name==="AbortError")return"shared"}const n=r?`${a} ${r}`:a;try{return await navigator.clipboard.writeText(n),"copied"}catch{return"failed"}}export{i as s};

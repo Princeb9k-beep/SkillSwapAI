@@ -6,6 +6,7 @@ import { api } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import { ErrorBanner } from "../components/States.jsx";
 import { SkeletonPage } from "../components/Skeleton.jsx";
+import { share } from "../share.js";
 
 const memberSince = (iso) =>
   iso
@@ -155,15 +156,18 @@ export default function Profile() {
                 <button
                   type="button"
                   className="btn btn-ghost"
-                  onClick={() => {
+                  onClick={async () => {
                     const url = `${window.location.origin}/verify-cert?code=${c.code}`;
-                    navigator.clipboard?.writeText(url).then(
-                      () => notify("Verify link copied", "success"),
-                      () => notify(url, "info"),
-                    );
+                    const res = await share({
+                      title: "My SkillSwap AI certificate",
+                      text: `I completed “${c.title}” on SkillSwap AI 🎓`,
+                      url,
+                    });
+                    if (res === "copied") notify("Verify link copied", "success");
+                    else if (res === "failed") notify(url, "info");
                   }}
                 >
-                  Copy verify link
+                  Share certificate
                 </button>
               </li>
             ))}

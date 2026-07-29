@@ -6,6 +6,7 @@ import { api } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import { ErrorBanner } from "../components/States.jsx";
 import { SkeletonPage } from "../components/Skeleton.jsx";
+import { share } from "../share.js";
 
 const GOALS = [20, 30, 50, 100];
 
@@ -14,6 +15,7 @@ export default function Progress() {
   const [prog, setProg] = useState(null);
   const [board, setBoard] = useState([]);
   const [league, setLeague] = useState(null);
+  const [shareLink, setShareLink] = useState("");
   const [status, setStatus] = useState("loading");
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -31,10 +33,18 @@ export default function Progress() {
       setBoard(b);
       setLeague(l);
       setStatus("ready");
+      // A referral link doubles as the share URL — shares become invites.
+      api.referralMe().then((r) => setShareLink(r.link)).catch(() => {});
     } catch (err) {
       setError(err.message);
       setStatus("error");
     }
+  }
+
+  async function shareText(text) {
+    const res = await share({ title: "SkillSwap AI", text, url: shareLink || window.location.origin });
+    if (res === "copied") notify("Copied to clipboard — paste it anywhere!", "success");
+    else if (res === "failed") notify("Couldn't share on this device.", "error");
   }
 
   async function chooseGoal(xp) {
@@ -116,9 +126,20 @@ export default function Progress() {
           <strong>❄️ Streak freezes: {prog.streak_freezes}</strong>
           <p className="muted xp-hint">Automatically saves your streak after one missed day.</p>
         </div>
-        <button type="button" className="btn" onClick={buyFreeze} disabled={busy}>
-          {busy ? "…" : "Buy (20 tokens)"}
-        </button>
+        <div className="progress-share-actions">
+          {prog.streak > 0 && (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => shareText(`I'm on a ${prog.streak}-day learning streak on SkillSwap AI! 🔥`)}
+            >
+              Share streak
+            </button>
+          )}
+          <button type="button" className="btn" onClick={buyFreeze} disabled={busy}>
+            {busy ? "…" : "Buy (20 tokens)"}
+          </button>
+        </div>
       </div>
 
       <div className="card">
@@ -158,7 +179,21 @@ export default function Progress() {
 
       {league && (
         <>
-          <h2>{league.division} League · this week</h2>
+          <div className="row-between">
+            <h2>{league.division} League · this week</h2>
+            {league.entries.some((e) => e.is_me) && (
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  const me = league.entries.find((e) => e.is_me);
+                  shareText(`I'm ranked #${me.rank} in the ${league.division} League on SkillSwap AI this week! 🏆`);
+                }}
+              >
+                Share rank
+              </button>
+            )}
+          </div>
           <div className="card lb-card">
             <table className="leaderboard">
               <thead>
