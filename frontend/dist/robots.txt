@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /$
+Allow: /og-image.png
+Allow: /icons/
+Allow: /manifest.webmanifest
+# The app itself is behind sign-in; only the public landing + assets are indexable.
+Disallow: /coach
+Disallow: /twin
+Disallow: /messages
+Disallow: /settings
+Disallow: /billing
+
+Sitemap: /sitemap.xml

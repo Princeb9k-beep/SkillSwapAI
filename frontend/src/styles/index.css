@@ -2735,3 +2735,122 @@ a:focus-visible {
   font-size: 1.1rem;
   margin: 0.2rem 0 0;
 }
+
+/* ---- Marketing landing page ---- */
+.landing {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 1.25rem 3rem;
+}
+.landing-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 0;
+}
+.landing-brand {
+  font-weight: 800;
+  font-size: 1.25rem;
+}
+.landing-hero {
+  text-align: center;
+  padding: 3rem 0 2.5rem;
+}
+.landing-title {
+  font-size: clamp(2.4rem, 7vw, 4rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  margin: 0;
+}
+.landing-accent {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.landing-sub {
+  max-width: 640px;
+  margin: 1.1rem auto 0;
+  font-size: 1.15rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.landing-cta {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 1.75rem;
+}
+.btn-lg {
+  padding: 0.8rem 1.5rem;
+  font-size: 1.05rem;
+}
+.landing-note {
+  margin-top: 0.9rem;
+  font-size: 0.9rem;
+}
+.landing-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+}
+.landing-step {
+  text-align: center;
+  padding: 1rem;
+}
+.landing-step-n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primary) 14%, var(--surface));
+  color: var(--primary);
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+}
+.landing-step h3 { margin: 0.25rem 0; }
+.landing-features {
+  margin-top: 2.5rem;
+  text-align: center;
+}
+.landing-features h2 {
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+}
+.landing-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  text-align: left;
+}
+.landing-feature-icon {
+  font-size: 1.8rem;
+}
+.landing-feature h3 {
+  margin: 0.5rem 0 0.35rem;
+}
+.landing-final {
+  text-align: center;
+  margin: 3.5rem 0 1rem;
+  padding: 2.5rem 1rem;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+}
+.landing-final h2 {
+  font-size: 2rem;
+  margin: 0 0 1.25rem;
+}
+.landing-footer {
+  text-align: center;
+  padding: 2rem 0 0;
+  font-size: 0.9rem;
+}
+.auth-home {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+}

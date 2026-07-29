@@ -2,7 +2,7 @@
 // Suspense boundary so the initial bundle stays small (lazy loading + code splitting).
 // When signed out, only the Auth screen is reachable — the app tabs are gated.
 
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import { BrowserRouter, Route, Routes, Navigate, Link } from "react-router-dom";
 import Nav from "./components/Nav.jsx";
 import BottomNav from "./components/BottomNav.jsx";
@@ -13,6 +13,7 @@ import { LoadingState } from "./components/States.jsx";
 import { SkeletonPage } from "./components/Skeleton.jsx";
 
 const Auth = lazy(() => import("./pages/Auth.jsx"));
+const Landing = lazy(() => import("./pages/Landing.jsx"));
 const GoalInput = lazy(() => import("./pages/GoalInput.jsx"));
 const Matches = lazy(() => import("./pages/Matches.jsx"));
 const Coach = lazy(() => import("./pages/Coach.jsx"));
@@ -110,6 +111,22 @@ function AuthedApp() {
   );
 }
 
+// Logged-out experience: a marketing landing page that flips to the Auth form.
+// Deep-link visitors (invite ?ref, or ?signin) skip straight to the form.
+function LoggedOut() {
+  const params = new URLSearchParams(window.location.search);
+  const initial = params.get("ref")
+    ? "signup"
+    : params.get("signin") !== null
+      ? "login"
+      : null;
+  const [authMode, setAuthMode] = useState(initial); // null = landing
+  if (authMode) {
+    return <Auth initialMode={authMode} onHome={() => setAuthMode(null)} />;
+  }
+  return <Landing onSignup={() => setAuthMode("signup")} onLogin={() => setAuthMode("login")} />;
+}
+
 function Shell() {
   const { isAuthed } = useApp();
   // The emailed verification link must work signed-in or out, so handle it
@@ -144,7 +161,7 @@ function Shell() {
   return (
     <ErrorBoundary>
       <Suspense fallback={<LoadingState />}>
-        {isAuthed ? <AuthedApp /> : <Auth />}
+        {isAuthed ? <AuthedApp /> : <LoggedOut />}
       </Suspense>
     </ErrorBoundary>
   );
