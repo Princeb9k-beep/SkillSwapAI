@@ -3179,3 +3179,215 @@ a:focus-visible {
   margin-top: 1rem;
   justify-content: center;
 }
+
+/* --- Academy Stream: featured entry on the Learn hub --- */
+.stream-feature {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1.1rem;
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary), var(--primary-600));
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--primary) 32%, transparent);
+  transition: transform 0.12s ease;
+}
+.stream-feature:hover {
+  transform: translateY(-2px);
+}
+.stream-feature:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+.stream-feature-emoji {
+  font-size: 1.3rem;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  flex: 0 0 auto;
+}
+.stream-feature-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex: 1;
+}
+.stream-feature-title {
+  font-weight: 700;
+}
+.stream-feature-desc {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+.stream-feature-go {
+  font-size: 1.5rem;
+  opacity: 0.85;
+}
+
+/* --- Academy Stream: the Reels-style vertical feed --- */
+.stream {
+  position: relative;
+}
+/* Segmented progress bar (Stories-style), one segment per lesson. */
+.stream-progress {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 0.5rem;
+}
+.stream-seg {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background 0.2s ease;
+}
+.stream-seg.current {
+  background: color-mix(in srgb, var(--primary) 55%, var(--border));
+}
+.stream-seg.done {
+  background: var(--primary);
+}
+.stream-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+.stream-count {
+  font-weight: 700;
+}
+.stream-pct {
+  font-size: 0.82rem;
+}
+.stream-viewport {
+  height: calc(100dvh - 250px);
+  min-height: 420px;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  border-radius: var(--radius);
+  -webkit-overflow-scrolling: touch;
+  /* Hide the scrollbar for a cleaner, app-like feel. */
+  scrollbar-width: none;
+}
+.stream-viewport::-webkit-scrollbar {
+  display: none;
+}
+.stream-panel {
+  position: relative;
+  height: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  background:
+    radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--primary) 14%, var(--surface)), var(--surface));
+  border: 1px solid var(--border);
+  margin-bottom: 2px;
+}
+.stream-panel.done {
+  background:
+    radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--primary) 22%, var(--surface)), var(--surface));
+}
+.stream-panel-inner {
+  max-width: 560px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+}
+.stream-day {
+  display: inline-block;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+.stream-title {
+  font-size: 1.6rem;
+  line-height: 1.2;
+}
+.stream-content {
+  color: var(--muted);
+  font-size: 1.02rem;
+  line-height: 1.55;
+}
+.stream-cta {
+  margin-top: 0.5rem;
+  min-width: 180px;
+}
+.stream-done-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  color: var(--primary);
+  font-weight: 700;
+}
+.stream-swipe {
+  position: absolute;
+  bottom: 0.8rem;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.78rem;
+  animation: swipe-hint 1.8s ease-in-out infinite;
+}
+@keyframes swipe-hint {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50% { transform: translateY(-4px); opacity: 1; }
+}
+.stream-outro-emoji {
+  font-size: 3rem;
+  line-height: 1;
+}
+.stream-outro-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.6rem;
+}
+/* Right-edge jump dots (Reels-style). */
+.stream-dots {
+  position: absolute;
+  right: -2px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.stream-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--border);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.stream-dot.active {
+  background: var(--primary);
+  transform: scale(1.5);
+}
+.stream-dot:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+@media (max-width: 480px) {
+  .stream-title { font-size: 1.35rem; }
+  .stream-dots { right: 2px; }
+}

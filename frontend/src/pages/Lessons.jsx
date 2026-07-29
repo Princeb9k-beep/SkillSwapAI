@@ -1,6 +1,7 @@
 // Daily lessons with gamified completion + a simple progress bar.
 
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import LessonCard from "../components/LessonCard.jsx";
@@ -50,7 +51,12 @@ export default function Lessons() {
 
   return (
     <section>
-      <h1>Today's Lessons</h1>
+      <div className="row-between">
+        <h1>Today's Lessons</h1>
+        {lessons.length > 0 && (
+          <Link className="btn btn-primary" to="/stream">▶ Play as stream</Link>
+        )}
+      </div>
       <div
         className="progress"
         role="progressbar"
