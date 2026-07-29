@@ -50,7 +50,9 @@ export default function Buddies() {
       </p>
 
       {list.length === 0 ? (
-        <EmptyState title="No buddies yet" hint="Open a partner's profile and tap “Add as learning buddy”." />
+        <EmptyState icon="🤝" title="No buddies yet" hint="Team up with someone to keep a shared streak alive. Find a partner, then add them as a learning buddy from their profile.">
+          <Link className="btn btn-primary" to="/matches">Find a partner</Link>
+        </EmptyState>
       ) : (
         <div className="grid">
           {list.map((b) => (

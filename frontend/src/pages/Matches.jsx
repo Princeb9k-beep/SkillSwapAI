@@ -342,8 +342,16 @@ export default function Matches() {
 
       {matches.length === 0 && canMatch && !finding && (
         <EmptyState
+          icon="🧭"
           title="Ready when you are"
-          hint="Click “Find matches” to see complementary learners."
+          hint="Tap “Find matches” to meet complementary learners. New here? The best matches show up as more people join — check back as the community grows, or invite a friend to swap with."
+        />
+      )}
+      {!canMatch && (
+        <EmptyState
+          icon="✨"
+          title="Add a skill to meet your first match"
+          hint="Tell us one thing you can teach and one you want to learn — that's all it takes to find a partner."
         />
       )}
     </section>

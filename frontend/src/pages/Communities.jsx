@@ -146,7 +146,7 @@ function CommunityDetail({ id, onBack }) {
       </form>
 
       {data.posts.length === 0 ? (
-        <EmptyState title="No posts yet" hint="Be the first to post." />
+        <EmptyState icon="💭" title="No posts yet" hint="Be the first to post — introduce yourself or ask a question." />
       ) : (
         <div className="posts">
           {data.posts.map((p) => (
@@ -227,7 +227,7 @@ export default function Communities() {
       <CreateForm onCreated={load} />
 
       {list.length === 0 ? (
-        <EmptyState title="No communities yet" hint="Create the first one above." />
+        <EmptyState icon="🌱" title="No communities yet" hint="Create the first one above." />
       ) : (
         <div className="grid">
           {list.map((c) => (

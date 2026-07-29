@@ -202,6 +202,7 @@ export default function Messages() {
         <aside className="messages-threads">
           {threads.length === 0 ? (
             <EmptyState
+              icon="💬"
               title="No conversations yet"
               hint="Find a partner and say hello to start chatting."
             >
@@ -235,7 +236,7 @@ export default function Messages() {
 
         <div className="messages-conversation card">
           {!active ? (
-            <EmptyState title="Pick a conversation" hint="Select a thread to view messages." />
+            <EmptyState icon="👈" title="Pick a conversation" hint="Select a thread to view messages." />
           ) : (
             <>
               <div className="row-between conversation-head">
