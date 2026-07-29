@@ -5,9 +5,9 @@ import { api } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import { ErrorBanner } from "../components/States.jsx";
 
-export default function Auth() {
+export default function Auth({ initialMode = "login", onHome }) {
   const { login, notify } = useApp();
-  const [mode, setMode] = useState("login"); // login | signup | forgot | reset
+  const [mode, setMode] = useState(initialMode); // login | signup | forgot | reset
   const [form, setForm] = useState({ email: "", password: "", name: "", referral: "" });
   const [resetToken, setResetToken] = useState("");
   const [busy, setBusy] = useState(false);
@@ -109,6 +109,11 @@ export default function Auth() {
 
   return (
     <section className="hero">
+      {onHome && (
+        <button type="button" className="link-btn auth-home" onClick={onHome}>
+          ← Back to home
+        </button>
+      )}
       <h1>{titles[mode]}</h1>
       <p className="muted">{subtitles[mode]}</p>
 
