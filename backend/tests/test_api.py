@@ -255,7 +255,7 @@ def test_skill_discover_feed(client):
     assert len(feed) >= 10
     # Every card carries the fields the TikTok-style stream renders.
     first = feed[0]
-    for key in ("name", "category", "emoji", "blurb", "hook", "difficulty", "learners", "status"):
+    for key in ("name", "category", "emoji", "blurb", "hook", "difficulty", "learners", "status", "video_url"):
         assert key in first
     # New (unknown) skills lead; a "have" skill is pushed toward the end.
     assert feed[0]["status"] is None
