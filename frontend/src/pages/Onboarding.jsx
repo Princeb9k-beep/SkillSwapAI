@@ -61,10 +61,18 @@ export default function Onboarding() {
   const [goal, setGoal] = useState(user?.goal || "");
   const [income, setIncome] = useState(user?.target_income ?? "");
   const [busy, setBusy] = useState(false);
+  const [matches, setMatches] = useState(null); // null = not loaded yet
 
   useEffect(() => {
     api.getSkills().then(setSkills).catch(() => {});
   }, []);
+
+  // The "aha" moment: as soon as they reach the final step, show a real match.
+  useEffect(() => {
+    if (step === 3 && matches === null) {
+      api.getMatches().then((m) => setMatches(m || [])).catch(() => setMatches([]));
+    }
+  }, [step, matches]);
 
   async function addSkill(name, kind) {
     try {
@@ -228,19 +236,60 @@ export default function Onboarding() {
         {step === 3 && (
           <div className="onboarding-step">
             <h2>You're all set{user?.name ? `, ${user.name}` : ""}! 🎉</h2>
-            <p className="muted">
-              {haveCount > 0 || wantCount > 0
-                ? "Let's find people to swap skills with."
-                : "Add skills any time from the Matches tab to find partners."}
-            </p>
-            <div className="onboarding-actions">
-              <button className="btn btn-primary" onClick={() => finish("/matches")} disabled={busy}>
-                See my matches
-              </button>
-              <button className="btn" onClick={() => finish("/")} disabled={busy}>
-                Go to my goal
-              </button>
-            </div>
+
+            {matches === null ? (
+              <p className="muted">Finding your first match…</p>
+            ) : matches.length > 0 ? (
+              <>
+                <p className="muted">Here's your top match — say hi to get started:</p>
+                <div className="card onboarding-match">
+                  <div className="row-between">
+                    <strong>{matches[0].name}</strong>
+                    <span className="match-score score-good">{matches[0].compatibility}% match</span>
+                  </div>
+                  {matches[0].they_teach_you?.length > 0 && (
+                    <p className="muted">
+                      Can teach you: {matches[0].they_teach_you.join(", ")}
+                    </p>
+                  )}
+                  {matches[0].you_teach_them?.length > 0 && (
+                    <p className="muted">
+                      You can teach: {matches[0].you_teach_them.join(", ")}
+                    </p>
+                  )}
+                  <button
+                    className="btn btn-primary"
+                    disabled={busy}
+                    onClick={() =>
+                      finish(`/messages?to=${matches[0].user_id}&name=${encodeURIComponent(matches[0].name)}`)
+                    }
+                  >
+                    Say hi to {matches[0].name.split(" ")[0]}
+                  </button>
+                </div>
+                <div className="onboarding-actions">
+                  <button className="btn" onClick={() => finish("/matches")} disabled={busy}>
+                    See all matches
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="muted">
+                  {haveCount > 0 || wantCount > 0
+                    ? "No matches just yet — you're early! Add more skills or check back soon."
+                    : "Add skills any time from the Matches tab to find partners."}
+                </p>
+                <div className="onboarding-actions">
+                  <button className="btn btn-primary" onClick={() => finish("/matches")} disabled={busy}>
+                    Explore matches
+                  </button>
+                  <button className="btn" onClick={() => finish("/")} disabled={busy}>
+                    Go to my goal
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
