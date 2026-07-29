@@ -284,7 +284,7 @@ export default function Onboarding() {
                   <button className="btn btn-primary" onClick={() => finish("/matches")} disabled={busy}>
                     Explore matches
                   </button>
-                  <button className="btn" onClick={() => finish("/")} disabled={busy}>
+                  <button className="btn" onClick={() => finish("/goal")} disabled={busy}>
                     Go to my goal
                   </button>
                 </div>

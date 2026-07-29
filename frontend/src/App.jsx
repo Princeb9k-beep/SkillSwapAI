@@ -6,6 +6,8 @@ import { lazy, Suspense, useState } from "react";
 import { BrowserRouter, Route, Routes, Navigate, Link } from "react-router-dom";
 import Nav from "./components/Nav.jsx";
 import BottomNav from "./components/BottomNav.jsx";
+import ActionDock from "./components/ActionDock.jsx";
+import RequirePlan from "./components/RequirePlan.jsx";
 import InstallPrompt from "./components/InstallPrompt.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import { AppProvider, useApp } from "./context/AppContext.jsx";
@@ -15,6 +17,10 @@ import { SkeletonPage } from "./components/Skeleton.jsx";
 const Auth = lazy(() => import("./pages/Auth.jsx"));
 const Landing = lazy(() => import("./pages/Landing.jsx"));
 const GoalInput = lazy(() => import("./pages/GoalInput.jsx"));
+const AiHub = lazy(() => import("./pages/AiHub.jsx"));
+const LearnHub = lazy(() => import("./pages/LearnHub.jsx"));
+const ConnectHub = lazy(() => import("./pages/ConnectHub.jsx"));
+const GrowHub = lazy(() => import("./pages/GrowHub.jsx"));
 const Matches = lazy(() => import("./pages/Matches.jsx"));
 const Coach = lazy(() => import("./pages/Coach.jsx"));
 const Scanner = lazy(() => import("./pages/Scanner.jsx"));
@@ -51,6 +57,7 @@ const Terms = lazy(() => import("./pages/Legal.jsx").then((m) => ({ default: m.T
 
 function AuthedApp() {
   const { user } = useApp();
+  const [dockOpen, setDockOpen] = useState(false);
   // First-run: guide brand-new users before dropping them into the full app.
   if (user && user.onboarded === false) {
     return (
@@ -61,7 +68,7 @@ function AuthedApp() {
   }
   return (
     <>
-      <Nav />
+      <Nav onCreate={() => setDockOpen(true)} />
       {user && user.email_verified === false && (
         <div className="verify-banner">
           <span>Verify your email to secure your account.</span>
@@ -73,7 +80,12 @@ function AuthedApp() {
             layout and reads as faster when switching tabs. */}
         <Suspense fallback={<SkeletonPage label="Loading page…" />}>
           <Routes>
-            <Route path="/" element={<GoalInput />} />
+            {/* Five-section nav: AI Hub (home) + Learn / Connect / Grow hubs. */}
+            <Route path="/" element={<AiHub />} />
+            <Route path="/learn" element={<LearnHub />} />
+            <Route path="/connect" element={<ConnectHub />} />
+            <Route path="/grow" element={<GrowHub />} />
+            <Route path="/goal" element={<GoalInput />} />
             <Route path="/matches" element={<Matches />} />
             <Route path="/coach" element={<Coach />} />
             <Route path="/scanner" element={<Scanner />} />
@@ -87,7 +99,7 @@ function AuthedApp() {
             <Route path="/academy" element={<Academy />} />
             <Route path="/plans" element={<Plans />} />
             <Route path="/challenges" element={<Challenges />} />
-            <Route path="/twin" element={<Twin />} />
+            <Route path="/twin" element={<RequirePlan need="pro" name="AI Twin"><Twin /></RequirePlan>} />
             <Route path="/progress" element={<Progress />} />
             <Route path="/search" element={<Search />} />
             <Route path="/sessions" element={<Sessions />} />
@@ -95,20 +107,21 @@ function AuthedApp() {
             <Route path="/buddies" element={<Buddies />} />
             <Route path="/u/:id" element={<Profile />} />
             <Route path="/community" element={<Communities />} />
-            <Route path="/verify" element={<Verify />} />
+            <Route path="/verify" element={<RequirePlan need="elite" name="Skill verification"><Verify /></RequirePlan>} />
             <Route path="/market" element={<Marketplace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/lessons" element={<Lessons />} />
             <Route path="/flashcards" element={<Flashcards />} />
-            <Route path="/career" element={<Career initialTab="portfolio" />} />
+            <Route path="/career" element={<RequirePlan need="pro" name="Career tools"><Career initialTab="portfolio" /></RequirePlan>} />
             {/* Back-compat deep links open the matching Career sub-tab */}
-            <Route path="/resume" element={<Career initialTab="resume" />} />
-            <Route path="/interview" element={<Career initialTab="interview" />} />
+            <Route path="/resume" element={<RequirePlan need="pro" name="Career tools"><Career initialTab="resume" /></RequirePlan>} />
+            <Route path="/interview" element={<RequirePlan need="pro" name="Career tools"><Career initialTab="interview" /></RequirePlan>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </main>
-      <BottomNav />
+      <BottomNav onCreate={() => setDockOpen(true)} />
+      <ActionDock open={dockOpen} onClose={() => setDockOpen(false)} />
     </>
   );
 }

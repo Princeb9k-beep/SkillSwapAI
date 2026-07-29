@@ -1,0 +1,1 @@
+import{u as e,j as i,N as s}from"./index-CZBjhh-a.js";import{H as a}from"./Hub-DwcoxJ9k.js";const n=s.find(t=>t.key==="grow");function c(){const{user:t}=e(),o=t!=null&&t.is_admin?[...n.links,{to:"/admin",label:"Moderation",emoji:"🛡️",desc:"Review reports and content."}]:n.links;return i.jsx(a,{title:"Grow",tagline:n.tagline,links:o,accent:"grow"})}export{c as default};

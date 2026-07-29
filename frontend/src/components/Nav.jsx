@@ -1,22 +1,14 @@
 import { NavLink } from "react-router-dom";
 import { useApp } from "../context/AppContext.jsx";
-import { NAV_GROUPS } from "./navGroups.jsx";
+import { HUBS } from "./navGroups.jsx";
 import NotificationBell from "./NotificationBell.jsx";
-import PlanBadge from "./PlanBadge.jsx";
 import TokenPill from "./TokenPill.jsx";
 
-// Flat list (desktop top bar) is derived from the same grouped source of truth
-// the mobile BottomNav uses, so the two navigations never drift apart.
-const LINKS = [
-  { to: "/", label: "Goal", end: true },
-  ...NAV_GROUPS.flatMap((g) => g.links),
-];
-
-export default function Nav() {
+// Desktop top bar mirrors the mobile five-slot nav: the four hub destinations
+// plus a Create button that opens the same action dock. Sub-features live inside
+// each hub page, so the bar stays clean instead of listing every tab.
+export default function Nav({ onCreate }) {
   const { user } = useApp();
-  const links = user?.is_admin
-    ? [...LINKS, { to: "/admin", label: "Moderation" }]
-    : LINKS;
 
   return (
     <nav className="nav" aria-label="Main navigation">
@@ -26,12 +18,14 @@ export default function Nav() {
 
       <div className="nav-menu">
         <div className="nav-links">
-          {links.map((l) => (
-            <NavLink key={l.to} to={l.to} end={l.end} className="nav-link">
-              {l.label}
-              <PlanBadge plan={l.plan} />
+          {HUBS.map((h) => (
+            <NavLink key={h.key} to={h.to} end={h.end} className="nav-link">
+              {h.label}
             </NavLink>
           ))}
+          <button type="button" className="nav-link nav-create" onClick={onCreate}>
+            + Create
+          </button>
         </div>
         <div className="nav-user">
           <TokenPill />
