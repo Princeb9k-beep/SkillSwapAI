@@ -19,6 +19,7 @@ const Landing = lazy(() => import("./pages/Landing.jsx"));
 const GoalInput = lazy(() => import("./pages/GoalInput.jsx"));
 const AiHub = lazy(() => import("./pages/AiHub.jsx"));
 const Stream = lazy(() => import("./pages/Stream.jsx"));
+const Discover = lazy(() => import("./pages/Discover.jsx"));
 const LearnHub = lazy(() => import("./pages/LearnHub.jsx"));
 const ConnectHub = lazy(() => import("./pages/ConnectHub.jsx"));
 const GrowHub = lazy(() => import("./pages/GrowHub.jsx"));
@@ -113,6 +114,7 @@ function AuthedApp() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/lessons" element={<Lessons />} />
             <Route path="/stream" element={<Stream />} />
+            <Route path="/discover" element={<Discover />} />
             <Route path="/flashcards" element={<Flashcards />} />
             <Route path="/career" element={<RequirePlan need="pro" name="Career tools"><Career initialTab="portfolio" /></RequirePlan>} />
             {/* Back-compat deep links open the matching Career sub-tab */}

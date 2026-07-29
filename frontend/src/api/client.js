@@ -183,6 +183,7 @@ export const api = {
   getSkills: () => request("/skills"),
   addSkill: (data) => request("/skills", { method: "POST", body: data }),
   deleteSkill: (id) => request(`/skills/${id}`, { method: "DELETE" }),
+  discoverSkills: () => request("/skills/discover"),
   getMatches: () => request("/matches"),
   matchFeedback: (partnerId, signal) =>
     request(`/matches/${partnerId}/feedback`, { method: "POST", body: { signal } }),

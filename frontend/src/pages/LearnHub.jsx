@@ -11,16 +11,28 @@ const G = NAV_GROUPS.find((g) => g.key === "learn");
 export default function LearnHub() {
   return (
     <Hub title="Learn" tagline={G.tagline} links={G.links} accent="learn">
-      <Link to="/stream" className="stream-feature">
-        <span className="stream-feature-emoji" aria-hidden="true">▶</span>
-        <span className="stream-feature-body">
-          <span className="stream-feature-title">Today's Stream</span>
-          <span className="stream-feature-desc">
-            Swipe through today's lessons, Reels-style.
+      <div className="stream-feature-row">
+        <Link to="/discover" className="stream-feature stream-feature-disco">
+          <span className="stream-feature-emoji" aria-hidden="true">✨</span>
+          <span className="stream-feature-body">
+            <span className="stream-feature-title">Discover skills</span>
+            <span className="stream-feature-desc">
+              Swipe skills TikTok-style — learn it, or add what you know.
+            </span>
           </span>
-        </span>
-        <span className="stream-feature-go" aria-hidden="true">›</span>
-      </Link>
+          <span className="stream-feature-go" aria-hidden="true">›</span>
+        </Link>
+        <Link to="/stream" className="stream-feature">
+          <span className="stream-feature-emoji" aria-hidden="true">▶</span>
+          <span className="stream-feature-body">
+            <span className="stream-feature-title">Today's Stream</span>
+            <span className="stream-feature-desc">
+              Swipe through today's lessons, Reels-style.
+            </span>
+          </span>
+          <span className="stream-feature-go" aria-hidden="true">›</span>
+        </Link>
+      </div>
     </Hub>
   );
 }

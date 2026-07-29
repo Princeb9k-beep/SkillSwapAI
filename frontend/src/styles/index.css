@@ -3391,3 +3391,180 @@ a:focus-visible {
   .stream-title { font-size: 1.35rem; }
   .stream-dots { right: 2px; }
 }
+
+/* Two featured banners side by side on the Learn hub. */
+.stream-feature-row {
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.1rem;
+}
+.stream-feature-row .stream-feature {
+  flex: 1 1 240px;
+  margin-bottom: 0;
+}
+.stream-feature-disco {
+  background: linear-gradient(135deg, #d946ef, #7c3aed);
+  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.32);
+}
+
+/* --- Discover: TikTok-style skill feed --- */
+.disco {
+  position: relative;
+}
+.disco-progress {
+  display: flex;
+  gap: 3px;
+  margin-bottom: 0.5rem;
+}
+.disco-seg {
+  flex: 1;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background 0.2s ease;
+}
+.disco-seg.on {
+  background: var(--primary);
+}
+.disco-viewport {
+  height: calc(100dvh - 230px);
+  min-height: 460px;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  border-radius: var(--radius);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.disco-viewport::-webkit-scrollbar {
+  display: none;
+}
+.disco-panel {
+  position: relative;
+  height: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.2rem 1.2rem 1.4rem;
+  color: #fff;
+  border-radius: var(--radius);
+  margin-bottom: 2px;
+  overflow: hidden;
+}
+.disco-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.disco-cat {
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+}
+.disco-diff {
+  opacity: 0.85;
+}
+.disco-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.5rem;
+  padding: 1rem 0;
+}
+.disco-emoji {
+  font-size: 4.5rem;
+  line-height: 1;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.3));
+}
+.disco-name {
+  font-size: 2rem;
+  line-height: 1.1;
+}
+.disco-hook {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.disco-blurb {
+  max-width: 460px;
+  opacity: 0.92;
+  line-height: 1.5;
+}
+.disco-learners {
+  margin-top: 0.3rem;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+.disco-status {
+  margin-top: 0.2rem;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.disco-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.disco-act {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.7rem 0.4rem;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  font-family: inherit;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  backdrop-filter: blur(4px);
+  transition: background 0.15s ease, transform 0.12s ease;
+}
+.disco-act:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateY(-1px);
+}
+.disco-act:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.disco-act:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+.disco-act-course {
+  background: #fff;
+  color: #111;
+}
+.disco-act-course:hover:not(:disabled) {
+  background: #f1f1f1;
+}
+.disco-act-emoji {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+.disco-swipe {
+  text-align: center;
+  font-size: 0.75rem;
+  opacity: 0.75;
+  margin-top: 0.6rem;
+  animation: swipe-hint 1.8s ease-in-out infinite;
+}
+@media (max-width: 480px) {
+  .disco-name { font-size: 1.7rem; }
+  .disco-emoji { font-size: 3.6rem; }
+}
