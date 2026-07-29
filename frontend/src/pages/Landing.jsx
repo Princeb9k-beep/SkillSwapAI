@@ -72,7 +72,10 @@ export default function Landing({ onSignup, onLogin }) {
       </section>
 
       <footer className="landing-footer muted">
-        SkillSwap AI · Swap skills, not cash.
+        <div>SkillSwap AI · Swap skills, not cash.</div>
+        <div className="landing-footer-links">
+          <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a>
+        </div>
       </footer>
     </div>
   );

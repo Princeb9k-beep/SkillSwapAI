@@ -46,6 +46,8 @@ const VerifyEmail = lazy(() => import("./pages/VerifyEmail.jsx"));
 const Profile = lazy(() => import("./pages/Profile.jsx"));
 const OAuthCallback = lazy(() => import("./pages/OAuthCallback.jsx"));
 const VerifyCertificate = lazy(() => import("./pages/VerifyCertificate.jsx"));
+const Privacy = lazy(() => import("./pages/Legal.jsx").then((m) => ({ default: m.Privacy })));
+const Terms = lazy(() => import("./pages/Legal.jsx").then((m) => ({ default: m.Terms })));
 
 function AuthedApp() {
   const { user } = useApp();
@@ -154,6 +156,16 @@ function Shell() {
       <ErrorBoundary>
         <Suspense fallback={<LoadingState />}>
           <VerifyCertificate />
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
+  if (window.location.pathname === "/privacy" || window.location.pathname === "/terms") {
+    const Page = window.location.pathname === "/privacy" ? Privacy : Terms;
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingState />}>
+          <Page />
         </Suspense>
       </ErrorBoundary>
     );

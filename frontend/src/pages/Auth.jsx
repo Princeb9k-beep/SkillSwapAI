@@ -183,6 +183,12 @@ export default function Auth({ initialMode = "login", onHome }) {
                   ? "Send reset link"
                   : "Update password"}
         </button>
+        {isSignup && (
+          <p className="field-hint auth-legal">
+            By signing up you agree to our <a href="/terms">Terms</a> and{" "}
+            <a href="/privacy">Privacy Policy</a>.
+          </p>
+        )}
       </form>
 
       {(mode === "login" || mode === "signup") && providers.length > 0 && (
