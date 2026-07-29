@@ -2854,3 +2854,11 @@ a:focus-visible {
   display: inline-block;
   margin-bottom: 0.75rem;
 }
+
+/* ---- Share actions ---- */
+.progress-share-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
