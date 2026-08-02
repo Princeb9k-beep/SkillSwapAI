@@ -64,9 +64,6 @@ async def discover_skills(
                 "difficulty": spec["difficulty"],
                 "learners": counts.get(norm, 0),
                 "status": status,
-                # Optional creator-uploaded short clip. Null falls back to the
-                # authored animated motion clip on the client.
-                "video_url": spec.get("video_url"),
             }
         )
 
