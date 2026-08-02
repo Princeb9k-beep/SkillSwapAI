@@ -10,7 +10,24 @@ import { api } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import { ErrorBanner, EmptyState } from "../components/States.jsx";
 import { SkeletonPage } from "../components/Skeleton.jsx";
-import SkillClip from "../components/SkillClip.jsx";
+
+// A hue per category so each clip has its own look (TikTok-ish color pops).
+const CATEGORY_HUE = {
+  Coding: 255,
+  Design: 330,
+  Languages: 200,
+  Music: 285,
+  Career: 25,
+  Business: 150,
+  Wellness: 95,
+};
+
+function clipStyle(category) {
+  const h = CATEGORY_HUE[category] ?? 255;
+  return {
+    background: `radial-gradient(120% 80% at 50% 15%, hsl(${h} 70% 45%), hsl(${h + 25} 65% 28%) 70%, hsl(${h + 25} 60% 18%))`,
+  };
+}
 
 export default function Discover() {
   const { notify } = useApp();
@@ -87,18 +104,13 @@ export default function Discover() {
       </div>
 
       <div className="disco-viewport" ref={viewportRef} onScroll={onScroll} aria-label="Skill discovery feed">
-        {items.map((item, i) => (
+        {items.map((item) => (
           <section
             key={item.name}
             className="disco-panel"
+            style={clipStyle(item.category)}
             aria-roledescription="skill"
           >
-            <SkillClip
-              category={item.category}
-              emoji={item.emoji}
-              videoUrl={item.video_url}
-              active={i === current}
-            />
             <div className="disco-top">
               <span className="disco-cat">{item.category}</span>
               <span className="disco-diff">{item.difficulty}</span>
