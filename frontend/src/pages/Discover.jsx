@@ -10,24 +10,18 @@ import { api } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import { ErrorBanner, EmptyState } from "../components/States.jsx";
 import { SkeletonPage } from "../components/Skeleton.jsx";
+import Icon from "../components/icons.jsx";
 
-// A hue per category so each clip has its own look (TikTok-ish color pops).
-const CATEGORY_HUE = {
-  Coding: 255,
-  Design: 330,
-  Languages: 200,
-  Music: 285,
-  Career: 25,
-  Business: 150,
-  Wellness: 95,
+// A line icon per category, shown large on each clip in place of an emoji.
+const CATEGORY_ICON = {
+  Coding: "code",
+  Design: "palette",
+  Languages: "globe",
+  Music: "music",
+  Career: "briefcase",
+  Business: "chart",
+  Wellness: "heart",
 };
-
-function clipStyle(category) {
-  const h = CATEGORY_HUE[category] ?? 255;
-  return {
-    background: `radial-gradient(120% 80% at 50% 15%, hsl(${h} 70% 45%), hsl(${h + 25} 65% 28%) 70%, hsl(${h + 25} 60% 18%))`,
-  };
-}
 
 export default function Discover() {
   const { notify } = useApp();
@@ -89,7 +83,7 @@ export default function Discover() {
   if (status === "error") return <ErrorBanner message={error} onRetry={load} />;
   if (items.length === 0) {
     return (
-      <EmptyState icon="✨" title="Nothing to discover right now" hint="Check back soon for new skills.">
+      <EmptyState icon="sparkle" title="Nothing to discover right now" hint="Check back soon for new skills.">
         <Link className="btn btn-primary" to="/learn">Back to Learn</Link>
       </EmptyState>
     );
@@ -108,7 +102,6 @@ export default function Discover() {
           <section
             key={item.name}
             className="disco-panel"
-            style={clipStyle(item.category)}
             aria-roledescription="skill"
           >
             <div className="disco-top">
@@ -117,7 +110,9 @@ export default function Discover() {
             </div>
 
             <div className="disco-center">
-              <span className="disco-emoji" aria-hidden="true">{item.emoji}</span>
+              <span className="disco-emoji" aria-hidden="true">
+                <Icon name={CATEGORY_ICON[item.category] || "sparkle"} size={56} strokeWidth={1.5} />
+              </span>
               <h2 className="disco-name">{item.name}</h2>
               <p className="disco-hook">{item.hook}</p>
               <p className="disco-blurb">{item.blurb}</p>
@@ -128,7 +123,8 @@ export default function Discover() {
               </span>
               {item.status && (
                 <span className="disco-status">
-                  {item.status === "have" ? "✓ In your skills to teach" : "✓ On your learning list"}
+                  <Icon name="check" size={14} />
+                  {item.status === "have" ? "In your skills to teach" : "On your learning list"}
                 </span>
               )}
             </div>
@@ -139,7 +135,7 @@ export default function Discover() {
                 className="disco-act disco-act-course"
                 onClick={() => navigate("/academy")}
               >
-                <span className="disco-act-emoji" aria-hidden="true">🎓</span>
+                <span className="disco-act-emoji" aria-hidden="true"><Icon name="graduation" size={20} /></span>
                 Get the course
               </button>
               <button
@@ -148,7 +144,7 @@ export default function Discover() {
                 disabled={item.status === "want" || busy === `${item.name}:want`}
                 onClick={() => addAs(item, "want")}
               >
-                <span className="disco-act-emoji" aria-hidden="true">📚</span>
+                <span className="disco-act-emoji" aria-hidden="true"><Icon name="bookOpen" size={20} /></span>
                 {item.status === "want" ? "On your list" : "Learn it"}
               </button>
               <button
@@ -157,7 +153,7 @@ export default function Discover() {
                 disabled={item.status === "have" || busy === `${item.name}:have`}
                 onClick={() => addAs(item, "have")}
               >
-                <span className="disco-act-emoji" aria-hidden="true">✋</span>
+                <span className="disco-act-emoji" aria-hidden="true"><Icon name="check" size={20} /></span>
                 {item.status === "have" ? "Added" : "I know this"}
               </button>
             </div>

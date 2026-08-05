@@ -179,7 +179,7 @@ export default function Marketplace() {
 
       <h2>Browse</h2>
       {listings.length === 0 ? (
-        <EmptyState icon="🏷️" title="No listings yet" hint="Be the first to offer a service above — a tutoring session, a code review, a design critique. It shows up here for everyone to book." />
+        <EmptyState icon="tag" title="No listings yet" hint="Be the first to offer a service above — a tutoring session, a code review, a design critique. It shows up here for everyone to book." />
       ) : (
         <div className="grid">
           {listings.map((l) => (

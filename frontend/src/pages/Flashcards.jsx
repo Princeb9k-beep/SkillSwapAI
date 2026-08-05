@@ -61,7 +61,7 @@ export default function Flashcards() {
     }
     setRevealed(false);
     if (idx + 1 >= data.due.length) {
-      notify("Review complete 🎉", "success");
+      notify("Review complete", "success");
       load();
     } else {
       setIdx((i) => i + 1);
@@ -97,7 +97,7 @@ export default function Flashcards() {
       </form>
 
       {data.due.length === 0 ? (
-        <EmptyState icon="🎉" title="Nothing due" hint="You're all caught up — generate a new set or come back tomorrow." />
+        <EmptyState icon="trophy" title="Nothing due" hint="You're all caught up — generate a new set or come back tomorrow." />
       ) : (
         <div className="card flashcard" onClick={() => !revealed && setRevealed(true)}>
           <span className="muted flashcard-progress">

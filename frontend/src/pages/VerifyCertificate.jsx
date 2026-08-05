@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client.js";
+import Icon from "../components/icons.jsx";
 
 export default function VerifyCertificate() {
   const [state, setState] = useState({ status: "loading", cert: null });
@@ -37,7 +38,7 @@ export default function VerifyCertificate() {
         )}
         {state.status === "valid" && (
           <>
-            <div className="cert-seal" aria-hidden="true">🎓</div>
+            <div className="cert-seal" aria-hidden="true"><Icon name="graduation" size={40} /></div>
             <h1>Verified certificate</h1>
             <p className="cert-holder"><strong>{state.cert.holder}</strong></p>
             <p className="muted">completed</p>

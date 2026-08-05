@@ -69,10 +69,10 @@ export const NAV_GROUPS = [
     Icon: AiIcon,
     tagline: "Your AI copilots and instant tools.",
     links: [
-      { to: "/coach", label: "Coach", emoji: "🧠", desc: "Ask anything, get a study plan." },
-      { to: "/twin", label: "AI Twin", emoji: "👤", desc: "Your teaching style, distilled.", plan: "pro" },
-      { to: "/scanner", label: "Scanner", emoji: "🔍", desc: "Upload a resume or code for feedback." },
-      { to: "/translate", label: "Translate", emoji: "🌐", desc: "Explain anything in plain language." },
+      { to: "/coach", label: "Coach", icon: "brain", desc: "Ask anything, get a study plan." },
+      { to: "/twin", label: "AI Twin", icon: "user", desc: "Your teaching style, distilled.", plan: "pro" },
+      { to: "/scanner", label: "Scanner", icon: "scan", desc: "Upload a resume or code for feedback." },
+      { to: "/translate", label: "Translate", icon: "globe", desc: "Explain anything in plain language." },
     ],
   },
   {
@@ -82,13 +82,13 @@ export const NAV_GROUPS = [
     Icon: LearnIcon,
     tagline: "Your learning stream, gamified.",
     links: [
-      { to: "/academy", label: "Academy", emoji: "🎓", desc: "Structured courses toward your goal.", plan: "pro" },
-      { to: "/dashboard", label: "Dashboard", emoji: "📊", desc: "Your roadmap at a glance." },
-      { to: "/lessons", label: "Lessons", emoji: "📖", desc: "AI-written daily lessons." },
-      { to: "/flashcards", label: "Flashcards", emoji: "🃏", desc: "Spaced-repetition review." },
-      { to: "/challenges", label: "Challenges", emoji: "⚡", desc: "Daily practice challenges." },
-      { to: "/progress", label: "Progress", emoji: "🔥", desc: "Streaks, goals, and leagues." },
-      { to: "/buddies", label: "Buddies", emoji: "🤝", desc: "Keep a shared streak alive." },
+      { to: "/academy", label: "Academy", icon: "book", desc: "Structured courses toward your goal.", plan: "pro" },
+      { to: "/dashboard", label: "Dashboard", icon: "grid", desc: "Your roadmap at a glance." },
+      { to: "/lessons", label: "Lessons", icon: "sparkle", desc: "AI-written daily lessons." },
+      { to: "/flashcards", label: "Flashcards", icon: "cards", desc: "Spaced-repetition review." },
+      { to: "/challenges", label: "Challenges", icon: "bolt", desc: "Daily practice challenges." },
+      { to: "/progress", label: "Progress", icon: "flame", desc: "Streaks, goals, and leagues." },
+      { to: "/buddies", label: "Buddies", icon: "handshake", desc: "Keep a shared streak alive." },
     ],
   },
   {
@@ -98,14 +98,14 @@ export const NAV_GROUPS = [
     Icon: ConnectIcon,
     tagline: "Meet partners and learn together.",
     links: [
-      { to: "/matches", label: "Matches", emoji: "🧭", desc: "Find complementary partners." },
-      { to: "/messages", label: "Messages", emoji: "💬", desc: "Chat with your partners." },
-      { to: "/feed", label: "Activity", emoji: "📣", desc: "See the community's wins." },
-      { to: "/rooms", label: "Rooms", emoji: "🎥", desc: "Live video practice rooms.", plan: "pro" },
-      { to: "/community", label: "Community", emoji: "🌱", desc: "Topic-based groups." },
-      { to: "/meetups", label: "Meetups", emoji: "📅", desc: "Group study sessions." },
-      { to: "/sessions", label: "Sessions", emoji: "📆", desc: "Book 1-on-1 practice." },
-      { to: "/search", label: "Search", emoji: "🔎", desc: "Find people and skills." },
+      { to: "/matches", label: "Matches", icon: "compass", desc: "Find complementary partners." },
+      { to: "/messages", label: "Messages", icon: "chat", desc: "Chat with your partners." },
+      { to: "/feed", label: "Activity", icon: "megaphone", desc: "See the community's wins." },
+      { to: "/rooms", label: "Rooms", icon: "video", desc: "Live video practice rooms.", plan: "pro" },
+      { to: "/community", label: "Community", icon: "sprout", desc: "Topic-based groups." },
+      { to: "/meetups", label: "Meetups", icon: "calendar", desc: "Group study sessions." },
+      { to: "/sessions", label: "Sessions", icon: "calendar", desc: "Book 1-on-1 practice." },
+      { to: "/search", label: "Search", icon: "search", desc: "Find people and skills." },
     ],
   },
   {
@@ -115,12 +115,12 @@ export const NAV_GROUPS = [
     Icon: GrowIcon,
     tagline: "Level up your career and reach.",
     links: [
-      { to: "/career", label: "Career", emoji: "💼", desc: "Resume, portfolio, interviews.", plan: "pro" },
-      { to: "/market", label: "Market", emoji: "🏷️", desc: "Offer and book paid services." },
-      { to: "/partners", label: "Partners", emoji: "🤝", desc: "Your ongoing partnerships." },
-      { to: "/verify", label: "Verify", emoji: "✅", desc: "Prove your skills.", plan: "elite" },
-      { to: "/plans", label: "Plans", emoji: "⭐", desc: "Upgrade to Pro or Elite." },
-      { to: "/settings", label: "Settings", emoji: "⚙️", desc: "Account and preferences." },
+      { to: "/career", label: "Career", icon: "briefcase", desc: "Resume, portfolio, interviews.", plan: "pro" },
+      { to: "/market", label: "Market", icon: "tag", desc: "Offer and book paid services." },
+      { to: "/partners", label: "Partners", icon: "handshake", desc: "Your ongoing partnerships." },
+      { to: "/verify", label: "Verify", icon: "shieldCheck", desc: "Prove your skills.", plan: "elite" },
+      { to: "/plans", label: "Plans", icon: "star", desc: "Upgrade to Pro or Elite." },
+      { to: "/settings", label: "Settings", icon: "gear", desc: "Account and preferences." },
     ],
   },
 ];
@@ -131,13 +131,13 @@ export const CREATE_SLOT = { key: "create", label: "Create", Icon: CreateIcon };
 // Quick-create actions shown in the Action Dock. Each links to the page where
 // that thing gets made, so "Create" is one tap from any screen.
 export const CREATE_ACTIONS = [
-  { to: "/goal", emoji: "🎯", label: "Set a new goal", desc: "Generate a roadmap toward it." },
-  { to: "/coach", emoji: "✨", label: "Launch an AI workflow", desc: "Coach, plan, or feedback." },
-  { to: "/challenges", emoji: "⚡", label: "Take a challenge", desc: "Practice something new today." },
-  { to: "/flashcards", emoji: "🃏", label: "Make a flashcard set", desc: "Turn a topic into review cards." },
-  { to: "/meetups", emoji: "📅", label: "Host a meetup", desc: "Rally people around a topic." },
-  { to: "/sessions", emoji: "📆", label: "Book a session", desc: "Schedule 1-on-1 practice." },
-  { to: "/market", emoji: "🏷️", label: "Offer a service", desc: "List a paid skill on the market." },
+  { to: "/goal", icon: "target", label: "Set a new goal", desc: "Generate a roadmap toward it." },
+  { to: "/coach", icon: "sparkle", label: "Launch an AI workflow", desc: "Coach, plan, or feedback." },
+  { to: "/challenges", icon: "bolt", label: "Take a challenge", desc: "Practice something new today." },
+  { to: "/flashcards", icon: "cards", label: "Make a flashcard set", desc: "Turn a topic into review cards." },
+  { to: "/meetups", icon: "calendar", label: "Host a meetup", desc: "Rally people around a topic." },
+  { to: "/sessions", icon: "calendar", label: "Book a session", desc: "Schedule 1-on-1 practice." },
+  { to: "/market", icon: "tag", label: "Offer a service", desc: "List a paid skill on the market." },
 ];
 
 // Convenience: hub destinations in bottom-nav order (Create sits in the middle).

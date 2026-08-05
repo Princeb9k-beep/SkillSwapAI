@@ -100,7 +100,7 @@ function Lobby({ onEnter }) {
         </button>
       </div>
       {rooms.length === 0 ? (
-        <EmptyState icon="🎥" title="No open rooms" hint="Create one above to get started — open a room and invite a partner to practice live." />
+        <EmptyState icon="video" title="No open rooms" hint="Create one above to get started — open a room and invite a partner to practice live." />
       ) : (
         <div className="grid">
           {rooms.map((r) => (

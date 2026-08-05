@@ -163,7 +163,7 @@ export default function Meetups() {
 
       <h3>Upcoming</h3>
       {meetups.length === 0 ? (
-        <EmptyState icon="📅" title="No upcoming meetups" hint="Host the first one above — a study session, a Q&A, or a casual hangout. People join in once it's on the calendar." />
+        <EmptyState icon="calendar" title="No upcoming meetups" hint="Host the first one above — a study session, a Q&A, or a casual hangout. People join in once it's on the calendar." />
       ) : (
         <div className="grid">
           {meetups.map((m) => (

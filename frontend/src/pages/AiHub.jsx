@@ -5,6 +5,7 @@
 
 import { Link } from "react-router-dom";
 import Hub from "../components/Hub.jsx";
+import Icon from "../components/icons.jsx";
 import { NAV_GROUPS } from "../components/navGroups.jsx";
 import { useApp } from "../context/AppContext.jsx";
 
@@ -15,16 +16,16 @@ function forYou(user) {
   // feels personal without inventing data.
   const items = [];
   if (!user?.goal) {
-    items.push({ to: "/goal", emoji: "🎯", text: "Set your goal and get a roadmap" });
+    items.push({ to: "/goal", icon: "target", text: "Set your goal and get a roadmap" });
   } else {
-    items.push({ to: "/lessons", emoji: "📖", text: `Continue toward: ${user.goal}` });
+    items.push({ to: "/lessons", icon: "bookOpen", text: `Continue toward: ${user.goal}` });
   }
   items.push(
-    { to: "/discover", emoji: "✨", text: "Discover new skills to learn" },
-    { to: "/coach", emoji: "🧠", text: "Ask the AI coach a question" },
-    { to: "/scanner", emoji: "🔍", text: "Get feedback on your resume or code" },
-    { to: "/flashcards", emoji: "🃏", text: "Review today's flashcards" },
-    { to: "/challenges", emoji: "⚡", text: "Take today's challenge" },
+    { to: "/discover", icon: "sparkle", text: "Discover new skills to learn" },
+    { to: "/coach", icon: "brain", text: "Ask the AI coach a question" },
+    { to: "/scanner", icon: "scan", text: "Get feedback on your resume or code" },
+    { to: "/flashcards", icon: "cards", text: "Review today's flashcards" },
+    { to: "/challenges", icon: "bolt", text: "Take today's challenge" },
   );
   return items;
 }
@@ -40,7 +41,7 @@ export default function AiHub() {
         <div className="foryou-strip">
           {suggestions.map((s) => (
             <Link key={s.to + s.text} to={s.to} className="foryou-card">
-              <span className="foryou-emoji" aria-hidden="true">{s.emoji}</span>
+              <span className="foryou-ic" aria-hidden="true"><Icon name={s.icon} size={22} /></span>
               <span className="foryou-text">{s.text}</span>
             </Link>
           ))}

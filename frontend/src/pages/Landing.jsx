@@ -1,13 +1,15 @@
 // Public marketing landing page shown to logged-out visitors. Sells the product
 // before the sign-in wall. CTAs flip the logged-out shell into the Auth form.
 
+import Icon from "../components/icons.jsx";
+
 const FEATURES = [
-  { icon: "🤝", title: "AI skill matching", text: "Get paired with people who can teach what you want — and learn what you can teach. A dating app for learning." },
-  { icon: "🧠", title: "Your 24/7 AI coach", text: "Ask anything, get study plans, and upload your resume or code for instant, specific feedback." },
-  { icon: "🎥", title: "Live practice rooms", text: "Video sessions with screen-share and shared notes — practice with a real partner, not just an app." },
-  { icon: "🔥", title: "Streaks, leagues & buddies", text: "Daily goals, weekly leagues, and a shared streak with a partner keep you showing up." },
-  { icon: "🎓", title: "Get verified & certified", text: "Prove your skills with peer or AI assessments, and earn shareable course certificates." },
-  { icon: "🃏", title: "AI flashcards & lessons", text: "Turn anything into spaced-repetition flashcards and AI-written daily lessons toward your goal." },
+  { icon: "handshake", title: "AI skill matching", text: "Get paired with people who can teach what you want — and learn what you can teach. A dating app for learning." },
+  { icon: "brain", title: "Your 24/7 AI coach", text: "Ask anything, get study plans, and upload your resume or code for instant, specific feedback." },
+  { icon: "video", title: "Live practice rooms", text: "Video sessions with screen-share and shared notes — practice with a real partner, not just an app." },
+  { icon: "flame", title: "Streaks, leagues & buddies", text: "Daily goals, weekly leagues, and a shared streak with a partner keep you showing up." },
+  { icon: "shieldCheck", title: "Get verified & certified", text: "Prove your skills with peer or AI assessments, and earn shareable course certificates." },
+  { icon: "cards", title: "AI flashcards & lessons", text: "Turn anything into spaced-repetition flashcards and AI-written daily lessons toward your goal." },
 ];
 
 const STEPS = [
@@ -56,7 +58,7 @@ export default function Landing({ onSignup, onLogin }) {
         <div className="landing-feature-grid">
           {FEATURES.map((f) => (
             <div key={f.title} className="landing-feature card">
-              <span className="landing-feature-icon" aria-hidden="true">{f.icon}</span>
+              <span className="landing-feature-icon" aria-hidden="true"><Icon name={f.icon} size={26} /></span>
               <h3>{f.title}</h3>
               <p className="muted">{f.text}</p>
             </div>

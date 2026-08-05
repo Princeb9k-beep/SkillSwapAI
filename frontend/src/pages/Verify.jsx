@@ -44,7 +44,7 @@ function AiAssessment({ skills, onVerified }) {
       const res = await api.submitAssessment(quiz.id, ordered);
       setResult(res);
       if (res.passed) {
-        notify(`${res.skill_name} verified! 🎉`, "success");
+        notify(`${res.skill_name} verified!`, "success");
         onVerified?.();
       }
     } catch (err) {
@@ -244,7 +244,7 @@ export default function Verify() {
 
       <h2>Review peers</h2>
       {queue.length === 0 ? (
-        <EmptyState icon="✅" title="Nothing to review" hint="Check back later for peer requests — you'll be asked to assess others as the community grows." />
+        <EmptyState icon="shieldCheck" title="Nothing to review" hint="Check back later for peer requests — you'll be asked to assess others as the community grows." />
       ) : (
         <div className="grid">
           {queue.map((r) => (

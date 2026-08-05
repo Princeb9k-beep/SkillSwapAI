@@ -319,7 +319,7 @@ export default function Settings() {
         </label>
         {user?.timezone && (
           <p className="field-hint">
-            🕓 Times are shown in your time zone (<strong>{user.timezone}</strong>), detected
+            Times are shown in your time zone (<strong>{user.timezone}</strong>), detected
             automatically from this device.
           </p>
         )}

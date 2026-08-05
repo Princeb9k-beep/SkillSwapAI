@@ -123,7 +123,7 @@ export default function Progress() {
       {/* Streak freezes */}
       <div className="card row-between">
         <div>
-          <strong>❄️ Streak freezes: {prog.streak_freezes}</strong>
+          <strong>Streak freezes: {prog.streak_freezes}</strong>
           <p className="muted xp-hint">Automatically saves your streak after one missed day.</p>
         </div>
         <div className="progress-share-actions">

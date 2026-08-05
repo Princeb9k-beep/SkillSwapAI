@@ -65,7 +65,7 @@ function TokenWallet() {
       </p>
 
       {wallet.unlimited ? (
-        <p className="muted">Your Elite plan includes unlimited AI tokens. 🎉</p>
+        <p className="muted">Your Elite plan includes unlimited AI tokens.</p>
       ) : (
         <>
           <div className="progress-track">

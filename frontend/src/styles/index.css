@@ -1,47 +1,82 @@
 /* SkillSwap AI — design tokens + base styles.
    Palette/spacing tokens follow ui-ux-pro-max conventions and support light & dark. */
 
+/* "Graphite + Serif · Ink": a monochrome, professional base with editorial
+   serif headings and one quiet ink-blue accent reserved for primary actions,
+   links, and active states. Colors flow from these tokens; components never
+   hard-code palette values. */
 :root {
-  --bg: #f7f8fb;
+  /* Type: serif display for headings, system sans for everything read at length. */
+  --font-head: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
+    "Times New Roman", serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+
+  /* Light — graphite neutrals + ink accent. */
+  --bg: #fafafa;
   --surface: #ffffff;
-  --text: #1a1c25;
-  --muted: #6b7280;
-  --primary: #4f46e5;
-  --primary-600: #4338ca;
-  --border: #e5e7eb;
-  --success: #16a34a;
-  --error: #dc2626;
-  --radius: 14px;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.04);
+  --surface-2: #f3f3f4;
+  --text: #161618;
+  --muted: #6f7178;
+  --primary: #2e4a76;
+  --primary-600: #24395d;
+  --primary-contrast: #ffffff;
+  --chip: #eef1f7;
+  --border: #e5e5e8;
+  --success: #16794a;
+  --error: #b3261e;
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.05);
 }
 
 /* Dark tokens shared by "system dark" and an explicit dark choice. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0f1117;
-    --surface: #171a23;
-    --text: #e8eaf0;
-    --muted: #9aa1ad;
-    --border: #262b36;
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --bg: #09090a;
+    --surface: #131315;
+    --surface-2: #1b1b1e;
+    --text: #ededee;
+    --muted: #a1a1aa;
+    --primary: #4a6aa5;
+    --primary-600: #3d5890;
+    --primary-contrast: #ffffff;
+    --chip: #171f2e;
+    --border: #282829;
+    --success: #37b27f;
+    --error: #e5675f;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
   }
 }
 /* Explicit choice from Settings wins over the OS preference. */
 :root[data-theme="dark"] {
-  --bg: #0f1117;
-  --surface: #171a23;
-  --text: #e8eaf0;
-  --muted: #9aa1ad;
-  --border: #262b36;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --bg: #09090a;
+  --surface: #131315;
+  --surface-2: #1b1b1e;
+  --text: #ededee;
+  --muted: #a1a1aa;
+  --primary: #4a6aa5;
+  --primary-600: #3d5890;
+  --primary-contrast: #ffffff;
+  --chip: #171f2e;
+  --border: #282829;
+  --success: #37b27f;
+  --error: #e5675f;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 :root[data-theme="light"] {
-  --bg: #f7f8fb;
+  --bg: #fafafa;
   --surface: #ffffff;
-  --text: #1a1c25;
-  --muted: #6b7280;
-  --border: #e5e7eb;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.04);
+  --surface-2: #f3f3f4;
+  --text: #161618;
+  --muted: #6f7178;
+  --primary: #2e4a76;
+  --primary-600: #24395d;
+  --primary-contrast: #ffffff;
+  --chip: #eef1f7;
+  --border: #e5e5e8;
+  --success: #16794a;
+  --error: #b3261e;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.05);
 }
 
 * {
@@ -49,10 +84,21 @@
 }
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-body);
   background: var(--bg);
   color: var(--text);
   line-height: 1.55;
+}
+/* Editorial serif headings carry the character; body stays sans for legibility. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.brand {
+  font-family: var(--font-head);
+  letter-spacing: -0.01em;
 }
 h1 {
   font-size: 1.9rem;
@@ -396,8 +442,8 @@ a:focus-visible {
   font-size: 0.75rem;
   padding: 0.15rem 0.55rem;
   border-radius: 999px;
-  background: var(--surface-2, rgba(79, 70, 229, 0.12));
-  color: var(--accent, #4f46e5);
+  background: var(--chip);
+  color: var(--primary);
   white-space: nowrap;
 }
 .video-grid {
@@ -1922,10 +1968,14 @@ a:focus-visible {
   margin: 0 auto;
 }
 .state-empty-icon {
-  font-size: 3rem;
-  line-height: 1;
-  margin-bottom: 0.75rem;
-  filter: saturate(0.9);
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 0.85rem;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--chip);
+  color: var(--primary);
 }
 .state-empty h3 {
   color: var(--text);
@@ -2139,7 +2189,7 @@ a:focus-visible {
   color: #fff;
 }
 .tier-elite {
-  background: linear-gradient(135deg, #c084fc 0%, #a855f7 40%, #7c3aed 100%);
+  background: linear-gradient(135deg, #6a5a9c 0%, #3d5890 55%, #2e4a76 100%);
   color: #fff;
 }
 
@@ -2176,7 +2226,7 @@ a:focus-visible {
   background: var(--primary);
 }
 .plan-badge-elite {
-  background: linear-gradient(135deg, #c084fc 0%, #a855f7 40%, #7c3aed 100%);
+  background: linear-gradient(135deg, #6a5a9c 0%, #3d5890 55%, #2e4a76 100%);
 }
 /* Desktop top-bar: small gap after the label. */
 .nav-link .plan-badge {
@@ -2290,7 +2340,7 @@ a:focus-visible {
   font-size: 1.8rem;
   font-weight: 800;
   color: #fff;
-  background: linear-gradient(135deg, #a855f7, #4f46e5);
+  background: linear-gradient(135deg, #4a6aa5, #2e4a76);
 }
 .profile-head h1 {
   margin: 0 0 0.15rem;
@@ -2653,8 +2703,14 @@ a:focus-visible {
   gap: 0.75rem;
 }
 .feed-icon {
-  font-size: 1.4rem;
   flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--chip);
+  color: var(--primary);
 }
 .feed-body {
   flex: 1;
@@ -2668,6 +2724,9 @@ a:focus-visible {
 }
 .kudos-btn {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   border: 1px solid var(--border);
   background: var(--surface);
   border-radius: 999px;
@@ -2778,7 +2837,7 @@ a:focus-visible {
   margin: 0;
 }
 .landing-accent {
-  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  background: linear-gradient(135deg, #4a6aa5, #2e4a76);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -2988,10 +3047,15 @@ a:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
-.hub-card-emoji {
-  font-size: 1.7rem;
-  line-height: 1;
+.hub-card-ic {
   flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--chip);
+  color: var(--primary);
 }
 .hub-card-body {
   display: flex;
@@ -3054,9 +3118,10 @@ a:focus-visible {
   outline: 2px solid var(--text);
   outline-offset: 2px;
 }
-.foryou-emoji {
-  font-size: 1.6rem;
-  line-height: 1;
+.foryou-ic {
+  display: inline-flex;
+  color: #fff;
+  opacity: 0.95;
 }
 .foryou-text {
   font-weight: 600;
@@ -3142,10 +3207,15 @@ a:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
-.dock-action-emoji {
-  font-size: 1.5rem;
-  line-height: 1;
+.dock-action-ic {
   flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--chip);
+  color: var(--primary);
 }
 .dock-action-body {
   display: flex;
@@ -3404,8 +3474,8 @@ a:focus-visible {
   margin-bottom: 0;
 }
 .stream-feature-disco {
-  background: linear-gradient(135deg, #d946ef, #7c3aed);
-  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.32);
+  background: linear-gradient(135deg, var(--primary-600), var(--primary));
+  box-shadow: 0 6px 20px rgba(46, 74, 118, 0.3);
 }
 
 /* --- Discover: TikTok-style skill feed --- */
@@ -3450,6 +3520,8 @@ a:focus-visible {
   justify-content: space-between;
   padding: 1.2rem 1.2rem 1.4rem;
   color: #fff;
+  background:
+    radial-gradient(120% 85% at 50% 12%, var(--primary), color-mix(in srgb, var(--primary) 45%, #05070c));
   border-radius: var(--radius);
   margin-bottom: 2px;
   overflow: hidden;
@@ -3506,6 +3578,9 @@ a:focus-visible {
 }
 .disco-status {
   margin-top: 0.2rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   padding: 0.2rem 0.7rem;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.2);
@@ -3567,4 +3642,38 @@ a:focus-visible {
 @media (max-width: 480px) {
   .disco-name { font-size: 1.7rem; }
   .disco-emoji { font-size: 3.6rem; }
+}
+
+/* Line-icon containers (emoji replacements): tint and center the SVGs. */
+.landing-feature-icon {
+  color: var(--primary);
+  display: inline-flex;
+}
+.token-pill-icon {
+  display: inline-flex;
+  align-items: center;
+}
+.plan-gate-emoji {
+  color: var(--primary);
+  display: flex;
+  justify-content: center;
+}
+.badge-medal {
+  color: var(--primary);
+  display: inline-flex;
+}
+.cert-seal {
+  color: var(--primary);
+  display: inline-flex;
+  justify-content: center;
+}
+.cert-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.lesson-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }

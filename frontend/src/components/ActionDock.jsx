@@ -5,6 +5,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { CREATE_ACTIONS } from "./navGroups.jsx";
+import Icon from "./icons.jsx";
 
 export default function ActionDock({ open, onClose }) {
   const navigate = useNavigate();
@@ -40,7 +41,7 @@ export default function ActionDock({ open, onClose }) {
         <div className="dock-actions">
           {CREATE_ACTIONS.map((a) => (
             <button key={a.to + a.label} type="button" className="dock-action" onClick={() => go(a.to)}>
-              <span className="dock-action-emoji" aria-hidden="true">{a.emoji}</span>
+              <span className="dock-action-ic" aria-hidden="true"><Icon name={a.icon} size={20} /></span>
               <span className="dock-action-body">
                 <span className="dock-action-label">{a.label}</span>
                 <span className="dock-action-desc muted">{a.desc}</span>

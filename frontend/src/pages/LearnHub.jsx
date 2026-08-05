@@ -4,6 +4,7 @@
 
 import { Link } from "react-router-dom";
 import Hub from "../components/Hub.jsx";
+import Icon from "../components/icons.jsx";
 import { NAV_GROUPS } from "../components/navGroups.jsx";
 
 const G = NAV_GROUPS.find((g) => g.key === "learn");
@@ -13,7 +14,7 @@ export default function LearnHub() {
     <Hub title="Learn" tagline={G.tagline} links={G.links} accent="learn">
       <div className="stream-feature-row">
         <Link to="/discover" className="stream-feature stream-feature-disco">
-          <span className="stream-feature-emoji" aria-hidden="true">✨</span>
+          <span className="stream-feature-emoji" aria-hidden="true"><Icon name="sparkle" size={20} /></span>
           <span className="stream-feature-body">
             <span className="stream-feature-title">Discover skills</span>
             <span className="stream-feature-desc">
@@ -23,7 +24,7 @@ export default function LearnHub() {
           <span className="stream-feature-go" aria-hidden="true">›</span>
         </Link>
         <Link to="/stream" className="stream-feature">
-          <span className="stream-feature-emoji" aria-hidden="true">▶</span>
+          <span className="stream-feature-emoji" aria-hidden="true"><Icon name="play" size={20} /></span>
           <span className="stream-feature-body">
             <span className="stream-feature-title">Today's Stream</span>
             <span className="stream-feature-desc">
