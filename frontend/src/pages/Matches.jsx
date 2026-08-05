@@ -140,7 +140,7 @@ function MatchCard({ m, onDismiss }) {
           : `Reputation ${rep.score}/100 · ${rep.count} review${rep.count === 1 ? "" : "s"}`}
       </p>
       <div className="match-badges">
-        {m.mutual_interest && <span className="badge match-itsamatch">✨ It's a match!</span>}
+        {m.mutual_interest && <span className="badge match-itsamatch">It's a match!</span>}
         {m.mutual && <span className="badge match-mutual">Two-way swap</span>}
         {interested && !m.mutual_interest && (
           <span className="badge match-saved">Saved</span>
@@ -342,14 +342,14 @@ export default function Matches() {
 
       {matches.length === 0 && canMatch && !finding && (
         <EmptyState
-          icon="🧭"
+          icon="compass"
           title="Ready when you are"
           hint="Tap “Find matches” to meet complementary learners. New here? The best matches show up as more people join — check back as the community grows, or invite a friend to swap with."
         />
       )}
       {!canMatch && (
         <EmptyState
-          icon="✨"
+          icon="sparkle"
           title="Add a skill to meet your first match"
           hint="Tell us one thing you can teach and one you want to learn — that's all it takes to find a partner."
         />

@@ -10,6 +10,7 @@ import { api } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import { ErrorBanner, EmptyState } from "../components/States.jsx";
 import { SkeletonPage } from "../components/Skeleton.jsx";
+import Icon from "../components/icons.jsx";
 
 function CheckIcon() {
   return (
@@ -83,7 +84,7 @@ export default function Stream() {
   if (lessons.length === 0) {
     return (
       <EmptyState
-        icon="📖"
+        icon="book"
         title="No lessons in your stream yet"
         hint="Set a goal and we'll generate a daily set you can swipe through."
       >
@@ -151,7 +152,7 @@ export default function Stream() {
         {/* Wrap-up panel */}
         <section className="stream-panel stream-outro" aria-roledescription="summary">
           <div className="stream-panel-inner">
-            <span className="stream-outro-emoji" aria-hidden="true">{done === lessons.length ? "🎉" : "💪"}</span>
+            <span className="stream-outro-emoji" aria-hidden="true"><Icon name={done === lessons.length ? "trophy" : "flame"} size={48} /></span>
             <h2 className="stream-title">
               {done === lessons.length ? "You finished today's stream!" : "Keep the streak going"}
             </h2>

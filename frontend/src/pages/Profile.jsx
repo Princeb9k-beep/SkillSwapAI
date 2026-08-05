@@ -6,6 +6,7 @@ import { api } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import { ErrorBanner } from "../components/States.jsx";
 import { SkeletonPage } from "../components/Skeleton.jsx";
+import Icon from "../components/icons.jsx";
 import { share } from "../share.js";
 
 const memberSince = (iso) =>
@@ -93,7 +94,7 @@ export default function Profile() {
             <p className="field-hint">Member since {memberSince(p.member_since)}</p>
           )}
           {p.availability_note && (
-            <p className="field-hint">🗓 Usually free: {p.availability_note}</p>
+            <p className="field-hint">Usually free: {p.availability_note}</p>
           )}
           <div className="profile-actions">
             <Link className="btn btn-primary" to={`/sessions?to=${p.id}&name=${encodeURIComponent(p.name)}`}>
@@ -109,7 +110,7 @@ export default function Profile() {
       <div className="profile-stats">
         <div className="card stat-tile"><span className="stat-num">{p.level}</span><span className="muted">Level</span></div>
         <div className="card stat-tile"><span className="stat-num">{p.xp}</span><span className="muted">XP</span></div>
-        <div className="card stat-tile"><span className="stat-num">{p.streak}🔥</span><span className="muted">Day streak</span></div>
+        <div className="card stat-tile"><span className="stat-num">{p.streak}</span><span className="muted">Day streak</span></div>
         {rep.count > 0 && typeof rep.score === "number" && (
           <div className="card stat-tile"><span className="stat-num">{rep.score.toFixed(1)}</span><span className="muted">Rating ({rep.count})</span></div>
         )}
@@ -128,7 +129,7 @@ export default function Profile() {
                   {s.verified && " ✓"}
                 </span>
                 {s.endorsements > 0 && (
-                  <span className="endorse-count muted">👍 {s.endorsements}</span>
+                  <span className="endorse-count muted">{s.endorsements} endorsements</span>
                 )}
                 {!isOwn && (
                   <button
@@ -152,7 +153,7 @@ export default function Profile() {
           <ul className="cert-list">
             {certs.map((c) => (
               <li key={c.id} className="cert-row">
-                <span>🎓 {c.title}</span>
+                <span className="cert-title"><Icon name="graduation" size={18} /> {c.title}</span>
                 <button
                   type="button"
                   className="btn btn-ghost"
@@ -183,7 +184,7 @@ export default function Profile() {
           <div className="badge-grid">
             {p.badges.map((b) => (
               <div key={b.code} className="badge-item" title={b.description || ""}>
-                <span className="badge-medal" aria-hidden="true">🏅</span>
+                <span className="badge-medal" aria-hidden="true"><Icon name="medal" size={26} /></span>
                 <span className="badge-title">{b.title}</span>
               </div>
             ))}

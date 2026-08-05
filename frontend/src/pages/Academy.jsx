@@ -7,6 +7,7 @@ import { useApp } from "../context/AppContext.jsx";
 import { ErrorBanner, EmptyState } from "../components/States.jsx";
 import { SkeletonPage } from "../components/Skeleton.jsx";
 import UpgradeNotice from "../components/UpgradeNotice.jsx";
+import Icon from "../components/icons.jsx";
 
 const price = (cents) => `$${(cents / 100).toFixed(0)}`;
 
@@ -306,7 +307,7 @@ function PathDetail({ slug, onBack }) {
                   onClick={() => setActiveLesson(l)}
                 >
                   <span className="lesson-status">
-                    {l.completed ? "✓" : l.locked ? "🔒" : "○"}
+                    {l.completed ? "✓" : l.locked ? <Icon name="lock" size={14} /> : "○"}
                   </span>
                   <span className="lesson-name">{l.title}</span>
                   {l.locked && <span className="muted lesson-lock">Enroll to unlock</span>}

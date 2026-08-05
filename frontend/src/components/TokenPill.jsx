@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { api } from "../api/client.js";
+import Icon from "./icons.jsx";
 
 // Tabs that feature AI. "/" (goal → roadmap) is matched exactly; the rest match
 // as path prefixes so their sub-routes count too.
@@ -64,7 +65,7 @@ export default function TokenPill() {
       title={wallet.unlimited ? "Unlimited AI tokens" : `${wallet.balance} AI tokens left`}
       aria-label={wallet.unlimited ? "Unlimited AI tokens" : `${wallet.balance} AI tokens left`}
     >
-      <span className="token-pill-icon" aria-hidden="true">⚡</span>
+      <span className="token-pill-icon" aria-hidden="true"><Icon name="coin" size={13} /></span>
       <span className="token-pill-count">{label}</span>
     </Link>
   );

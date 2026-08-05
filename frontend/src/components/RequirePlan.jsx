@@ -5,6 +5,7 @@
 
 import { useApp } from "../context/AppContext.jsx";
 import UpgradeNotice from "./UpgradeNotice.jsx";
+import Icon from "./icons.jsx";
 
 const RANK = { free: 0, pro: 1, elite: 2 };
 
@@ -16,7 +17,7 @@ export default function RequirePlan({ need = "pro", name, children }) {
   const label = need === "elite" ? "Elite" : "Pro";
   return (
     <section className="plan-gate">
-      <div className="plan-gate-emoji" aria-hidden="true">{need === "elite" ? "💎" : "⭐"}</div>
+      <div className="plan-gate-emoji" aria-hidden="true"><Icon name={need === "elite" ? "gem" : "star"} size={44} /></div>
       <h1>{name || "A premium feature"}</h1>
       <p className="muted">
         {name ? `${name} is` : "This is"} a {label} feature. Upgrade to unlock it and

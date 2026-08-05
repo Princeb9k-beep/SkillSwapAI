@@ -50,7 +50,7 @@ export default function Buddies() {
       </p>
 
       {list.length === 0 ? (
-        <EmptyState icon="🤝" title="No buddies yet" hint="Team up with someone to keep a shared streak alive. Find a partner, then add them as a learning buddy from their profile.">
+        <EmptyState icon="handshake" title="No buddies yet" hint="Team up with someone to keep a shared streak alive. Find a partner, then add them as a learning buddy from their profile.">
           <Link className="btn btn-primary" to="/matches">Find a partner</Link>
         </EmptyState>
       ) : (
@@ -59,7 +59,7 @@ export default function Buddies() {
             <div className="card buddy-card" key={b.id}>
               <div className="row-between">
                 <h3><Link className="lb-name" to={`/u/${b.partner_id}`}>{b.partner_name}</Link></h3>
-                <span className="buddy-streak">{b.streak}🔥</span>
+                <span className="buddy-streak">{b.streak}</span>
               </div>
 
               {b.status === "pending" ? (

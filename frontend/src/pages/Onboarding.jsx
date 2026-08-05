@@ -235,7 +235,7 @@ export default function Onboarding() {
 
         {step === 3 && (
           <div className="onboarding-step">
-            <h2>You're all set{user?.name ? `, ${user.name}` : ""}! 🎉</h2>
+            <h2>You're all set{user?.name ? `, ${user.name}` : ""}!</h2>
 
             {matches === null ? (
               <p className="muted">Finding your first match…</p>

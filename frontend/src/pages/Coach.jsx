@@ -5,6 +5,7 @@ import { api } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import { ErrorBanner } from "../components/States.jsx";
 import { SkeletonPage } from "../components/Skeleton.jsx";
+import Icon from "../components/icons.jsx";
 
 const SUGGESTIONS = [
   "What should I learn first for my goal?",
@@ -62,7 +63,7 @@ export default function Coach() {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || sending) return;
-    setMessages((m) => [...m, { role: "user", content: `📎 Uploaded ${file.name} for review` }]);
+    setMessages((m) => [...m, { role: "user", content: `Uploaded ${file.name} for review` }]);
     setSending(true);
     try {
       const res = await api.coachCritique(file, "");
@@ -139,7 +140,7 @@ export default function Coach() {
           onChange={(e) => setInput(e.target.value)}
         />
         <label className="btn coach-upload" title="Upload a file for the coach to review">
-          📎
+          <Icon name="paperclip" size={18} />
           <input
             type="file"
             accept=".pdf,.txt,.md,.doc,.docx,.csv,.py,.js,.ts,.json,.html,.css"

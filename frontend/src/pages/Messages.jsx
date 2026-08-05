@@ -202,7 +202,7 @@ export default function Messages() {
         <aside className="messages-threads">
           {threads.length === 0 ? (
             <EmptyState
-              icon="💬"
+              icon="chat"
               title="No conversations yet"
               hint="Find a partner and say hello to start chatting."
             >
@@ -236,7 +236,7 @@ export default function Messages() {
 
         <div className="messages-conversation card">
           {!active ? (
-            <EmptyState icon="👈" title="Pick a conversation" hint="Select a thread to view messages." />
+            <EmptyState icon="inbox" title="Pick a conversation" hint="Select a thread to view messages." />
           ) : (
             <>
               <div className="row-between conversation-head">
@@ -273,7 +273,7 @@ export default function Messages() {
                         onClick={suggestIcebreakers}
                         disabled={loadingIce}
                       >
-                        {loadingIce ? "Thinking…" : "✨ Suggest openers"}
+                        {loadingIce ? "Thinking…" : "Suggest openers"}
                       </button>
                     ) : (
                       <div className="icebreakers">

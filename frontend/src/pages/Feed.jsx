@@ -6,6 +6,7 @@ import { api } from "../api/client.js";
 import { useApp } from "../context/AppContext.jsx";
 import { ErrorBanner, EmptyState } from "../components/States.jsx";
 import { SkeletonPage } from "../components/Skeleton.jsx";
+import Icon from "../components/icons.jsx";
 
 const timeAgo = (iso) => {
   if (!iso) return "";
@@ -66,7 +67,7 @@ export default function Feed() {
 
       {items.length === 0 ? (
         <EmptyState
-          icon="📣"
+          icon="megaphone"
           title="The feed fills up as you go"
           hint="Milestones appear here as you and your partners verify skills, level up, and earn badges. Do your first thing and you'll be the first post."
         >
@@ -77,7 +78,7 @@ export default function Feed() {
         <div className="feed-list">
           {items.map((a) => (
             <div className="card feed-item" key={a.id}>
-              <span className="feed-icon" aria-hidden="true">{a.icon}</span>
+              <span className="feed-icon" aria-hidden="true"><Icon name={a.icon} size={18} /></span>
               <div className="feed-body">
                 <p>
                   <Link className="lb-name" to={`/u/${a.user_id}`}>{a.name}</Link> {a.text}
@@ -90,7 +91,7 @@ export default function Feed() {
                 onClick={() => kudos(a)}
                 aria-label={a.kudoed ? "Remove kudos" : "Give kudos"}
               >
-                👏 {a.kudos}
+                <Icon name="thumbsUp" size={15} /> {a.kudos}
               </button>
             </div>
           ))}

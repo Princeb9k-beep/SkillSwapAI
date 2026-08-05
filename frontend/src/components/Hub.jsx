@@ -5,11 +5,12 @@
 
 import { Link } from "react-router-dom";
 import PlanBadge from "./PlanBadge.jsx";
+import Icon from "./icons.jsx";
 
-export function HubCard({ to, emoji, label, desc, plan }) {
+export function HubCard({ to, icon, label, desc, plan }) {
   return (
     <Link to={to} className="hub-card">
-      <span className="hub-card-emoji" aria-hidden="true">{emoji}</span>
+      <span className="hub-card-ic" aria-hidden="true"><Icon name={icon} size={20} /></span>
       <span className="hub-card-body">
         <span className="hub-card-title">
           {label}

@@ -2,6 +2,7 @@
 // states ui-ux-pro-max recommends every data view should render.
 
 import { Skeleton } from "./Skeleton.jsx";
+import Icon from "./icons.jsx";
 
 // Skeleton placeholder (replaces the old spinner) — reserves space and reads as
 // "content is coming", which feels faster than a spinning circle.
@@ -29,15 +30,15 @@ export function ErrorBanner({ message, onRetry }) {
   );
 }
 
-// A friendly cold-start state. `icon` is a big emoji that gives blank sections a
-// face; `children` holds one or more call-to-action buttons that give a brand-new
-// user an obvious next move instead of a dead end.
+// A friendly cold-start state. `icon` is a line-icon name (see icons.jsx) shown
+// in a soft badge; `children` holds one or more call-to-action buttons that give
+// a brand-new user an obvious next move instead of a dead end.
 export function EmptyState({ icon, title, hint, children }) {
   return (
     <div className="state state-empty">
       {icon && (
         <div className="state-empty-icon" aria-hidden="true">
-          {icon}
+          <Icon name={icon} size={26} />
         </div>
       )}
       <h3>{title}</h3>

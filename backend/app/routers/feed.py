@@ -13,12 +13,13 @@ from ..responses import error, ok
 
 router = APIRouter(prefix="/feed", tags=["feed"])
 
+# Line-icon names (resolved to SVGs on the client), not emoji, for a cleaner look.
 _VERBS = {
-    "verified": "✓",
-    "achievement": "🏅",
-    "level_up": "⬆️",
-    "completion": "🎓",
-    "streak": "🔥",
+    "verified": "shieldCheck",
+    "achievement": "medal",
+    "level_up": "trending",
+    "completion": "graduation",
+    "streak": "flame",
 }
 
 
@@ -60,7 +61,7 @@ async def feed(
                 "user_id": a.user_id,
                 "name": names.get(a.user_id) or f"Learner #{a.user_id}",
                 "kind": a.kind,
-                "icon": _VERBS.get(a.kind, "•"),
+                "icon": _VERBS.get(a.kind, "sparkle"),
                 "text": a.text,
                 "kudos": a.kudos,
                 "kudoed": a.id in my_kudos,
