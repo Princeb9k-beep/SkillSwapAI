@@ -69,6 +69,7 @@ export const NAV_GROUPS = [
     Icon: AiIcon,
     tagline: "Your AI copilots and instant tools.",
     links: [
+      { to: "/trade", label: "Trade Desk", icon: "chart", desc: "Charts, paper trading, and an AI coach." },
       { to: "/coach", label: "Coach", icon: "brain", desc: "Ask anything, get a study plan." },
       { to: "/twin", label: "AI Twin", icon: "user", desc: "Your teaching style, distilled.", plan: "pro" },
       { to: "/scanner", label: "Scanner", icon: "scan", desc: "Upload a resume or code for feedback." },

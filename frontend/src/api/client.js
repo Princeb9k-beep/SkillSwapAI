@@ -133,6 +133,8 @@ const AI_TOKEN_PREFIXES = [
   "/coach",
   "/scanner",
   "/translate",
+  "/trading/analyze",
+  "/trading/journal",
   "/roadmap",
   "/resume",
   "/interview",
@@ -249,6 +251,30 @@ export const api = {
     fd.append("file", file);
     return request("/scanner/analyze-file", { method: "POST", body: fd });
   },
+  // trading platform (day-trading shared core)
+  tradeQuote: (symbol) => request(`/trading/quote/${encodeURIComponent(symbol)}`),
+  tradeCandles: (symbol, timeframe = "1d", limit = 120) =>
+    request(`/trading/candles/${encodeURIComponent(symbol)}?timeframe=${timeframe}&limit=${limit}`),
+  tradeWatchlist: () => request("/trading/watchlist"),
+  tradeAddWatch: (symbol) => request("/trading/watchlist", { method: "POST", body: { symbol } }),
+  tradeRemoveWatch: (symbol) =>
+    request(`/trading/watchlist/${encodeURIComponent(symbol)}`, { method: "DELETE" }),
+  tradeAccount: () => request("/trading/account"),
+  tradeAccountSettings: (data) =>
+    request("/trading/account/settings", { method: "POST", body: data }),
+  tradeOrder: (symbol, side, quantity, note) =>
+    request("/trading/orders", { method: "POST", body: { symbol, side, quantity, note } }),
+  tradeOrders: () => request("/trading/orders"),
+  tradeAnalyze: (symbol, timeframe = "1d") =>
+    request(`/trading/analyze/${encodeURIComponent(symbol)}?timeframe=${timeframe}`),
+  tradeScreen: (query, symbols = []) =>
+    request("/trading/screen", { method: "POST", body: { query, symbols } }),
+  tradePositionSize: (data) => request("/trading/position-size", { method: "POST", body: data }),
+  tradeJournal: () => request("/trading/journal"),
+  tradeAddJournal: (data) => request("/trading/journal", { method: "POST", body: data }),
+  tradeReviewJournal: (id) => request(`/trading/journal/${id}/review`, { method: "POST" }),
+  tradeDeleteJournal: (id) => request(`/trading/journal/${id}`, { method: "DELETE" }),
+  tradeAcademy: () => request("/trading/academy"),
   // live translation
   translateLanguages: () => request("/translate/languages"),
   translate: (text, target_language) =>

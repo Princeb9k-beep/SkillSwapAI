@@ -29,6 +29,24 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
 
+    # --- Trading / market data -------------------------------------------
+    # Which market-data provider backs quotes & candles. "synthetic" needs no
+    # keys or network (deterministic per-symbol series) so the app runs and
+    # tests pass fully offline. Set to "alpaca" (with keys) for real data.
+    market_data_provider: str = "synthetic"
+    alpaca_api_key: str = ""
+    alpaca_api_secret: str = ""
+    # Alpaca market-data host (stocks). Crypto uses the same account.
+    alpaca_data_url: str = "https://data.alpaca.markets"
+    # Alpaca trading host — paper by default. Live is a deliberate opt-in.
+    alpaca_trading_url: str = "https://paper-api.alpaca.markets"
+    # Master switch for real-broker order routing. OFF by default: every order
+    # is simulated against the in-app paper account until this is turned on AND
+    # a broker is connected. Real money stays behind this gate + disclaimers.
+    live_trading_enabled: bool = False
+    # Starting virtual cash for a new paper account, in dollars.
+    paper_starting_cash: float = 100_000.0
+
     # --- App --------------------------------------------------------------
     app_env: str = "development"
     app_secret_key: str = "change-me"

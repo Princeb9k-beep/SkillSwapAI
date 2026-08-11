@@ -1601,3 +1601,117 @@ def test_missing_auth_returns_envelope(client):
     assert r.status_code == 401
     _assert_envelope(r.json())
     assert r.json()["success"] is False
+
+
+def test_trading_core_paper_flow(client):
+    """The day-trading shared core: data, account, paper order, sizing, journal."""
+    trader = _auth(client, "trader@example.com", "Trader")
+
+    # Candles + quote from the synthetic provider (deterministic, offline).
+    r = client.get("/trading/candles/AAPL?timeframe=1d&limit=60", headers=trader)
+    assert r.status_code == 200
+    candles = r.json()["data"]["candles"]
+    assert len(candles) == 60
+    assert {"o", "h", "l", "c", "v", "t"} <= set(candles[0].keys())
+
+    r = client.get("/trading/quote/AAPL", headers=trader)
+    assert r.status_code == 200
+    price = r.json()["data"]["price"]
+    assert price > 0
+
+    # Fresh paper account is funded with the starting cash.
+    r = client.get("/trading/account", headers=trader)
+    assert r.status_code == 200
+    acct = r.json()["data"]
+    assert acct["cash"] > 0 and acct["equity"] > 0
+    start_cash = acct["cash"]
+
+    # Place a paper BUY -> cash drops, a position appears.
+    r = client.post(
+        "/trading/orders",
+        json={"symbol": "AAPL", "side": "buy", "quantity": 10},
+        headers=trader,
+    )
+    assert r.status_code == 200
+    body = r.json()["data"]
+    assert body["order"]["status"] == "filled"
+    assert body["account"]["cash"] < start_cash
+    assert any(p["symbol"] == "AAPL" and p["quantity"] == 10 for p in body["account"]["positions"])
+
+    # Overselling is rejected (no shorting in the MVP).
+    r = client.post(
+        "/trading/orders",
+        json={"symbol": "AAPL", "side": "sell", "quantity": 999},
+        headers=trader,
+    )
+    assert r.status_code == 400
+    assert r.json()["success"] is False
+
+    # Selling the position back realizes P&L and clears it.
+    r = client.post(
+        "/trading/orders",
+        json={"symbol": "AAPL", "side": "sell", "quantity": 10},
+        headers=trader,
+    )
+    assert r.status_code == 200
+    assert r.json()["data"]["order"]["realized_pnl"] is not None
+
+    # Position sizer is pure math and always available.
+    r = client.post(
+        "/trading/position-size",
+        json={"entry": 100, "stop": 95, "risk_pct": 1, "equity": 10000},
+        headers=trader,
+    )
+    assert r.status_code == 200
+    plan = r.json()["data"]
+    assert plan["valid"] is True
+    assert plan["shares"] == 20  # $100 risk / $5 per share
+    assert plan["direction"] == "long"
+
+    # AI analysis falls back to a rules-based read when Groq is unconfigured.
+    r = client.get("/trading/analyze/AAPL?timeframe=1d", headers=trader)
+    assert r.status_code == 200
+    analysis = r.json()["data"]
+    assert analysis["bias"] in {"bullish", "bearish", "neutral"}
+    assert "indicators" in analysis and "disclaimer" in analysis
+
+    # Natural-language screener returns ranked, explainable matches.
+    r = client.post(
+        "/trading/screen",
+        json={"query": "uptrend momentum", "symbols": ["AAPL", "MSFT", "NVDA"]},
+        headers=trader,
+    )
+    assert r.status_code == 200
+    assert "results" in r.json()["data"]
+
+    # Journal a trade, then have the coach review it (rules-based fallback).
+    r = client.post(
+        "/trading/journal",
+        json={"symbol": "AAPL", "side": "buy", "entry_price": 100,
+              "exit_price": 110, "stop_price": 95, "quantity": 10,
+              "thesis": "breakout over resistance", "emotion": "calm"},
+        headers=trader,
+    )
+    assert r.status_code == 200
+    entry_id = r.json()["data"]["id"]
+    assert r.json()["data"]["pnl"] == 100.0
+
+    r = client.post(f"/trading/journal/{entry_id}/review", headers=trader)
+    assert r.status_code == 200
+    assert r.json()["data"]["feedback"]
+
+    # Academy curriculum is served for new traders.
+    r = client.get("/trading/academy", headers=trader)
+    assert r.status_code == 200
+    assert len(r.json()["data"]["modules"]) >= 3
+
+
+def test_trading_watchlist(client):
+    trader = _auth(client, "watcher@example.com", "Watcher")
+    r = client.post("/trading/watchlist", json={"symbol": "nvda"}, headers=trader)
+    assert r.status_code == 200
+    r = client.get("/trading/watchlist", headers=trader)
+    assert r.status_code == 200
+    assert "NVDA" in r.json()["data"]["symbols"]
+    r = client.delete("/trading/watchlist/NVDA", headers=trader)
+    assert r.status_code == 200

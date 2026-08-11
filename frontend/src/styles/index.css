@@ -3677,3 +3677,10 @@ a:focus-visible {
   align-items: center;
   justify-content: center;
 }
+
+/* Trade Desk cockpit: collapse the chart/rail grid on narrow screens. */
+@media (max-width: 860px) {
+  .trade-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
