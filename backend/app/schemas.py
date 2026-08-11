@@ -408,3 +408,45 @@ class LessonOut(BaseModel):
     title: str
     content: str | None
     completed: bool
+
+
+# --- Trading platform -----------------------------------------------------
+class OrderRequest(BaseModel):
+    symbol: str = Field(min_length=1, max_length=20, examples=["AAPL"])
+    side: str = Field(examples=["buy", "sell"])
+    quantity: float = Field(gt=0, le=1_000_000)
+    note: str | None = Field(default=None, max_length=255)
+
+
+class WatchlistRequest(BaseModel):
+    symbol: str = Field(min_length=1, max_length=20, examples=["NVDA"])
+
+
+class ScreenRequest(BaseModel):
+    query: str = Field(min_length=1, max_length=200, examples=["oversold large-caps in an uptrend"])
+    symbols: list[str] = Field(default_factory=list)
+
+
+class PositionSizeRequest(BaseModel):
+    entry: float = Field(gt=0)
+    stop: float = Field(gt=0)
+    risk_pct: float = Field(default=1.0, gt=0, le=100)
+    equity: float | None = Field(default=None, gt=0)
+
+
+class JournalRequest(BaseModel):
+    symbol: str = Field(min_length=1, max_length=20)
+    side: str = Field(default="buy", examples=["buy", "sell"])
+    entry_price: float | None = None
+    exit_price: float | None = None
+    stop_price: float | None = None
+    quantity: float | None = None
+    thesis: str | None = Field(default=None, max_length=4000)
+    emotion: str | None = Field(default=None, max_length=40)
+    tags: list[str] = Field(default_factory=list)
+
+
+class AccountSettingsRequest(BaseModel):
+    risk_per_trade_pct: float | None = Field(default=None, gt=0, le=100)
+    max_daily_loss_pct: float | None = Field(default=None, gt=0, le=100)
+    reset: bool = False

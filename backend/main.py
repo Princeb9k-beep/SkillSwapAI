@@ -76,6 +76,7 @@ from app.routers import (
     scanner,
     search,
     sessions,
+    trading,
     translate,
     twin,
     skills,
@@ -103,6 +104,7 @@ _AI_PATHS = frozenset({
     "/scanner/analyze",
     "/challenges/today",
     "/translate",
+    "/trading/screen",
 })
 
 
@@ -242,6 +244,7 @@ app.include_router(reputation.router)
 app.include_router(marketplace.router)
 app.include_router(coach.router)
 app.include_router(scanner.router)
+app.include_router(trading.router)
 app.include_router(challenges.router)
 app.include_router(buddies.router)
 app.include_router(certificates.router)

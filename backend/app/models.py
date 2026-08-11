@@ -15,6 +15,7 @@ from sqlalchemy import (
     Boolean,
     Date,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     String,
@@ -978,6 +979,130 @@ class Flashcard(Base):
     last_reviewed_on: Mapped[date | None] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
+    )
+
+
+# --- Day-trading platform (shared trading core) -------------------------
+# A user's simulated brokerage account. Cash + positions form the ledger the
+# PaperBroker settles orders against. One paper account per user; a future live
+# account (real broker) is a second row with mode="live" behind a config gate.
+class TradingAccount(Base):
+    __tablename__ = "trading_accounts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    # "paper" (virtual money) | "live" (real broker — gated by LIVE_TRADING_ENABLED)
+    mode: Mapped[str] = mapped_column(String(10), default="paper", index=True)
+    cash: Mapped[float] = mapped_column(Float, default=0.0)
+    currency: Mapped[str] = mapped_column(String(3), default="USD")
+    # Frozen once daily loss exceeds the user's guardrail (risk discipline).
+    locked: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    # Max % of equity the user is willing to risk per trade (position sizer default).
+    risk_per_trade_pct: Mapped[float] = mapped_column(Float, default=1.0)
+    # Daily loss limit as % of equity; hitting it locks new orders for the day.
+    max_daily_loss_pct: Mapped[float] = mapped_column(Float, default=5.0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "mode", name="uq_trading_account_mode"),
+    )
+
+
+class TradingPosition(Base):
+    """An open position (net long/short) in one symbol within an account."""
+
+    __tablename__ = "trading_positions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    account_id: Mapped[int] = mapped_column(
+        ForeignKey("trading_accounts.id", ondelete="CASCADE"), index=True
+    )
+    symbol: Mapped[str] = mapped_column(String(20), index=True)
+    quantity: Mapped[float] = mapped_column(Float, default=0.0)
+    avg_price: Mapped[float] = mapped_column(Float, default=0.0)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("account_id", "symbol", name="uq_trading_position"),
+    )
+
+
+class TradingOrder(Base):
+    """A single order. Paper orders are market orders filled immediately at the
+    live quote; realized_pnl is set on the closing (reducing) side of a trade."""
+
+    __tablename__ = "trading_orders"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    account_id: Mapped[int] = mapped_column(
+        ForeignKey("trading_accounts.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    symbol: Mapped[str] = mapped_column(String(20), index=True)
+    side: Mapped[str] = mapped_column(String(4))  # buy | sell
+    quantity: Mapped[float] = mapped_column(Float)
+    price: Mapped[float] = mapped_column(Float)    # fill price
+    # filled | rejected
+    status: Mapped[str] = mapped_column(String(12), default="filled", index=True)
+    realized_pnl: Mapped[float | None] = mapped_column(Float, nullable=True)
+    note: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+
+
+class Watchlist(Base):
+    """A symbol a user is tracking (drives the watchlist + screener universe)."""
+
+    __tablename__ = "watchlist"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    symbol: Mapped[str] = mapped_column(String(20), index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "symbol", name="uq_watchlist_symbol"),
+    )
+
+
+class TradeJournalEntry(Base):
+    """A trader's journal note on a trade — the data the AI Trading Coach reviews
+    and the moat signal that lets coaching improve from a user's own history."""
+
+    __tablename__ = "trade_journal"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    symbol: Mapped[str] = mapped_column(String(20), index=True)
+    side: Mapped[str] = mapped_column(String(4), default="buy")
+    entry_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    exit_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    stop_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    quantity: Mapped[float | None] = mapped_column(Float, nullable=True)
+    pnl: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Why the trade was taken (the thesis) + how the trader felt (psychology).
+    thesis: Mapped[str | None] = mapped_column(Text, nullable=True)
+    emotion: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    tags: Mapped[list] = mapped_column(JSON, default=list)
+    # AI coach feedback, filled in on request.
+    ai_review: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
     )
 
 
