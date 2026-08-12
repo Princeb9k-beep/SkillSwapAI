@@ -157,15 +157,35 @@ async def verify_email(
 async def resend_verification(
     user: User = Depends(get_current_user),
 ) -> object:
-    """Re-issue an email-verification token for the signed-in user."""
+    """Re-issue an email-verification token and report what actually happened.
+
+    Unlike a fire-and-forget send, this awaits the mailer so the response tells
+    the truth: whether email delivery is configured on the server and whether the
+    message was actually sent — surfaced to the user instead of a silent no-op.
+    """
     if user.email_verified:
         return ok(message="Your email is already verified.")
     token = create_scoped_token(user.id, "verify")
-    run_in_background(send_verification_email(user.email, user.name, token), name="verify-email")
-    return ok(
-        data=_dev_token(token),
-        message="Verification email sent.",
-    )
+    configured = email_configured()
+    sent = await send_verification_email(user.email, user.name, token)
+    data = {"email_sent": sent, "email_configured": configured}
+
+    if not configured:
+        # Server has no SMTP provider set. Hand back the token off-production so
+        # the client can still finish verifying; in production just say so.
+        data.update(_dev_token(token))
+        return ok(
+            data=data,
+            message="Email delivery isn't set up on the server yet, so no email was sent.",
+        )
+    if not sent:
+        return error(
+            "We couldn't send the verification email. Check the server's SMTP "
+            "settings (host, port, username, and app password).",
+            status_code=502,
+            code="email_send_failed",
+        )
+    return ok(data=data, message="Verification email sent — check your inbox (and spam).")
 
 
 @router.post("/forgot-password", dependencies=[Depends(rate_limit("forgot", 5, 3600))])
