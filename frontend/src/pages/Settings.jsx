@@ -179,10 +179,17 @@ export default function Settings() {
         await api.verifyEmail(res.dev_token);
         updateUser({ email_verified: true });
         notify("Email verified", "success");
+      } else if (res?.email_configured === false) {
+        // Server has no SMTP set up, so nothing was sent — say so plainly.
+        notify(
+          "Email delivery isn't set up on the server yet, so no email was sent. Add SMTP settings on the server, then try again.",
+          "info",
+        );
       } else {
-        notify("Verification email sent", "success");
+        notify("Verification email sent — check your inbox and spam.", "success");
       }
     } catch (err) {
+      // A failed send (bad SMTP settings) now surfaces here instead of silently.
       notify(err.message, "error");
     } finally {
       setVerifying(false);
