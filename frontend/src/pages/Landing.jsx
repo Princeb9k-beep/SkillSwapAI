@@ -27,28 +27,50 @@ export default function Landing({ onSignup, onLogin }) {
       </header>
 
       <section className="landing-hero">
-        <h1 className="landing-title">Swap skills, <span className="landing-accent">not cash.</span></h1>
-        <p className="landing-sub">
-          Teach what you know, learn what you want — with AI matching, a personal AI coach,
-          live practice, and a community that keeps you going. Free to start.
-        </p>
-        <div className="landing-cta">
-          <button type="button" className="btn btn-primary btn-lg" onClick={onSignup}>
-            Get started free
-          </button>
-          <button type="button" className="btn btn-lg" onClick={onLogin}>
-            I already have an account
-          </button>
+        <div className="landing-hero-copy">
+          <h1 className="landing-title">Swap skills, <span className="landing-accent">not cash.</span></h1>
+          <p className="landing-sub">
+            Teach what you know, learn what you want — with AI matching, a personal AI coach,
+            live practice, and a community that keeps you going. Free to start.
+          </p>
+          <div className="landing-cta">
+            <button type="button" className="btn btn-primary btn-lg" onClick={onSignup}>
+              Get started free
+            </button>
+            <button type="button" className="btn btn-lg" onClick={onLogin}>
+              I already have an account
+            </button>
+          </div>
+          <p className="landing-note muted">No credit card. Learn your first skill this week.</p>
         </div>
-        <p className="landing-note muted">No credit card. Learn your first skill this week.</p>
+
+        {/* Desktop-only product preview — a stylized skill match. Hidden on
+            phones/tablets, where the hero is a single centered column. */}
+        <div className="landing-hero-visual" aria-hidden="true">
+          <div className="lhv-card">
+            <div className="lhv-row">
+              <span className="lhv-avatar">A</span>
+              <span className="lhv-swap"><Icon name="handshake" size={18} /></span>
+              <span className="lhv-avatar lhv-avatar-alt">B</span>
+              <span className="lhv-score">92%</span>
+            </div>
+            <div className="lhv-line"><span className="lhv-tag">Teaches you</span> Python, SQL</div>
+            <div className="lhv-line"><span className="lhv-tag">You teach</span> Guitar</div>
+            <div className="lhv-cta">Say hi</div>
+          </div>
+          <div className="lhv-chip lhv-chip-1"><Icon name="flame" size={15} /> 7-day streak</div>
+          <div className="lhv-chip lhv-chip-2"><Icon name="shieldCheck" size={15} /> Verified: React</div>
+        </div>
       </section>
 
       <section className="landing-steps">
         {STEPS.map((s) => (
           <div key={s.n} className="landing-step">
             <span className="landing-step-n">{s.n}</span>
-            <h3>{s.title}</h3>
-            <p className="muted">{s.text}</p>
+            <div className="landing-step-body">
+              <h3>{s.title}</h3>
+              <p className="muted">{s.text}</p>
+            </div>
           </div>
         ))}
       </section>

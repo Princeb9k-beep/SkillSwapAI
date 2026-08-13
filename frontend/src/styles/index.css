@@ -2810,6 +2810,10 @@ a:focus-visible {
 }
 
 /* ---- Marketing landing page ---- */
+/* ============================================================
+   Landing page — three distinct layouts by device.
+   Mobile-first base = PHONE, then @640px = TABLET, @1024px = LAPTOP.
+   ============================================================ */
 .landing {
   max-width: 1080px;
   margin: 0 auto;
@@ -2822,18 +2826,27 @@ a:focus-visible {
   padding: 1.1rem 0;
 }
 .landing-brand {
+  font-family: var(--font-head);
   font-weight: 800;
   font-size: 1.25rem;
+  letter-spacing: -0.01em;
 }
+
+/* --- PHONE (base): single centered column; preview hidden --- */
 .landing-hero {
+  padding: 2rem 0 1.5rem;
+}
+.landing-hero-copy {
   text-align: center;
-  padding: 3rem 0 2.5rem;
+}
+.landing-hero-visual {
+  display: none;
 }
 .landing-title {
-  font-size: clamp(2.4rem, 7vw, 4rem);
+  font-size: clamp(2.1rem, 8vw, 2.6rem);
   font-weight: 800;
   letter-spacing: -0.02em;
-  line-height: 1.05;
+  line-height: 1.08;
   margin: 0;
 }
 .landing-accent {
@@ -2844,17 +2857,19 @@ a:focus-visible {
 }
 .landing-sub {
   max-width: 640px;
-  margin: 1.1rem auto 0;
-  font-size: 1.15rem;
-  line-height: 1.5;
+  margin: 1rem auto 0;
+  font-size: 1.05rem;
+  line-height: 1.55;
   color: var(--muted);
 }
 .landing-cta {
   display: flex;
-  gap: 0.75rem;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-top: 1.75rem;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
+}
+.landing-cta .btn {
+  width: 100%;
 }
 .btn-lg {
   padding: 0.8rem 1.5rem;
@@ -2864,64 +2879,265 @@ a:focus-visible {
   margin-top: 0.9rem;
   font-size: 0.9rem;
 }
+
+/* Steps as a stacked list (number left, text right) on phones. */
 .landing-steps {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
-  margin: 2rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 1.75rem 0;
 }
 .landing-step {
-  text-align: center;
-  padding: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  text-align: left;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
 }
 .landing-step-n {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--primary) 14%, var(--surface));
+  background: var(--chip);
   color: var(--primary);
   font-weight: 800;
-  margin-bottom: 0.5rem;
 }
-.landing-step h3 { margin: 0.25rem 0; }
+.landing-step-body {
+  min-width: 0;
+}
+.landing-step h3 {
+  margin: 0 0 0.15rem;
+  font-size: 1.05rem;
+}
+.landing-step p {
+  margin: 0;
+}
+
 .landing-features {
-  margin-top: 2.5rem;
+  margin-top: 2rem;
   text-align: center;
 }
 .landing-features h2 {
-  font-size: 1.8rem;
-  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 .landing-feature-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: 1fr;
   gap: 1rem;
   text-align: left;
-}
-.landing-feature-icon {
-  font-size: 1.8rem;
 }
 .landing-feature h3 {
   margin: 0.5rem 0 0.35rem;
 }
 .landing-final {
   text-align: center;
-  margin: 3.5rem 0 1rem;
-  padding: 2.5rem 1rem;
+  margin: 2.5rem 0 1rem;
+  padding: 2rem 1rem;
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--primary) 8%, var(--surface));
 }
 .landing-final h2 {
-  font-size: 2rem;
-  margin: 0 0 1.25rem;
+  font-size: 1.6rem;
+  margin: 0 0 1.1rem;
 }
 .landing-footer {
   text-align: center;
   padding: 2rem 0 0;
   font-size: 0.9rem;
+}
+
+/* Desktop hero preview card (rendered but hidden until ≥1024px). */
+.lhv-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: var(--shadow);
+  max-width: 340px;
+  margin-left: auto;
+  position: relative;
+  z-index: 1;
+}
+.lhv-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.9rem;
+}
+.lhv-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  color: #fff;
+  background: #2e4a76;
+}
+.lhv-avatar-alt {
+  background: #4a6aa5;
+}
+.lhv-swap {
+  color: var(--muted);
+  display: inline-flex;
+}
+.lhv-score {
+  margin-left: auto;
+  font-weight: 800;
+  color: var(--primary);
+  background: var(--chip);
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.9rem;
+}
+.lhv-line {
+  font-size: 0.95rem;
+  padding: 0.4rem 0;
+  border-top: 1px dashed var(--border);
+}
+.lhv-tag {
+  display: inline-block;
+  min-width: 92px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+.lhv-cta {
+  margin-top: 0.9rem;
+  text-align: center;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 0.6rem;
+}
+.lhv-chip {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  box-shadow: var(--shadow);
+  color: var(--text);
+  z-index: 2;
+}
+.lhv-chip svg {
+  color: var(--primary);
+}
+.lhv-chip-1 {
+  top: 0.5rem;
+  left: 0;
+}
+.lhv-chip-2 {
+  bottom: 1rem;
+  right: 0.5rem;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .lhv-chip-1 {
+    animation: lhv-float 5s ease-in-out infinite;
+  }
+  .lhv-chip-2 {
+    animation: lhv-float 6s ease-in-out infinite reverse;
+  }
+}
+@keyframes lhv-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* --- TABLET (≥640px): inline CTAs, 3-across steps, 2-col features --- */
+@media (min-width: 640px) {
+  .landing-hero {
+    padding: 3rem 0 2rem;
+  }
+  .landing-title {
+    font-size: clamp(2.6rem, 6vw, 3.4rem);
+  }
+  .landing-sub {
+    font-size: 1.15rem;
+  }
+  .landing-cta {
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .landing-cta .btn {
+    width: auto;
+  }
+  .landing-steps {
+    flex-direction: row;
+  }
+  .landing-step {
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .landing-step-n {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 0.25rem;
+  }
+  .landing-features h2 {
+    font-size: 1.8rem;
+  }
+  .landing-feature-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .landing-final h2 {
+    font-size: 2rem;
+  }
+}
+
+/* --- LAPTOP (≥1024px): split hero (copy + preview), 3-col features --- */
+@media (min-width: 1024px) {
+  .landing-hero {
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    align-items: center;
+    gap: 3rem;
+    padding: 4rem 0 3rem;
+  }
+  .landing-hero-copy {
+    text-align: left;
+  }
+  .landing-title {
+    font-size: clamp(3.2rem, 4vw, 4rem);
+  }
+  .landing-sub {
+    margin-left: 0;
+    margin-right: 0;
+    font-size: 1.2rem;
+  }
+  .landing-cta {
+    justify-content: flex-start;
+  }
+  .landing-note {
+    text-align: left;
+  }
+  .landing-hero-visual {
+    display: block;
+    position: relative;
+    min-height: 300px;
+  }
+  .landing-feature-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 .auth-home {
   display: inline-block;
