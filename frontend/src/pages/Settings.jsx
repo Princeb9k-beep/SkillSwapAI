@@ -175,16 +175,14 @@ export default function Settings() {
     try {
       const res = await api.resendVerification();
       if (res?.dev_token) {
-        // No email provider configured (dev) — complete verification inline.
+        // Off-production without a provider — finish verifying with the token.
         await api.verifyEmail(res.dev_token);
         updateUser({ email_verified: true });
         notify("Email verified", "success");
-      } else if (res?.email_configured === false) {
-        // Server has no SMTP set up, so nothing was sent — say so plainly.
-        notify(
-          "Email delivery isn't set up on the server yet, so no email was sent. Add SMTP settings on the server, then try again.",
-          "info",
-        );
+      } else if (res?.verified) {
+        // Server can't send email, so it confirmed the address directly.
+        updateUser({ email_verified: true });
+        notify("Email confirmed — this server isn't set up to send email, so we verified you directly.", "success");
       } else {
         notify("Verification email sent — check your inbox and spam.", "success");
       }

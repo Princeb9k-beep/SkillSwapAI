@@ -838,40 +838,40 @@ def test_email_verification_flow(client):
 
 
 def test_resend_verification_reports_outcome(client, monkeypatch):
-    """Resend tells the truth about delivery instead of silently claiming 'sent'."""
+    """Resend tells the truth about delivery, and works even with no provider."""
     import app.routers.auth as auth_router
 
-    r = client.post(
-        "/auth/signup",
-        json={"email": "report@example.com", "password": "supersecret123", "name": "R"},
-    )
-    access = {"Authorization": f"Bearer {r.json()['data']['token']}"}
+    def _signup(email):
+        r = client.post(
+            "/auth/signup",
+            json={"email": email, "password": "supersecret123", "name": "R"},
+        )
+        return {"Authorization": f"Bearer {r.json()['data']['token']}"}
 
-    # (1) SMTP not configured → not sent, and the flag says so.
+    # (1) No SMTP configured → the user is verified inline (free, no provider).
     monkeypatch.setattr(auth_router, "email_configured", lambda: False)
+    a = _signup("noconfig@example.com")
+    body = client.post("/auth/resend-verification", headers=a).json()["data"]
+    assert body["email_configured"] is False and body["verified"] is True
+    assert client.get("/users/me", headers=a).json()["data"]["email_verified"] is True
 
-    async def _no_send(to, name, token):
-        return False
-
-    monkeypatch.setattr(auth_router, "send_verification_email", _no_send)
-    body = client.post("/auth/resend-verification", headers=access).json()["data"]
-    assert body["email_configured"] is False and body["email_sent"] is False
-
-    # (2) Configured and the provider accepts it → reported as sent.
+    # (2) SMTP configured and the provider accepts → reported as sent.
     async def _ok_send(to, name, token):
         return True
 
     monkeypatch.setattr(auth_router, "email_configured", lambda: True)
     monkeypatch.setattr(auth_router, "send_verification_email", _ok_send)
-    ok_body = client.post("/auth/resend-verification", headers=access).json()
+    b = _signup("okmail@example.com")
+    ok_body = client.post("/auth/resend-verification", headers=b).json()
     assert ok_body["success"] is True and ok_body["data"]["email_sent"] is True
 
-    # (3) Configured but the send fails → a real error, not a fake success.
+    # (3) SMTP configured but the send fails → a real error, not a fake success.
     async def _fail_send(to, name, token):
         return False
 
     monkeypatch.setattr(auth_router, "send_verification_email", _fail_send)
-    fail = client.post("/auth/resend-verification", headers=access)
+    c = _signup("failmail@example.com")
+    fail = client.post("/auth/resend-verification", headers=c)
     assert fail.status_code == 502
     assert fail.json()["meta"]["code"] == "email_send_failed"
 
