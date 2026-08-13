@@ -73,19 +73,24 @@ def _frontend_url(path: str) -> str:
 
 
 def _shell(title: str, intro: str, button_label: str, url: str, footer: str) -> str:
+    # Matches the app's "Graphite + Serif · Ink" theme. Email clients don't load
+    # webfonts reliably, so the serif uses Georgia (near-universally available)
+    # and the accent is the ink-blue used across the product. All styles inline.
+    serif = "Georgia,'Times New Roman',serif"
+    sans = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"
     return f"""\
 <!doctype html>
 <html>
-  <body style="margin:0;background:#f7f8fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1c25;">
+  <body style="margin:0;background:#fafafa;font-family:{sans};color:#161618;">
     <div style="max-width:480px;margin:0 auto;padding:32px 24px;">
-      <div style="font-size:20px;font-weight:800;margin-bottom:16px;">SkillSwap<span style="color:#4f46e5;">AI</span></div>
-      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:28px;">
-        <h1 style="font-size:19px;margin:0 0 12px;">{title}</h1>
-        <p style="font-size:15px;line-height:1.5;color:#374151;margin:0 0 22px;">{intro}</p>
-        <a href="{url}" style="display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px;font-size:15px;">{button_label}</a>
-        <p style="font-size:13px;color:#6b7280;margin:22px 0 0;line-height:1.5;">Or paste this link into your browser:<br><span style="color:#4f46e5;word-break:break-all;">{url}</span></p>
+      <div style="font-family:{serif};font-size:21px;font-weight:700;letter-spacing:-0.01em;margin-bottom:16px;">SkillSwap<span style="color:#2e4a76;">AI</span></div>
+      <div style="background:#ffffff;border:1px solid #e5e5e8;border-radius:10px;padding:28px;">
+        <h1 style="font-family:{serif};font-size:20px;line-height:1.25;margin:0 0 12px;color:#161618;">{title}</h1>
+        <p style="font-size:15px;line-height:1.55;color:#4b4d55;margin:0 0 22px;">{intro}</p>
+        <a href="{url}" style="display:inline-block;background:#2e4a76;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px;font-size:15px;">{button_label}</a>
+        <p style="font-size:13px;color:#6f7178;margin:22px 0 0;line-height:1.55;">Or paste this link into your browser:<br><span style="color:#2e4a76;word-break:break-all;">{url}</span></p>
       </div>
-      <p style="font-size:12px;color:#9aa1ad;margin:18px 0 0;">{footer}</p>
+      <p style="font-size:12px;color:#8a8f98;margin:18px 0 0;">{footer}</p>
     </div>
   </body>
 </html>"""
