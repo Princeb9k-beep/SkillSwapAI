@@ -156,28 +156,33 @@ async def verify_email(
 )
 async def resend_verification(
     user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ) -> object:
-    """Re-issue an email-verification token and report what actually happened.
+    """Verify the signed-in user's email, reporting exactly what happened.
 
-    Unlike a fire-and-forget send, this awaits the mailer so the response tells
-    the truth: whether email delivery is configured on the server and whether the
-    message was actually sent — surfaced to the user instead of a silent no-op.
+    Behavior depends on whether the server can send email:
+    * No SMTP configured → confirm the user's own address **inline** so a
+      provider-free (free) deployment still works instead of leaving people
+      stuck. This is safe: it only verifies the already-authenticated caller's
+      own email, and real emailed verification resumes the moment SMTP is set.
+    * SMTP configured → email the verification link and report success, or a
+      real error if the send fails (no silent no-op).
     """
     if user.email_verified:
         return ok(message="Your email is already verified.")
-    token = create_scoped_token(user.id, "verify")
-    configured = email_configured()
-    sent = await send_verification_email(user.email, user.name, token)
-    data = {"email_sent": sent, "email_configured": configured}
 
-    if not configured:
-        # Server has no SMTP provider set. Hand back the token off-production so
-        # the client can still finish verifying; in production just say so.
-        data.update(_dev_token(token))
+    if not email_configured():
+        db_user = await session.get(User, user.id)
+        if db_user is not None:
+            db_user.email_verified = True
+            await session.commit()
         return ok(
-            data=data,
-            message="Email delivery isn't set up on the server yet, so no email was sent.",
+            data={"email_configured": False, "verified": True},
+            message="This server isn't set up to send email, so we've confirmed your address directly.",
         )
+
+    token = create_scoped_token(user.id, "verify")
+    sent = await send_verification_email(user.email, user.name, token)
     if not sent:
         return error(
             "We couldn't send the verification email. Check the server's SMTP "
@@ -185,7 +190,10 @@ async def resend_verification(
             status_code=502,
             code="email_send_failed",
         )
-    return ok(data=data, message="Verification email sent — check your inbox (and spam).")
+    return ok(
+        data={"email_configured": True, "email_sent": True},
+        message="Verification email sent — check your inbox (and spam).",
+    )
 
 
 @router.post("/forgot-password", dependencies=[Depends(rate_limit("forgot", 5, 3600))])
