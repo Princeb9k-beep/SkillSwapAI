@@ -50,19 +50,50 @@ def _send_sync(to: str, subject: str, text: str, html: str) -> None:
             smtp.send_message(msg)
 
 
-async def send_email(to: str, subject: str, text: str, html: str) -> bool:
-    """Send an email. Returns True if sent, False if SMTP isn't configured or the
-    send failed (the caller decides how to degrade). Never raises."""
+def _friendly_smtp_error(exc: Exception) -> str:
+    """Turn a raw SMTP exception into a short, actionable hint for the user."""
+    msg = str(exc).strip()
+    low = msg.lower()
+    if (
+        "username and password not accepted" in low
+        or "5.7.8" in low
+        or "authentication failed" in low
+        or "invalid login" in low
+    ):
+        return (
+            "the email account rejected the login. For Gmail: turn on 2-Step "
+            "Verification and use a 16-character App Password (not your normal "
+            "password), and set SMTP_USER / EMAIL_FROM to that same Gmail address"
+        )
+    if "application-specific password required" in low or "5.7.9" in low:
+        return "Gmail needs an App Password — enable 2-Step Verification, then generate one"
+    if "must issue a starttls" in low or "starttls" in low:
+        return "the server requires STARTTLS — set SMTP_STARTTLS=True and SMTP_PORT=587"
+    if "getaddrinfo" in low or "name or service not known" in low or "connection refused" in low:
+        return "couldn't reach the mail server — check SMTP_HOST and SMTP_PORT"
+    if "timed out" in low or "timeout" in low:
+        return "the mail server didn't respond — check SMTP_HOST / SMTP_PORT (try 587)"
+    return msg[:200] or "unknown SMTP error"
+
+
+async def send_email_result(to: str, subject: str, text: str, html: str) -> str | None:
+    """Send an email; return None on success, or a short error string on failure.
+    Never raises. Use this where the caller wants to surface the reason."""
     if not email_configured():
         logger.info("SMTP not configured — skipping email to %s (%r)", to, subject)
-        return False
+        return "email delivery isn't configured on the server"
     try:
         await asyncio.to_thread(_send_sync, to, subject, text, html)
         logger.info("Sent email to %s (%r)", to, subject)
-        return True
+        return None
     except Exception as exc:  # noqa: BLE001 — degrade, don't crash the request
         logger.warning("Failed to send email to %s: %s", to, exc)
-        return False
+        return _friendly_smtp_error(exc)
+
+
+async def send_email(to: str, subject: str, text: str, html: str) -> bool:
+    """Send an email. Returns True if sent, False otherwise (never raises)."""
+    return (await send_email_result(to, subject, text, html)) is None
 
 
 # --- Templates -----------------------------------------------------------
@@ -96,7 +127,8 @@ def _shell(title: str, intro: str, button_label: str, url: str, footer: str) -> 
 </html>"""
 
 
-async def send_verification_email(to: str, name: str | None, token: str) -> bool:
+async def send_verification_email(to: str, name: str | None, token: str) -> str | None:
+    """Send the verification email; return None on success or an error string."""
     url = _frontend_url(f"/verify-email?token={token}")
     greeting = f"Hi {name}," if name else "Hi,"
     text = (
@@ -110,7 +142,7 @@ async def send_verification_email(to: str, name: str | None, token: str) -> bool
         url,
         "If you didn't create a SkillSwap AI account, you can safely ignore this email.",
     )
-    return await send_email(to, "Confirm your SkillSwap AI email", text, html)
+    return await send_email_result(to, "Confirm your SkillSwap AI email", text, html)
 
 
 # Which notification preference gates each notification type's email.

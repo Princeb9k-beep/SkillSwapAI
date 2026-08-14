@@ -899,7 +899,7 @@ def test_resend_verification_reports_outcome(client, monkeypatch):
 
     # (2) SMTP configured and the provider accepts → reported as sent.
     async def _ok_send(to, name, token):
-        return True
+        return None  # None = sent OK
 
     monkeypatch.setattr(auth_router, "email_configured", lambda: True)
     monkeypatch.setattr(auth_router, "send_verification_email", _ok_send)
@@ -907,15 +907,16 @@ def test_resend_verification_reports_outcome(client, monkeypatch):
     ok_body = client.post("/auth/resend-verification", headers=b).json()
     assert ok_body["success"] is True and ok_body["data"]["email_sent"] is True
 
-    # (3) SMTP configured but the send fails → a real error, not a fake success.
+    # (3) SMTP configured but the send fails → a real error that surfaces the reason.
     async def _fail_send(to, name, token):
-        return False
+        return "the email account rejected the login"
 
     monkeypatch.setattr(auth_router, "send_verification_email", _fail_send)
     c = _signup("failmail@example.com")
     fail = client.post("/auth/resend-verification", headers=c)
     assert fail.status_code == 502
     assert fail.json()["meta"]["code"] == "email_send_failed"
+    assert "rejected the login" in fail.json()["message"]
 
 
 def test_signup_sends_email_when_configured(client, monkeypatch):

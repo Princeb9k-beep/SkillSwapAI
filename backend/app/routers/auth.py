@@ -182,11 +182,10 @@ async def resend_verification(
         )
 
     token = create_scoped_token(user.id, "verify")
-    sent = await send_verification_email(user.email, user.name, token)
-    if not sent:
+    send_error = await send_verification_email(user.email, user.name, token)
+    if send_error is not None:
         return error(
-            "We couldn't send the verification email. Check the server's SMTP "
-            "settings (host, port, username, and app password).",
+            f"We couldn't send the verification email — {send_error}.",
             status_code=502,
             code="email_send_failed",
         )
