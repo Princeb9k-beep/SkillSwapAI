@@ -36,6 +36,11 @@ function TokenWallet() {
     setBusy(pack.id);
     try {
       const res = await api.buyTokens(pack.id);
+      if (res.checkout_url) {
+        // Stripe is configured — hand off to secure Checkout.
+        window.location.href = res.checkout_url;
+        return;
+      }
       setData((d) => ({ ...d, wallet: res.wallet }));
       notify(res.message || "Tokens added", "success");
     } catch (err) {
@@ -131,13 +136,39 @@ export default function Plans() {
     load();
   }, [load]);
 
+  // Returning from Stripe Checkout: show the outcome and refresh the tier.
+  useEffect(() => {
+    const co = new URLSearchParams(window.location.search).get("checkout");
+    if (!co) return;
+    window.history.replaceState({}, "", "/plans"); // don't repeat on refresh
+    if (co === "success") {
+      notify("Payment received — activating your plan now.", "success");
+      api
+        .billingPlans()
+        .then((d) => {
+          setCurrent(d.current);
+          updateUser({ tier: d.current });
+        })
+        .catch(() => {});
+    } else if (co === "cancel") {
+      notify("Checkout canceled — you weren't charged.", "info");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function choose(tier) {
     if (tier === current) return;
     setBusy(tier);
     try {
       const res = await api.subscribe(tier);
-      setCurrent(tier);
-      updateUser({ tier });
+      if (res.checkout_url) {
+        // Stripe is configured — send them to secure Checkout to pay. The plan
+        // activates via webhook, then they return to /plans?checkout=success.
+        window.location.href = res.checkout_url;
+        return;
+      }
+      setCurrent(res.tier || tier);
+      updateUser({ tier: res.tier || tier });
       notify(res.message || "Plan updated", "success");
     } catch (err) {
       notify(err.message, "error");
@@ -205,8 +236,9 @@ export default function Plans() {
       <TokenWallet key={current} />
 
       <p className="field-hint plans-foot">
-        Upgrades apply instantly. Payments are not charged yet (Stripe checkout is a planned
-        add-on) — you can switch plans freely.
+        Paid plans are billed monthly through Stripe's secure checkout, and you can cancel
+        anytime to return to Free. (On a server without payments configured, plan changes
+        apply instantly for testing.)
       </p>
     </section>
   );

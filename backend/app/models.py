@@ -84,6 +84,13 @@ class User(Base):
     tier: Mapped[str] = mapped_column(
         String(10), default="free", server_default="free", index=True
     )
+    # Stripe linkage (set when a real payment/subscription is created).
+    stripe_customer_id: Mapped[str | None] = mapped_column(
+        String(64), index=True, nullable=True
+    )
+    stripe_subscription_id: Mapped[str | None] = mapped_column(
+        String(64), index=True, nullable=True
+    )
     # --- Referrals ---
     # This user's own shareable invite code (assigned lazily).
     referral_code: Mapped[str | None] = mapped_column(

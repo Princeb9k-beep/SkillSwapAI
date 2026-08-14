@@ -264,6 +264,48 @@ def test_skill_discover_feed(client):
     assert py["learners"] >= 1  # our user counts as a learner
 
 
+def test_stripe_checkout_and_webhook(client, monkeypatch):
+    """With Stripe on, subscribe returns a Checkout URL and the webhook applies the plan."""
+    import app.stripe_billing as sb
+
+    hdr = _auth(client, "payer@example.com", "Payer")
+    uid = client.get("/users/me", headers=hdr).json()["data"]["id"]
+
+    # Stripe configured → subscribe hands back a Checkout URL, tier unchanged for now.
+    monkeypatch.setattr(sb, "stripe_enabled", lambda: True)
+
+    async def _fake_checkout(user, tier):
+        return "https://checkout.stripe.test/session_abc"
+
+    monkeypatch.setattr(sb, "create_subscription_checkout", _fake_checkout)
+    r = client.post("/billing/subscribe", json={"tier": "pro"}, headers=hdr)
+    assert r.json()["data"]["checkout_url"].startswith("https://checkout.stripe")
+    assert client.get("/users/me", headers=hdr).json()["data"]["tier"] == "free"
+
+    # Webhook: checkout completed → the subscription is activated.
+    def _completed(payload, sig):
+        return {
+            "type": "checkout.session.completed",
+            "data": {"object": {
+                "metadata": {"user_id": str(uid), "kind": "subscription", "tier": "pro"},
+                "customer": "cus_1", "subscription": "sub_1",
+            }},
+        }
+
+    monkeypatch.setattr(sb, "construct_event", _completed)
+    w = client.post("/billing/webhook", content=b"{}", headers={"Stripe-Signature": "sig"})
+    assert w.status_code == 200
+    assert client.get("/users/me", headers=hdr).json()["data"]["tier"] == "pro"
+
+    # Webhook: subscription deleted → back to Free.
+    def _deleted(payload, sig):
+        return {"type": "customer.subscription.deleted", "data": {"object": {"id": "sub_1"}}}
+
+    monkeypatch.setattr(sb, "construct_event", _deleted)
+    client.post("/billing/webhook", content=b"{}", headers={"Stripe-Signature": "sig"})
+    assert client.get("/users/me", headers=hdr).json()["data"]["tier"] == "free"
+
+
 def test_official_communities_are_seeded(client):
     # Startup seeding gives brand-new users something real to join on day one.
     me = _auth(client, "seedy@example.com", "Seedy")
