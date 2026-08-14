@@ -91,6 +91,13 @@ class Settings(BaseSettings):
     github_client_secret: str = ""
     oauth_redirect_base: str = ""
 
+    # --- Payments (Stripe, optional) -------------------------------------
+    # Set stripe_secret_key to charge real money via Stripe Checkout; unset ->
+    # the app keeps the instant-upgrade stub so dev/free deploys still work.
+    # stripe_webhook_secret verifies incoming webhook events (required in prod).
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
@@ -125,6 +132,11 @@ class Settings(BaseSettings):
     def email_configured(self) -> bool:
         """True when an SMTP host is set, so real emails can be sent."""
         return bool(self.smtp_host.strip())
+
+    @property
+    def stripe_configured(self) -> bool:
+        """True when a Stripe secret key is set, so real payments run."""
+        return bool(self.stripe_secret_key.strip())
 
 
 @lru_cache
