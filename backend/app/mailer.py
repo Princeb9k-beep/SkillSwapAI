@@ -13,8 +13,11 @@ from __future__ import annotations
 import asyncio
 import logging
 import smtplib
+import socket
 import ssl
 from email.message import EmailMessage
+
+import httpx
 
 from .config import get_settings
 
@@ -25,8 +28,20 @@ def email_configured() -> bool:
     return get_settings().email_configured
 
 
+def _ipv4_address(host: str) -> str:
+    """Resolve a hostname to its first IPv4 address.
+
+    Some hosts (e.g. containers without an IPv6 route) fail with "Network is
+    unreachable" when Python tries an AAAA record first; connecting to the IPv4
+    address avoids that.
+    """
+    for res in socket.getaddrinfo(host, None, socket.AF_INET, socket.SOCK_STREAM):
+        return res[4][0]
+    raise OSError(f"No IPv4 address found for {host}")
+
+
 def _send_sync(to: str, subject: str, text: str, html: str) -> None:
-    """Blocking SMTP send — run via ``asyncio.to_thread``."""
+    """Blocking SMTP send — run via ``asyncio.to_thread``. Forces IPv4."""
     s = get_settings()
     msg = EmailMessage()
     msg["From"] = s.email_from
@@ -37,17 +52,65 @@ def _send_sync(to: str, subject: str, text: str, html: str) -> None:
 
     if s.smtp_ssl:
         context = ssl.create_default_context()
-        with smtplib.SMTP_SSL(s.smtp_host, s.smtp_port, context=context, timeout=15) as smtp:
+        with smtplib.SMTP_SSL(s.smtp_host, s.smtp_port, context=context, timeout=20) as smtp:
             if s.smtp_user:
                 smtp.login(s.smtp_user, s.smtp_password)
             smtp.send_message(msg)
     else:
-        with smtplib.SMTP(s.smtp_host, s.smtp_port, timeout=15) as smtp:
+        smtp = smtplib.SMTP(timeout=20)
+        try:
+            # Connect to the resolved IPv4 address, then restore the hostname so
+            # STARTTLS still verifies the certificate against the real host.
+            smtp.connect(_ipv4_address(s.smtp_host), s.smtp_port)
+            smtp._host = s.smtp_host
+            smtp.ehlo()
             if s.smtp_starttls:
                 smtp.starttls(context=ssl.create_default_context())
+                smtp.ehlo()
             if s.smtp_user:
                 smtp.login(s.smtp_user, s.smtp_password)
             smtp.send_message(msg)
+        finally:
+            try:
+                smtp.quit()
+            except Exception:  # noqa: BLE001
+                pass
+
+
+async def _send_via_resend(to: str, subject: str, text: str, html: str) -> str | None:
+    """Send through Resend's HTTPS API (port 443 — never blocked). None on success."""
+    s = get_settings()
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            resp = await client.post(
+                "https://api.resend.com/emails",
+                headers={"Authorization": f"Bearer {s.resend_api_key}"},
+                json={
+                    "from": s.email_from,
+                    "to": [to],
+                    "subject": subject,
+                    "html": html,
+                    "text": text,
+                },
+            )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Resend request failed for %s: %s", to, exc)
+        return f"couldn't reach the email service ({str(exc)[:120]})"
+    if resp.status_code >= 400:
+        try:
+            reason = resp.json().get("message") or resp.text
+        except Exception:  # noqa: BLE001
+            reason = resp.text
+        logger.warning("Resend rejected email to %s: %s", to, reason)
+        low = (reason or "").lower()
+        if "domain" in low and ("verif" in low or "not found" in low):
+            return (
+                "the sender domain isn't verified in Resend. For a quick test set "
+                "EMAIL_FROM to 'SkillSwap AI <onboarding@resend.dev>'; for production, "
+                "verify your domain in Resend and send from it"
+            )
+        return (reason or "the email service rejected the request")[:200]
+    return None
 
 
 def _friendly_smtp_error(exc: Exception) -> str:
@@ -69,6 +132,12 @@ def _friendly_smtp_error(exc: Exception) -> str:
         return "Gmail needs an App Password — enable 2-Step Verification, then generate one"
     if "must issue a starttls" in low or "starttls" in low:
         return "the server requires STARTTLS — set SMTP_STARTTLS=True and SMTP_PORT=587"
+    if "network is unreachable" in low or "no route to host" in low:
+        return (
+            "the server couldn't open an outbound mail connection — the host is "
+            "likely blocking SMTP ports. Use an email API instead: set RESEND_API_KEY "
+            "(free at resend.com), which sends over HTTPS"
+        )
     if "getaddrinfo" in low or "name or service not known" in low or "connection refused" in low:
         return "couldn't reach the mail server — check SMTP_HOST and SMTP_PORT"
     if "timed out" in low or "timeout" in low:
@@ -78,13 +147,20 @@ def _friendly_smtp_error(exc: Exception) -> str:
 
 async def send_email_result(to: str, subject: str, text: str, html: str) -> str | None:
     """Send an email; return None on success, or a short error string on failure.
-    Never raises. Use this where the caller wants to surface the reason."""
-    if not email_configured():
-        logger.info("SMTP not configured — skipping email to %s (%r)", to, subject)
+    Never raises. Prefers the Resend HTTP API (works over HTTPS); falls back to
+    SMTP. Use this where the caller wants to surface the reason."""
+    settings = get_settings()
+    if settings.resend_configured:
+        err = await _send_via_resend(to, subject, text, html)
+        if err is None:
+            logger.info("Sent email to %s via Resend (%r)", to, subject)
+        return err
+    if not settings.smtp_host.strip():
+        logger.info("Email not configured — skipping email to %s (%r)", to, subject)
         return "email delivery isn't configured on the server"
     try:
         await asyncio.to_thread(_send_sync, to, subject, text, html)
-        logger.info("Sent email to %s (%r)", to, subject)
+        logger.info("Sent email to %s via SMTP (%r)", to, subject)
         return None
     except Exception as exc:  # noqa: BLE001 — degrade, don't crash the request
         logger.warning("Failed to send email to %s: %s", to, exc)

@@ -55,6 +55,9 @@ class Settings(BaseSettings):
     smtp_starttls: bool = True          # STARTTLS on 587 (set false for port 465 + smtp_ssl)
     smtp_ssl: bool = False              # implicit TLS (port 465)
     email_from: str = "SkillSwap AI <no-reply@skillswapai.app>"
+    # Resend (resend.com) HTTP email API — preferred over SMTP when set, because
+    # it sends over HTTPS (port 443), which hosts never block (unlike SMTP ports).
+    resend_api_key: str = ""
     # Base URL of the frontend, used to build links in emails.
     frontend_url: str = "http://localhost:5173"
 
@@ -129,9 +132,14 @@ class Settings(BaseSettings):
         return {e.strip().lower() for e in self.admin_emails.split(",") if e.strip()}
 
     @property
+    def resend_configured(self) -> bool:
+        """True when a Resend API key is set (HTTP email over HTTPS)."""
+        return bool(self.resend_api_key.strip())
+
+    @property
     def email_configured(self) -> bool:
-        """True when an SMTP host is set, so real emails can be sent."""
-        return bool(self.smtp_host.strip())
+        """True when the app can send email — via Resend (HTTP) or SMTP."""
+        return self.resend_configured or bool(self.smtp_host.strip())
 
     @property
     def stripe_configured(self) -> bool:
