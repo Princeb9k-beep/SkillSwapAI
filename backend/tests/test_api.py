@@ -879,6 +879,18 @@ def test_email_verification_flow(client):
     assert client.post("/auth/verify-email", json={"token": "garbage"}).status_code == 400
 
 
+def test_smtp_error_hints():
+    """Common SMTP failures map to actionable hints, incl. the Render SMTP block."""
+    from app.mailer import _friendly_smtp_error
+
+    assert "app password" in _friendly_smtp_error(
+        Exception("(535, b'5.7.8 Username and Password not accepted')")
+    ).lower()
+    # The "network is unreachable" case points at the Resend HTTP fallback.
+    hint = _friendly_smtp_error(OSError("[Errno 101] Network is unreachable"))
+    assert "resend_api_key" in hint.lower() or "https" in hint.lower()
+
+
 def test_resend_verification_reports_outcome(client, monkeypatch):
     """Resend tells the truth about delivery, and works even with no provider."""
     import app.routers.auth as auth_router
