@@ -1021,6 +1021,27 @@ def test_oauth_providers_and_gating(client):
     assert client.post("/auth/oauth/github/callback", json={"code": "x"}).status_code == 404
 
 
+def test_oauth_new_social_providers(monkeypatch):
+    """LinkedIn/Discord/Microsoft slot into the provider list and build URLs."""
+    import app.oauth as oauth
+
+    monkeypatch.setattr(oauth, "_redirect_uri", lambda: "https://app.test/oauth/callback")
+    monkeypatch.setattr(
+        oauth, "_creds", lambda p: ("cid", "sec") if p in ("linkedin", "discord") else ("", "")
+    )
+    assert oauth.provider_enabled("linkedin") is True
+    assert oauth.provider_enabled("microsoft") is False
+    assert set(oauth.available_providers()) == {"linkedin", "discord"}
+
+    li = oauth.authorize_url("linkedin", "st8")
+    assert li.startswith("https://www.linkedin.com/oauth/v2/authorization?")
+    assert "client_id=cid" in li and "state=st8" in li and "scope=openid" in li
+
+    dc = oauth.authorize_url("discord", "st9")
+    assert dc.startswith("https://discord.com/oauth2/authorize?")
+    assert "scope=identify" in dc
+
+
 def test_daily_reminders(client):
     hdr = _auth(client, "reminders@example.com", "Reminder User")
     # Opt in via profile.
