@@ -31,7 +31,13 @@ export default function Auth({ initialMode = "login", onHome }) {
     }
   }
 
-  const PROVIDER_LABELS = { google: "Google", github: "GitHub" };
+  const PROVIDER_LABELS = {
+    google: "Google",
+    github: "GitHub",
+    linkedin: "LinkedIn",
+    discord: "Discord",
+    microsoft: "Microsoft",
+  };
 
   // Support real reset links (/reset-password?token=… or ?reset_token=…).
   useEffect(() => {

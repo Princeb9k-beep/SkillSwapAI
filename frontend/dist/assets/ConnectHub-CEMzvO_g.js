@@ -1,1 +1,0 @@
-import{j as e,N as o}from"./index-C6s6esqU.js";import{H as c}from"./Hub-B3IySIHc.js";const n=o.find(t=>t.key==="connect");function a(){return e.jsx(c,{title:"Connect",tagline:n.tagline,links:n.links,accent:"connect"})}export{a as default};

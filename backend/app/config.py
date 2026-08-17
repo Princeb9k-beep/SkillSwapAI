@@ -92,6 +92,12 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
     github_client_id: str = ""
     github_client_secret: str = ""
+    linkedin_client_id: str = ""
+    linkedin_client_secret: str = ""
+    discord_client_id: str = ""
+    discord_client_secret: str = ""
+    microsoft_client_id: str = ""
+    microsoft_client_secret: str = ""
     oauth_redirect_base: str = ""
 
     # --- Payments (Stripe, optional) -------------------------------------
