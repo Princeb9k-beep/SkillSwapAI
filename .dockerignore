@@ -1,0 +1,36 @@
+# Secrets — must never enter the build context.
+.env
+.env.*
+!.env.example
+
+# VCS / CI
+.git
+.github
+
+# Node — the frontend builds in its own stage from frontend/package*.json.
+# frontend/dist IS committed to this repo (the Render Python runtime has no
+# Node and serves the committed bundle). Excluding it here is deliberate: stage
+# 1 rebuilds it from source, and letting the committed copy into the context
+# risks it shadowing the fresh build if the COPY order is ever changed.
+node_modules
+**/node_modules
+frontend/dist
+frontend/dist-ssr
+
+# Python local state
+.venv
+venv
+__pycache__
+**/__pycache__
+*.pyc
+.pytest_cache
+*.db
+*.sqlite3
+
+# Not needed at runtime
+backend/tests
+claude_skills
+docs
+deploy
+*.md
+!README.md

@@ -1,0 +1,176 @@
+# SkillSwap AI — DATA TIER (runs on the Redis VPS, 80.190.73.191).
+#
+#   deploy/setup-data-vps.sh      # ONCE: docker, the 10G mount, ufw, systemd
+#   deploy/data-deploy.sh         # every time: pull, tune, up, health-gate
+#
+# This box already runs Nova Flow's production Redis natively from apt on
+# 127.0.0.1 + 10.77.0.1:6379. Nothing here touches it: this Redis is a separate
+# container on port 6380, so an eviction storm in one app cannot evict the
+# other's keys, and the two have separate passwords.
+#
+# ── THE BIND ADDRESS IS THE WALL, NOT THE FIREWALL ───────────────────────────
+# Both services publish on ${WG_ADDR:-10.77.0.1} — the WireGuard address — and
+# never on 0.0.0.0. This is not belt-and-braces, it is the whole security
+# boundary. For any non-loopback publish Docker inserts a DNAT rule into the
+# nat table's DOCKER chain, and nat/PREROUTING is traversed BEFORE ufw's
+# filter/INPUT. So a box whose firewall denies 5432 still accepts the
+# connection, `ufw status` reports the port closed while it is open, and
+# nothing logs anything. Writing "5432:5432" here would put this database on
+# the internet, silently. The ufw rules setup-data-vps.sh adds are defence in
+# depth on top of the bind, never instead of it.
+#
+# 10.77.0.1 only exists once wg0 is up, so a container started before the
+# tunnel dies with "cannot assign requested address" — deploy/skillswap-data.service
+# carries the ordering that survives a reboot.
+
+services:
+  postgres:
+    # Plain postgres: this app's models.py has no vector columns, so the
+    # pgvector image the sibling deployment needs would be dead weight here.
+    image: postgres:18-alpine
+    container_name: skillswap-postgres
+    restart: unless-stopped
+    stop_grace_period: 30s
+    # /dev/shm is a tmpfs and its pages COUNT AGAINST the 256m limit below, so
+    # this is not free headroom. 64m is the Docker default and is enough
+    # precisely because parallel query is off (see max_parallel_* in command).
+    shm_size: 64m
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-skillswap}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-skillswapaidb}
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    volumes:
+      # PG18 images keep data in a major-version subdir and REQUIRE the mount at
+      # /var/lib/postgresql (not the legacy .../data), so pg_upgrade --link can
+      # work without crossing a mount boundary (docker-library/postgres#1259).
+      # PGDATA then lands at /var/lib/postgresql/18/docker inside this mount.
+      #
+      # PGDATA_HOST_PATH=/srv/skillswap/pgdata makes this a BIND onto the 10G
+      # loopback filesystem setup-data-vps.sh creates — that is what makes "10 GB
+      # of storage" an enforced ceiling rather than an intention. Docker cannot
+      # size-limit a named volume, so left unset (local dev) it falls back to
+      # the uncapped `pgdata` volume below. A bare name = named volume, a
+      # leading slash = bind mount; Docker decides on the slash, which is
+      # exactly the toggle wanted here.
+      #
+      # WARNING: bring this up once with PGDATA_HOST_PATH unset and the data is
+      # in the named volume. Setting the path afterwards starts an EMPTY
+      # cluster beside it — data-deploy.sh refuses that case rather than
+      # letting Postgres quietly initdb a shadow cluster.
+      - ${PGDATA_HOST_PATH:-pgdata}:/var/lib/postgresql
+    command:
+      - postgres
+      # ── sized for 1 CPU / 256M. The inline ${...:-} fallbacks ARE the
+      #    256M profile; deploy/postgres/pg-tuning.env is the single file to
+      #    edit on a resize (data-deploy.sh sources it). ──
+      - -c
+      - max_connections=${PG_MAX_CONNECTIONS:-40}
+      - -c
+      - shared_buffers=${PG_SHARED_BUFFERS:-64MB}
+      - -c
+      - effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-192MB}
+      - -c
+      - work_mem=${PG_WORK_MEM:-2MB}
+      - -c
+      - maintenance_work_mem=${PG_MAINTENANCE_WORK_MEM:-32MB}
+      # Parallel query OFF. A parallel worker is another backend process inside
+      # a 256M cgroup and it uses /dev/shm, which is charged to the same limit —
+      # so the OOM killer arrives during exactly the query that needed help.
+      - -c
+      - max_parallel_workers_per_gather=0
+      - -c
+      - max_parallel_workers=0
+      - -c
+      - max_worker_processes=4
+      - -c
+      - random_page_cost=1.1          # NVMe/SSD — random ≈ sequential cost
+      - -c
+      - wal_compression=on
+      # 512MB, not the 1GB default: checkpoints spread WAL up to ~2-3x
+      # max_wal_size on disk, and the disk here is 10G TOTAL.
+      - -c
+      - max_wal_size=${PG_MAX_WAL_SIZE:-512MB}
+      - -c
+      - min_wal_size=${PG_MIN_WAL_SIZE:-128MB}
+      - -c
+      - checkpoint_completion_target=0.9
+      - -c
+      - synchronous_commit=on
+      - -c
+      - timezone=UTC
+      - -c
+      - logging_collector=off         # stderr → docker logs, not files on the 10G disk
+      - -c
+      - log_destination=stderr
+      - -c
+      - log_line_prefix=%m [%p] %q%u@%d %a %e
+      - -c
+      - log_min_duration_statement=${PG_LOG_MIN_DURATION:-200}
+      - -c
+      - log_checkpoints=on
+      - -c
+      - log_lock_waits=on
+    ports:
+      - "${WG_ADDR:-10.77.0.1}:${POSTGRES_HOST_PORT:-5432}:5432"
+    networks: [skillswap-data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    cpus: ${PG_CPUS:-1.0}
+    mem_limit: ${PG_MEM_LIMIT:-256m}
+    logging: &logs
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+  redis:
+    image: redis:7-alpine
+    container_name: skillswap-redis
+    restart: unless-stopped
+    # The sh guard REFUSES to start without a password (one clear log line and a
+    # restart loop on this container alone) instead of silently running
+    # authless. A soft ${VAR:-} interpolation keeps every other compose command
+    # working on a machine that has not set it yet.
+    #
+    # volatile-lru: every key this app writes carries a TTL (the AI response
+    # cache, rate-limit windows, distributed locks), so eviction under pressure
+    # stays inside expiring keys.
+    command:
+      - sh
+      - -c
+      - >
+        test -n "$$REDIS_PASSWORD" ||
+        { echo 'redis: REDIS_PASSWORD not set in .env — refusing to start authless' >&2; exit 1; };
+        exec redis-server
+        --requirepass "$$REDIS_PASSWORD"
+        --appendonly yes --appendfsync everysec
+        --maxmemory ${REDIS_MAXMEMORY:-512mb} --maxmemory-policy volatile-lru
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    volumes:
+      - skillswap-redis-data:/data
+    ports:
+      # 6380 on the host: 6379 there is Nova Flow's native Redis.
+      - "${WG_ADDR:-10.77.0.1}:${REDIS_HOST_PORT:-6380}:6379"
+    networks: [skillswap-data]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    # 640m against a 512mb maxmemory — 1.25x, headroom for the AOF-rewrite
+    # fork's copy-on-write pages. Sizing mem_limit AT maxmemory means the OOM
+    # killer wins the race with the rewrite.
+    mem_limit: ${REDIS_MEM_LIMIT:-640m}
+    logging: *logs
+
+volumes:
+  pgdata:                # local-dev fallback ONLY; production binds the 10G mount
+  skillswap-redis-data:
+
+networks:
+  skillswap-data:
+    driver: bridge
