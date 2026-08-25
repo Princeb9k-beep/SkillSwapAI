@@ -187,16 +187,46 @@ class TheStorageCeilingIsDeclaredNotHoped(unittest.TestCase):
     def setUp(self):
         self.data = yaml.safe_load((_ROOT / "docker-compose.data.yml").read_text())
 
-    def test_pgdata_is_a_loop_mounted_filesystem(self):
+    def test_pgdata_binds_a_mountpoint_and_never_asks_docker_to_loop_mount(self):
+        """`type: ext4, o: loop` DOES NOT WORK, and shipped because it parses.
+
+        Measured on a real daemon:
+
+            failed to mount local volume: mount /srv/skillswap/pgdata.img:...,
+            data: loop: invalid argument
+
+        Docker's local driver calls the mount SYSCALL; `loop` is a feature of
+        the mount COMMAND, which runs losetup for you first. The kernel gets
+        "loop" as filesystem-specific data and rejects it. `docker compose
+        config` validates it happily — parsing is not mounting, and that gap is
+        the whole reason this assertion exists.
+
+        So: userspace does the loop setup (the bootstrap service) and Docker
+        binds the resulting mountpoint.
+        """
         opts = (self.data["volumes"]["pgdata"] or {}).get("driver_opts") or {}
-        self.assertEqual("ext4", opts.get("type"))
-        self.assertEqual("loop", opts.get("o"))
-        # _resolve: this reads the source, so `${PGDATA_IMAGE:-...}` is what is
-        # written there. The DEFAULT is the thing under review — it is what
-        # ships, and it is what a copy-paste edit gets wrong.
+        self.assertEqual("none", opts.get("type"))
+        self.assertEqual("bind", opts.get("o"))
+        self.assertNotEqual("loop", opts.get("o"),
+                            "o: loop is rejected by the kernel — see the docstring")
         device = _resolve(str(opts.get("device", "")))
-        self.assertTrue(device.endswith(".img"),
-                        f"device should be an image file, got {device!r}")
+        self.assertFalse(device.endswith(".img"),
+                         f"a bind takes the MOUNTPOINT, not the image: {device!r}")
+
+    def test_bootstrap_mounts_it_and_proves_the_host_can_see_it(self):
+        """A mount inside a container is private to its namespace unless
+        propagation is rshared. Without the check, an unpropagated mount leaves
+        the bind pointing at a bare directory on the root filesystem: Postgres
+        starts, everything reports healthy, and the ceiling silently is not
+        there — on a box that also holds Nova Flow's production Redis."""
+        bootstrap = self.data["services"]["bootstrap"]
+        cmd = " ".join(str(x) for x in bootstrap["command"])
+        self.assertIn("mount -o loop", cmd)
+        self.assertIn("/proc/1/mountinfo", cmd)
+        self.assertEqual("host", bootstrap.get("pid"),
+                         "pid: host, or /proc/1/mountinfo is our own namespace")
+        self.assertTrue(any(str(v).endswith(":rshared") for v in bootstrap["volumes"]),
+                        "the host-data mount needs rshared or nothing propagates")
 
     def test_postgres_waits_for_the_image_to_exist(self):
         """Mounting a device that does not exist yet is the failure this

@@ -18,6 +18,7 @@ PG_HEALTH_TIMEOUT="${PG_HEALTH_TIMEOUT:-120}"
 REDIS_HEALTH_TIMEOUT="${REDIS_HEALTH_TIMEOUT:-60}"
 BASE="${SKILLSWAP_BASE:-/srv/skillswap}"
 PGDATA_IMAGE="${PGDATA_IMAGE:-${BASE}/pgdata.img}"
+PGDATA_MOUNT="${PGDATA_MOUNT:-${BASE}/pgdata}"
 PGDATA_SIZE="${PGDATA_SIZE:-10G}"
 WG_ADDR="${WG_ADDR:-10.77.0.1}"
 
@@ -131,7 +132,7 @@ if [ -f "$PG_TUNING" ]; then
 else
   warn "no ${PG_TUNING} — using the in-compose fallbacks (same 256M profile)"
 fi
-export PGDATA_IMAGE PGDATA_SIZE WG_ADDR
+export PGDATA_IMAGE PGDATA_MOUNT PGDATA_SIZE WG_ADDR
 dc config -q || die "docker-compose.data.yml is invalid"
 
 # ── start, health-gated ──────────────────────────────────────────────────
