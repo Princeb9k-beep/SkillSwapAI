@@ -1,0 +1,82 @@
+# SkillSwap AI — APP TIER (runs on the app VPS, 82.197.64.18).
+#
+#   docker compose build          # build the image
+#   deploy/deploy.sh              # pull, build, migrate, health-gate, deploy
+#
+# The DATA TIER IS NOT HERE. Postgres and Redis run on the second VPS
+# (80.190.73.191) and are reached over the existing WireGuard tunnel at
+# 10.77.0.1 — see docker-compose.data.yml and deploy/setup-data-vps.sh.
+# Containers on this box reach 10.77.0.1 with no compose changes: the host
+# holds the wg0 route and Docker's MASQUERADE gives the traffic the 10.77.0.2
+# source address the peer accepts.
+#
+# The EDGE IS NOT HERE EITHER. Ports 80/443 on this box belong to Nova Flow's
+# nginx container; only one container can hold them. Nova's nginx carries a
+# second vhost for this app and reaches it over the shared external `edge`
+# network below (APP_LLM deploy/nginx/skillswap.conf).
+#
+# Secrets stay OUT of the image: .env via env_file, never a COPY.
+
+services:
+  web:
+    build:
+      context: .
+      args:
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-dev}
+    image: skillswap:latest
+    container_name: skillswap-web
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      APP_ENV: production
+      # ── TWO WORKERS ON ONE CPU ───────────────────────────────────────────
+      # The requested allocation. NOT `--threads 2`, which UvicornWorker
+      # ignores outright — see the long note in the Dockerfile.
+      #
+      # ⚠ REALTIME CAVEAT, and it is the reason this is a variable and not a
+      # constant: app/realtime.py's UserHub and app/routers/rooms.py's _rooms
+      # are process-local dicts. Two workers share one accept socket and a
+      # WebSocket cannot be routed to a chosen worker, so hub.send_to_user()
+      # on worker A cannot reach a socket held by worker B — roughly half of
+      # message pings, presence flips and room signalling vanish, silently.
+      # realtime.py's own docstring names the fix ("swap this for Redis
+      # pub/sub behind the same interface"). UNTIL THAT LANDS, set
+      # GUNICORN_WORKERS=1 in .env if live messaging matters more than the
+      # second lane.
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
+    # ── LOOPBACK ONLY, AND THE `127.0.0.1:` IS THE WHOLE POINT ───────────
+    # Public traffic arrives through nginx over `edge`; this publish exists so
+    # the box itself can curl /health, which is the only local way to see the
+    # app before the nginx vhost is live. Port 8001 because Nova Flow's web
+    # already holds 127.0.0.1:8000 on this host.
+    #
+    # Writing "8001:8000" instead does not merely "also listen publicly": for a
+    # non-loopback publish Docker inserts its own DNAT rule into the nat table's
+    # DOCKER chain, which is traversed BEFORE ufw's filter rules. The firewall
+    # would report the port closed while it was open to the internet, and
+    # nothing would log it. Guarded by backend/tests/test_deploy_config.py.
+    ports:
+      - "127.0.0.1:${APP_HOST_PORT:-8001}:8000"
+    networks:
+      skillswap:
+      edge:
+        aliases:
+          # nginx proxies to THIS name. It must not be the bare service name
+          # `web`: Nova Flow's own app container is also called `web`, and two
+          # `web` aliases in one resolver's view is a coin flip nobody wrote
+          # down. See APP_LLM deploy/nginx/skillswap.conf.
+          - skillswap-web
+    cpus: 1.0
+    mem_limit: 1g
+    logging: &logs
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+networks:
+  skillswap:
+    driver: bridge
+  # Shared with Nova Flow's nginx. Created by deploy/deploy.sh (and by Nova's
+  # own deploy) with `docker network create edge` — external, so neither
+  # compose project owns or destroys it.
+  edge:
+    external: true

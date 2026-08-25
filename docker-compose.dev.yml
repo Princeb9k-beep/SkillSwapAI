@@ -1,0 +1,84 @@
+# SkillSwap AI — LOCAL overlay (laptop / CI box). NEVER used on a VPS.
+#
+# Deliberately NOT named docker-compose.override.yml: compose auto-loads that
+# name, and this is the same repo the VPS deploys from — an auto-loaded overlay
+# would silently flip production to dev settings. Always pass it explicitly:
+#
+#   docker network create edge          # once; the base file declares it external
+#   docker compose -f docker-compose.yml -f docker-compose.data.yml \
+#                  -f docker-compose.dev.yml up -d
+#   curl -fsS localhost:8000/health
+#
+# What it changes and why:
+#   * web publishes 127.0.0.1:8000 — on the VPS nginx reaches it over `edge`
+#     and no publish exists at all; locally there is no nginx.
+#   * web points at the compose service names. Production points at 10.77.0.1
+#     (the WireGuard peer); inside a container 127.0.0.1 is the container.
+#   * the data services join web's network so those names resolve, and publish
+#     on loopback so host-side psql / redis-cli / pytest can reach them.
+#   * Postgres drops to laptop sizing. The 256M production profile is correct
+#     for the VPS and needlessly painful to develop against.
+#   * ONE worker. The realtime hub is process-local (see docker-compose.yml);
+#     debugging a WebSocket against two workers means half your test messages
+#     disappear and it looks like a code bug.
+
+services:
+  web:
+    environment:
+      APP_ENV: development
+      GUNICORN_WORKERS: "1"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-skillswap}:${POSTGRES_PASSWORD:-devpassword}@postgres:5432/${POSTGRES_DB:-skillswapaidb}
+      REDIS_URL: redis://default:${REDIS_PASSWORD:-devpassword}@redis:6379/0
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  # The bootstrap service exists to build a 10 GB loop-backed filesystem and to
+  # wait for a WireGuard address. Neither is a thing a laptop has, so here it is
+  # a no-op that satisfies postgres's depends_on and exits. It keeps `privileged`
+  # off locally, which is the part worth being deliberate about.
+  bootstrap:
+    privileged: false
+    command: ["true"]
+
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+    networks: [skillswap-data, skillswap]
+    # A DIFFERENT VOLUME, not an override of `pgdata`. Compose MERGES a named
+    # volume's definition rather than replacing it (measured: an overlay
+    # redeclaring `pgdata: {driver: local}` still emits the loop driver_opts),
+    # so there is no way to strip the ext4/loop options off it here. Pointing at
+    # a plain volume is the only honest way to say "not that one".
+    volumes:
+      - pgdata-dev:/var/lib/postgresql
+    ports:
+      - "127.0.0.1:5432:5432"
+    command:
+      - postgres
+      - -c
+      - max_connections=50
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - effective_cache_size=512MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - maintenance_work_mem=64MB
+      - -c
+      - synchronous_commit=on
+      - -c
+      - timezone=UTC
+    mem_limit: 1g
+    cpus: 2.0
+
+  redis:
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-devpassword}
+    networks: [skillswap-data, skillswap]
+    ports:
+      - "127.0.0.1:6379:6379"
+    mem_limit: 320m
+
+volumes:
+  pgdata-dev:
