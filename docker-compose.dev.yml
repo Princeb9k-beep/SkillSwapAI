@@ -32,14 +32,6 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
 
-  # The bootstrap service exists to build a 10 GB loop-backed filesystem and to
-  # wait for a WireGuard address. Neither is a thing a laptop has, so here it is
-  # a no-op that satisfies postgres's depends_on and exits. It keeps `privileged`
-  # off locally, which is the part worth being deliberate about.
-  bootstrap:
-    privileged: false
-    command: ["true"]
-
   postgres:
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
