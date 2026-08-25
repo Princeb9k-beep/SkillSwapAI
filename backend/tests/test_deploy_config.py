@@ -168,6 +168,77 @@ class DataTierIsSizedAsSpecified(unittest.TestCase):
         self.assertEqual(1.0, float(self.app["services"]["web"]["cpus"]))
 
 
+class TheStorageCeilingIsDeclaredNotHoped(unittest.TestCase):
+    """10 GB has to be a filesystem, not an intention.
+
+    Docker cannot size-limit a volume — there is no `--storage-opt size=` for
+    volumes, and the one that exists applies to a container's writable layer and
+    needs an xfs+pquota backend. So an ordinary named volume, or a bind onto the
+    root filesystem, is not a limit at all. This box also holds Nova Flow's
+    production Redis, so a runaway table here fills that box too: SkillSwap's
+    disk bug becomes Nova's outage.
+
+    A filesystem in a FILE is a real ceiling. Deleting the three driver_opts
+    below is a one-line edit that produces NO error and NO symptom — Docker just
+    hands out an ordinary volume and Postgres can fill the host. `df` is the only
+    thing that ever knows, which is why data-deploy.sh also checks it at runtime.
+    """
+
+    def setUp(self):
+        self.data = yaml.safe_load((_ROOT / "docker-compose.data.yml").read_text())
+
+    def test_pgdata_is_a_loop_mounted_filesystem(self):
+        opts = (self.data["volumes"]["pgdata"] or {}).get("driver_opts") or {}
+        self.assertEqual("ext4", opts.get("type"))
+        self.assertEqual("loop", opts.get("o"))
+        # _resolve: this reads the source, so `${PGDATA_IMAGE:-...}` is what is
+        # written there. The DEFAULT is the thing under review — it is what
+        # ships, and it is what a copy-paste edit gets wrong.
+        device = _resolve(str(opts.get("device", "")))
+        self.assertTrue(device.endswith(".img"),
+                        f"device should be an image file, got {device!r}")
+
+    def test_postgres_waits_for_the_image_to_exist(self):
+        """Mounting a device that does not exist yet is the failure this
+        ordering prevents — and `depends_on` alone is not enough: it must be
+        service_completed_successfully, or postgres starts alongside a
+        bootstrap that is still running mkfs."""
+        dep = self.data["services"]["postgres"]["depends_on"]["bootstrap"]
+        self.assertEqual("service_completed_successfully", dep["condition"])
+
+    def test_bootstrap_never_reformats_an_existing_filesystem(self):
+        """The difference between re-running this and erasing the database.
+        Re-running is exactly what people do."""
+        cmd = " ".join(str(x) for x in self.data["services"]["bootstrap"]["command"])
+        self.assertIn("blkid", cmd)
+        self.assertIn("not touching it", cmd)
+
+    def test_bootstrap_reserves_only_one_percent(self):
+        """ext4 reserves 5% for root by default and Postgres is not root, so a
+        10G volume would hand it 9.5G and refuse the rest with an ENOSPC while
+        df still showed free space."""
+        cmd = " ".join(str(x) for x in self.data["services"]["bootstrap"]["command"])
+        self.assertIn("mkfs.ext4 -q -m 1 -F", cmd)
+
+    def test_bootstrap_is_the_only_privileged_service(self):
+        """It needs it (mkfs and loop devices are kernel-level). Nothing else
+        should acquire it by drift."""
+        privileged = {n for n, b in self.data["services"].items() if (b or {}).get("privileged")}
+        self.assertEqual({"bootstrap"}, privileged)
+
+    def test_dev_uses_a_different_volume_rather_than_overriding_this_one(self):
+        """MEASURED, and the reason the dev overlay looks redundant: compose
+        MERGES a named volume's definition rather than replacing it. An overlay
+        redeclaring `pgdata: {driver: local}` still emits the ext4/loop
+        driver_opts, so a laptop would try to loop-mount /srv/skillswap/pgdata.img.
+        Pointing at a separate volume is the only way to say 'not that one'."""
+        dev = yaml.safe_load((_ROOT / "docker-compose.dev.yml").read_text())
+        mounts = dev["services"]["postgres"]["volumes"]
+        self.assertTrue(any(str(m).startswith("pgdata-dev:") for m in mounts), mounts)
+        self.assertNotIn("pgdata", (dev.get("volumes") or {}),
+                         "redeclaring `pgdata` here cannot strip driver_opts — it merges")
+
+
 class WorkersNotThreads(unittest.TestCase):
     """Two lanes means two WORKER PROCESSES.
 

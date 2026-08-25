@@ -17,7 +17,8 @@ set -euo pipefail
 PG_HEALTH_TIMEOUT="${PG_HEALTH_TIMEOUT:-120}"
 REDIS_HEALTH_TIMEOUT="${REDIS_HEALTH_TIMEOUT:-60}"
 BASE="${SKILLSWAP_BASE:-/srv/skillswap}"
-MNT="${PGDATA_HOST_PATH:-${BASE}/pgdata}"
+PGDATA_IMAGE="${PGDATA_IMAGE:-${BASE}/pgdata.img}"
+PGDATA_SIZE="${PGDATA_SIZE:-10G}"
 WG_ADDR="${WG_ADDR:-10.77.0.1}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -84,52 +85,24 @@ else
       published ports. Fix the tunnel first:  systemctl start wg-quick@wg0"
 fi
 
-# ── the PGDATA mount guard ───────────────────────────────────────────────
+# ── the PGDATA image ─────────────────────────────────────────────────────
 #
-# Two failure modes, and the second is the dangerous one:
-#   (a) the loopback filesystem is not mounted → Postgres writes to the bare
-#       directory on the root filesystem, and the 10 GB ceiling silently is not
-#       a ceiling any more.
-#   (b) it IS mounted but EMPTY → Postgres cheerfully initdb's a blank cluster
-#       beside the real data, the app connects, finds no tables, and the first
-#       thing anyone notices is that every account has disappeared.
-#
-# Both are indistinguishable from a healthy start unless something checks. A
-# genuine first bring-up is the ONLY time (b) is legitimate, so it has to be
-# asked for by name.
-PGDATA_HOST_PATH="$(read_env PGDATA_HOST_PATH)"
-PGDATA_HOST_PATH="${PGDATA_HOST_PATH:-$MNT}"
-if [ "${PGDATA_HOST_PATH#/}" != "$PGDATA_HOST_PATH" ]; then   # absolute → a bind mount
-  mountpoint -q "$PGDATA_HOST_PATH" \
-    || die "PGDATA_HOST_PATH=${PGDATA_HOST_PATH} is NOT a mountpoint. The 10 GB
-      loopback filesystem is not mounted (reboot?), so Postgres would write to
-      the host root filesystem with no ceiling at all.
-        mount ${PGDATA_HOST_PATH}     (or re-run deploy/setup-data-vps.sh)"
-  if [ ! -f "${PGDATA_HOST_PATH}/18/docker/PG_VERSION" ] && [ "${PGDATA_ALLOW_EMPTY:-0}" != 1 ]; then
-    die "PGDATA_HOST_PATH=${PGDATA_HOST_PATH} is mounted but holds NO cluster
-      (no 18/docker/PG_VERSION). If the real data is in the named 'pgdata'
-      volume from an earlier bring-up, move it before starting — a start here
-      would initdb an empty cluster beside it.
-      Only a genuine FIRST bring-up may proceed:
-        PGDATA_ALLOW_EMPTY=1 $0"
-  fi
-  ok "PGDATA: ${PGDATA_HOST_PATH} mounted, cluster present (or explicitly allowed empty)"
-  df -h "$PGDATA_HOST_PATH" | tail -1 | sed 's/^/    /'
-
-  # A database on a hard 10 GB ceiling should say so before it is full, not
-  # after. Postgres does not fail gracefully at ENOSPC: it refuses writes and,
-  # if WAL cannot be written, it stops.
-  _used_pct="$(df -P "$PGDATA_HOST_PATH" | awk 'NR==2 {gsub(/%/,"",$5); print $5}')"
-  if [ "${_used_pct:-0}" -ge 90 ]; then
-    warn "PGDATA is ${_used_pct}% full. At 100% Postgres stops accepting writes."
-    warn "  du -sh ${PGDATA_HOST_PATH}/18/docker/*  |  check for un-recycled WAL"
-  elif [ "${_used_pct:-0}" -ge 75 ]; then
-    warn "PGDATA is ${_used_pct}% full — plan the resize now, not at 99%."
-  fi
+# The 10 GB ceiling is a filesystem in a FILE, mounted by Docker's local driver
+# (`type: ext4, o: loop` on the pgdata volume). The `bootstrap` service in the
+# compose file creates and formats it before anything mounts it, so there is
+# nothing to provision here — only the two things worth knowing BEFORE we start:
+# is there room on the host to create it, and does it already carry data.
+if [ -f "$PGDATA_IMAGE" ]; then
+  ok "PGDATA image present: ${PGDATA_IMAGE} ($(du -h "$PGDATA_IMAGE" 2>/dev/null | cut -f1) allocated)"
 else
-  warn "PGDATA_HOST_PATH is unset or not absolute → the UNCAPPED named volume is"
-  warn "in use. Correct for local dev; wrong on this box, where the 10 GB ceiling"
-  warn "is the whole point."
+  warn "no PGDATA image at ${PGDATA_IMAGE} — bootstrap will create it (${PGDATA_SIZE})."
+  warn "This is a FIRST BRING-UP. Postgres will initdb an empty cluster into it."
+  _need_kb=$(( $(printf '%s' "$PGDATA_SIZE" | tr -dc '0-9') * 1024 * 1024 ))
+  _free_kb="$(df -Pk "$(dirname "$PGDATA_IMAGE")" 2>/dev/null | awk 'NR==2 {print $4}')"
+  if [ -n "${_free_kb:-}" ] && [ "$_free_kb" -lt "$_need_kb" ]; then
+    die "only $(( _free_kb / 1024 / 1024 ))G free where the image would go, and it
+      needs $(( _need_kb / 1024 / 1024 ))G. Free space or lower PGDATA_SIZE."
+  fi
 fi
 
 if [ "$STATUS_ONLY" = 1 ]; then
@@ -158,7 +131,7 @@ if [ -f "$PG_TUNING" ]; then
 else
   warn "no ${PG_TUNING} — using the in-compose fallbacks (same 256M profile)"
 fi
-export PGDATA_HOST_PATH WG_ADDR
+export PGDATA_IMAGE PGDATA_SIZE WG_ADDR
 dc config -q || die "docker-compose.data.yml is invalid"
 
 # ── start, health-gated ──────────────────────────────────────────────────
@@ -212,6 +185,41 @@ if printf '%s' "$_pub" | grep -qE '^(0\.0\.0\.0|\[::\]|\*)'; then
   warn "─────────────────────────────────────────────────────────────────"
 else
   ok "data ports are tunnel-bound, not public"
+fi
+
+# ── is the ceiling actually in effect? ───────────────────────────────────
+# ASSERT THE VALUE, NOT THE CONFIG. Everything above proves the compose file
+# ASKS for a 10 GB loop-backed volume. This asks the running container what it
+# actually got — because the way this breaks is someone deleting the
+# driver_opts, at which point Docker silently hands out an ordinary volume on
+# the host root filesystem and the "ceiling" becomes the size of the whole box.
+# Nothing errors. df is the only thing that ever knows.
+log "Verifying the storage ceiling"
+_df="$(docker exec skillswap-postgres df -Pk /var/lib/postgresql 2>/dev/null | awk 'NR==2 {print $2" "$5}')"
+if [ -n "$_df" ]; then
+  _size_kb="${_df%% *}"; _pct="${_df##* }"; _pct="${_pct%\%}"
+  _size_gb=$(( _size_kb / 1024 / 1024 ))
+  _want_gb="$(printf '%s' "$PGDATA_SIZE" | tr -dc '0-9')"
+  # A loop-mounted 10G ext4 reports slightly under 10G (journal + metadata), so
+  # compare loosely against the request and loudly against the host disk.
+  if [ "$_size_gb" -gt $(( _want_gb + 2 )) ]; then
+    warn "─────────────────────────────────────────────────────────────────"
+    warn "PGDATA reports ${_size_gb}G, but the ceiling is meant to be ${PGDATA_SIZE}."
+    warn "The volume is almost certainly NOT the loop-backed one — check the"
+    warn "driver_opts on the pgdata volume in docker-compose.data.yml. Postgres"
+    warn "can now fill this whole box, and Nova Flow's Redis lives on it."
+    warn "─────────────────────────────────────────────────────────────────"
+  else
+    ok "PGDATA ceiling in effect: ${_size_gb}G usable, ${_pct}% used"
+  fi
+  if   [ "${_pct:-0}" -ge 90 ]; then
+    warn "PGDATA is ${_pct}% full. At 100% Postgres stops accepting writes."
+    warn "  docker exec skillswap-postgres du -sh /var/lib/postgresql/18/docker/*"
+  elif [ "${_pct:-0}" -ge 75 ]; then
+    warn "PGDATA is ${_pct}% full — plan the resize now, not at 99%."
+  fi
+else
+  warn "could not read df inside skillswap-postgres — ceiling unverified"
 fi
 
 log "Data tier up"

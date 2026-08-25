@@ -20,7 +20,7 @@ app VPS 82.197.64.18                      data VPS 80.190.73.191
 | | allocation | where it is set |
 |---|---|---|
 | app | 1.0 CPU, 1g, **2 gunicorn workers** | `docker-compose.yml`, `Dockerfile` |
-| Postgres | 1.0 CPU, 256M, **10G enforced** | `docker-compose.data.yml`, `deploy/postgres/pg-tuning.env` |
+| Postgres | 1.0 CPU, 256M, **10G enforced** | `docker-compose.data.yml` (the `pgdata` volume + `bootstrap`), `deploy/postgres/pg-tuning.env` |
 | Redis | 512M maxmemory (640m container) | `docker-compose.data.yml` |
 
 ## Three things that are not obvious
@@ -46,25 +46,45 @@ Every publish here names `10.77.0.1` or `127.0.0.1`. Guarded by
 
 ## Bring-up
 
-**1 — data VPS** (as root):
+**1 — data VPS** (as root). Docker install aside, this is one compose command —
+the stack provisions its own 10 GB filesystem:
 
 ```sh
-git clone <repo> /srv/skillswap/app && cd /srv/skillswap/app
+# Docker only if the box has none. It is the one step nothing in a compose
+# file can do for itself.
+command -v docker || curl -fsSL https://get.docker.com | sh
+
+git clone <repo> /srv/apps/SkillSwapAI && cd /srv/apps/SkillSwapAI
 cp .env.example .env && nano .env          # POSTGRES_PASSWORD, REDIS_PASSWORD
-                                           # openssl rand -base64 32
-deploy/setup-data-vps.sh                   # docker, the 10G mount, ufw, systemd
-deploy/data-deploy.sh                      # start, health-gate, verify the tunnel
+                                           # openssl rand -hex 32  (NOT base64)
+docker compose -f docker-compose.data.yml up -d
 ```
 
-`setup-data-vps.sh` is one-time and idempotent; `data-deploy.sh` runs on every
-change. The first bring-up starts with an empty mount, which `data-deploy.sh`
-refuses by default — that guard exists because an empty mount is
-indistinguishable from a detached one, and Postgres would happily `initdb` a
-blank cluster beside real data. Say so explicitly the first time:
+The `bootstrap` service runs first: it waits for `10.77.0.1` to exist, then
+creates and formats the 10 GB image the `pgdata` volume mounts as a loop device.
+It never re-formats an image that already carries a filesystem. It needs
+`privileged` because mkfs and loop devices are kernel-level — it is the only
+privileged thing in the stack, it runs for a few seconds, and it exits.
+
+`deploy/data-deploy.sh` is the same bring-up with health gates, a `git pull`,
+the tuning file sourced, and a **runtime** check that the ceiling is really in
+effect (it reads `df` inside the container, because the way this breaks is
+someone deleting the `driver_opts` and Docker silently handing out an ordinary
+volume on the host root). Use it for redeploys.
+
+Two host-level things are deliberately still scripts, because no container can
+do them for the host it runs on:
 
 ```sh
-PGDATA_ALLOW_EMPTY=1 deploy/data-deploy.sh
+deploy/setup-data-vps.sh          # ufw rules + the boot-ordering systemd unit
+deploy/setup-data-vps.sh --filesystem   # ...if you would rather not grant
+                                        # `privileged` to bootstrap
 ```
+
+Neither is required to bring the stack up by hand. The ufw rules are defence in
+depth — **the bind address is the actual wall**, and it is in the YAML. The
+systemd unit matters only for reboots: Docker starts on its own schedule and
+would try to bind `10.77.0.1` before `wg-quick@wg0` has created it.
 
 **2 — app VPS** (as root). Prove the tunnel *before* deploying:
 
@@ -144,5 +164,5 @@ compose auto-loads that name, and this is the same repo the VPS deploys from.
 | nginx 502 on the SkillSwap domain only | `docker network inspect edge` — is `skillswap-web` attached? |
 | nginx will not start at all | it is Nova's nginx. `docker compose logs nginx` there; check `SKILLSWAP_SSL_DIR` names files that exist |
 | Postgres OOM-killed | `deploy/postgres/pg-tuning.env`. `work_mem` is **per sort node**, not per connection — raising it is the usual cause |
-| `PGDATA is 9x% full` | the ceiling is real and working. `du -sh` inside the mount; check for un-recycled WAL |
+| `PGDATA is 9x% full` | the ceiling is real and working. `docker exec skillswap-postgres du -sh /var/lib/postgresql/18/docker/*` |
 | everything green, browser shows old code | the deploy prints `branch @ sha` on every run. Compare it to what you expect before debugging anything else |

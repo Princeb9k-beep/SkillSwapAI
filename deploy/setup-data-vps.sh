@@ -25,8 +25,8 @@ PG_PORT="${POSTGRES_HOST_PORT:-5432}"
 REDIS_PORT="${REDIS_HOST_PORT:-6380}"        # 6379 here is Nova Flow's native Redis
 SIZE="${PGDATA_SIZE:-10G}"
 BASE="${SKILLSWAP_BASE:-/srv/skillswap}"
-IMG="${BASE}/pgdata.img"
-MNT="${BASE}/pgdata"
+IMG="${PGDATA_IMAGE:-${BASE}/pgdata.img}"
+DO_FILESYSTEM=0
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(dirname "$SCRIPT_DIR")"
@@ -40,7 +40,8 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --size)   shift; SIZE="${1:-}"; [ -n "$SIZE" ] || die "--size needs a value (e.g. 10G)" ;;
     --size=*) SIZE="${1#*=}" ;;
-    *) die "unknown arg: $1  (use --size <N>G)" ;;
+    --filesystem) DO_FILESYSTEM=1 ;;
+    *) die "unknown arg: $1  (use --size <N>G, --filesystem)" ;;
   esac
   shift
 done
@@ -94,70 +95,49 @@ https://download.docker.com/linux/${ID} ${VERSION_CODENAME} stable" \
   ok "installed $(docker --version)"
 fi
 
-# ── 2. THE 10 GB CEILING ─────────────────────────────────────────────────
+# ── 2. the PGDATA filesystem — NORMALLY NOT DONE HERE ────────────────────
 #
-# WHY A LOOPBACK IMAGE AND NOT JUST A DIRECTORY. Docker cannot size-limit a
-# volume — there is no `--storage-opt size=` for volumes, and the one that
-# exists applies to a container's writable layer and needs an xfs+pquota
-# backend. So "10 GB of storage for PostgreSQL" written as a bind mount onto
-# the root filesystem is not a limit at all; it is a hope. A runaway table, a
-# WAL that stops being recycled, or one bad backfill then fills the box — and
-# the box also holds Nova Flow's production Redis, so SkillSwap's disk bug
-# becomes Nova's outage.
+# The 10 GB ceiling now lives in docker-compose.data.yml: the `pgdata` volume is
+# `type: ext4, o: loop` over an image file, and the `bootstrap` service creates
+# and formats that image before anything mounts it. So a plain
+# `docker compose -f docker-compose.data.yml up -d` provisions its own storage
+# and this script does not need to.
 #
-# A filesystem in a file gives a real ceiling with no repartitioning: Postgres
-# hits ENOSPC at exactly ${SIZE} and stops, which is loud, local and survivable.
-log "PGDATA filesystem (${SIZE}, enforced)"
-mkdir -p "$BASE" "$MNT"
-
-if [ -f "$IMG" ]; then
-  ok "image exists: ${IMG} ($(du -h "$IMG" | cut -f1) allocated)"
-else
-  if command -v fallocate >/dev/null 2>&1 && fallocate -l "$SIZE" "$IMG" 2>/dev/null; then
-    :
+# The one reason to do it from the host instead is not wanting to grant
+# `privileged` to the bootstrap container — mkfs and loop devices are
+# kernel-level and no unprivileged container can do them. Pass --filesystem and
+# this does the identical work as root, after which bootstrap finds everything
+# in place and exits immediately.
+if [ "$DO_FILESYSTEM" = 1 ]; then
+  log "PGDATA filesystem (${SIZE}, enforced) — host-side, --filesystem"
+  mkdir -p "$(dirname "$IMG")"
+  if [ -f "$IMG" ]; then
+    ok "image exists: ${IMG} ($(du -h "$IMG" | cut -f1) allocated)"
   else
-    warn "fallocate unavailable or unsupported here — falling back to dd (slower)"
-    _mb="$(( $(printf '%s' "$SIZE" | tr -dc '0-9') * 1024 ))"
-    dd if=/dev/zero of="$IMG" bs=1M count="$_mb" status=none
+    if command -v fallocate >/dev/null 2>&1 && fallocate -l "$SIZE" "$IMG" 2>/dev/null; then
+      :
+    else
+      warn "fallocate unavailable here — falling back to dd (slower)"
+      dd if=/dev/zero of="$IMG" bs=1M \
+         count="$(( $(printf '%s' "$SIZE" | tr -dc '0-9') * 1024 ))" status=none
+    fi
+    ok "created ${IMG} (${SIZE})"
   fi
-  ok "created ${IMG} (${SIZE})"
-fi
-
-# NEVER re-mkfs an image that already carries a filesystem. That single guard is
-# the difference between "re-running the setup script" and "erasing the
-# database", and re-running a setup script is exactly what people do.
-if blkid "$IMG" >/dev/null 2>&1; then
-  ok "filesystem already present on ${IMG} — not touching it"
+  # NEVER re-mkfs an image that already carries a filesystem. That single guard
+  # is the difference between "re-running the setup script" and "erasing the
+  # database", and re-running a setup script is exactly what people do.
+  if blkid "$IMG" >/dev/null 2>&1; then
+    ok "filesystem already present on ${IMG} — not touching it"
+  else
+    # -m 1: ext4 reserves 5% for root BY DEFAULT and Postgres is not root, so a
+    # 10G volume would hand it 9.5G and refuse the rest with a confusing ENOSPC
+    # while df still showed free space.
+    mkfs.ext4 -q -m 1 -F "$IMG"
+    ok "mkfs.ext4 on ${IMG} (1% reserve, not the 5% default)"
+  fi
 else
-  # -m 1: ext4 reserves 5% for root by DEFAULT, and Postgres does not run as
-  # root — so a 10G volume would hand it 9.5G and refuse the rest with a
-  # confusing ENOSPC while `df` still shows half a gig free.
-  mkfs.ext4 -q -m 1 -F "$IMG"
-  ok "mkfs.ext4 on ${IMG} (1% reserve, not the 5% default)"
+  ok "PGDATA filesystem: left to the compose `bootstrap` service (--filesystem to do it here)"
 fi
-
-# fstab BEFORE mount, so a reboot brings it back. `nofail` keeps a missing image
-# from dropping the box into emergency mode at boot; `noatime` is one less write
-# per read on a database volume.
-if grep -qsF " ${MNT} " /etc/fstab; then
-  ok "fstab entry present"
-else
-  printf '%s %s ext4 loop,nofail,noatime 0 2\n' "$IMG" "$MNT" >> /etc/fstab
-  ok "added fstab entry"
-fi
-
-if mountpoint -q "$MNT"; then
-  ok "${MNT} already mounted"
-else
-  mount "$MNT" || die "could not mount ${MNT} — check /etc/fstab and losetup -a"
-  ok "mounted ${MNT}"
-fi
-df -h "$MNT" | tail -1 | sed 's/^/    /'
-
-# The postgres entrypoint runs as root, creates PGDATA under this mount and
-# chowns it to its own postgres user, so no host-side chown is wanted here —
-# guessing the uid (70 on alpine, 999 on the debian variant) is how you get a
-# permission error that looks like a corrupt volume.
 
 # ── 3. firewall ──────────────────────────────────────────────────────────
 #
@@ -211,14 +191,17 @@ cat <<EOF
 ======================================================================
  Data VPS provisioned.
 
-   PGDATA mount : ${MNT}  (${SIZE}, enforced ceiling)
+   PGDATA image : ${IMG}  (${SIZE}, enforced ceiling)
    Postgres     : ${WG_ADDR}:${PG_PORT}   (tunnel only)
    Redis        : ${WG_ADDR}:${REDIS_PORT}   (tunnel only)
 
  Next, on THIS box:
    1. put POSTGRES_PASSWORD and REDIS_PASSWORD in ${ROOT}/.env
-        openssl rand -base64 32
-   2. ${SCRIPT_DIR}/data-deploy.sh
+        openssl rand -hex 32     # hex, NOT base64: base64 emits / and +,
+                                 # and a / in a password inside a URL is a
+                                 # hard parse failure, not a warning
+   2. docker compose -f docker-compose.data.yml up -d
+        (or ${SCRIPT_DIR}/data-deploy.sh for the health-gated version)
 
  Then, on the APP VPS, point .env at this box:
    DATABASE_URL=postgresql://skillswap:<pw>@${WG_ADDR}:${PG_PORT}/skillswapaidb

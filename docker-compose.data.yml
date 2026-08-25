@@ -24,6 +24,82 @@
 # carries the ordering that survives a reboot.
 
 services:
+  # ── bootstrap: makes the 10 GB ceiling exist, in the YAML ────────────────
+  #
+  # This used to be a shell script you had to remember to run first. It is here
+  # instead so the whole data tier is one `docker compose up -d` over SSH.
+  #
+  # It does exactly two things, both idempotent:
+  #   1. waits for the WireGuard address to exist, because postgres and redis
+  #      PUBLISH on it and a container that cannot bind does not retry into
+  #      success — it is simply down. Failing here, loudly, with the reason, is
+  #      the difference between "the tunnel is down" and "the database is gone".
+  #   2. creates and formats the backing image for the pgdata volume, ONCE.
+  #
+  # It needs `privileged` because mkfs and the loop device are kernel-level
+  # operations no unprivileged container can perform. That is a real grant and
+  # worth knowing about: it runs for a few seconds at bring-up, exits, and
+  # nothing else in this stack is privileged. If you would rather not grant it,
+  # deploy/setup-data-vps.sh --filesystem does the same work from the host and
+  # this service then finds everything already in place and exits immediately.
+  bootstrap:
+    image: alpine:3.20
+    # host networking so it can SEE wg0. It opens no ports of its own.
+    network_mode: host
+    privileged: true
+    volumes:
+      # The parent of the image file, not the file — it may not exist yet.
+      - ${PGDATA_IMAGE_DIR:-/srv/skillswap}:/host-data
+    environment:
+      WG_ADDR: ${WG_ADDR:-10.77.0.1}
+      PGDATA_SIZE: ${PGDATA_SIZE:-10G}
+      WAIT_SECONDS: ${WG_WAIT_SECONDS:-120}
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        IMG=/host-data/pgdata.img
+
+        echo "bootstrap: waiting up to $${WAIT_SECONDS}s for $${WG_ADDR}"
+        waited=0
+        while ! ip -4 addr show 2>/dev/null | grep -q "inet $${WG_ADDR}/"; do
+          if [ "$$waited" -ge "$${WAIT_SECONDS}" ]; then
+            echo "bootstrap: FAILED — $${WG_ADDR} never appeared." >&2
+            echo "  postgres and redis publish on it and cannot start without it." >&2
+            echo "  On this box:  systemctl status wg-quick@wg0" >&2
+            exit 1
+          fi
+          sleep 2; waited=$$((waited + 2))
+        done
+        echo "bootstrap: $${WG_ADDR} is up (after $${waited}s)"
+
+        apk add --no-cache e2fsprogs util-linux >/dev/null 2>&1 \
+          || { echo "bootstrap: could not install e2fsprogs/util-linux (no egress?)" >&2; exit 1; }
+
+        if [ ! -f "$$IMG" ]; then
+          echo "bootstrap: creating $${PGDATA_SIZE} image"
+          fallocate -l "$${PGDATA_SIZE}" "$$IMG" 2>/dev/null \
+            || dd if=/dev/zero of="$$IMG" bs=1M \
+                 count=$$(( $$(echo "$${PGDATA_SIZE}" | tr -dc 0-9) * 1024 )) status=none
+        else
+          echo "bootstrap: image exists"
+        fi
+
+        # NEVER re-mkfs an image that already carries a filesystem. That single
+        # guard is the difference between re-running this and erasing the
+        # database — and re-running is exactly what people do.
+        if blkid "$$IMG" >/dev/null 2>&1; then
+          echo "bootstrap: filesystem already present — not touching it"
+        else
+          # -m 1: ext4 reserves 5% for root BY DEFAULT and postgres is not root,
+          # so a 10G volume would hand it 9.5G and refuse the rest with a
+          # confusing ENOSPC while df still showed free space.
+          mkfs.ext4 -q -m 1 -F "$$IMG"
+          echo "bootstrap: mkfs.ext4 done (1% reserve, not the 5% default)"
+        fi
+        echo "bootstrap: ready"
+
   postgres:
     # Plain postgres: this app's models.py has no vector columns, so the
     # pgvector image the sibling deployment needs would be dead weight here.
@@ -40,25 +116,21 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
       POSTGRES_DB: ${POSTGRES_DB:-skillswapaidb}
       POSTGRES_INITDB_ARGS: "--data-checksums"
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
     volumes:
       # PG18 images keep data in a major-version subdir and REQUIRE the mount at
       # /var/lib/postgresql (not the legacy .../data), so pg_upgrade --link can
       # work without crossing a mount boundary (docker-library/postgres#1259).
-      # PGDATA then lands at /var/lib/postgresql/18/docker inside this mount.
+      # PGDATA then lands at /var/lib/postgresql/18/docker inside this volume.
       #
-      # PGDATA_HOST_PATH=/srv/skillswap/pgdata makes this a BIND onto the 10G
-      # loopback filesystem setup-data-vps.sh creates — that is what makes "10 GB
-      # of storage" an enforced ceiling rather than an intention. Docker cannot
-      # size-limit a named volume, so left unset (local dev) it falls back to
-      # the uncapped `pgdata` volume below. A bare name = named volume, a
-      # leading slash = bind mount; Docker decides on the slash, which is
-      # exactly the toggle wanted here.
-      #
-      # WARNING: bring this up once with PGDATA_HOST_PATH unset and the data is
-      # in the named volume. Setting the path afterwards starts an EMPTY
-      # cluster beside it — data-deploy.sh refuses that case rather than
-      # letting Postgres quietly initdb a shadow cluster.
-      - ${PGDATA_HOST_PATH:-pgdata}:/var/lib/postgresql
+      # A HAPPY CONSEQUENCE OF THAT LAYOUT: the volume below is a freshly
+      # formatted ext4 filesystem, so its root contains `lost+found`. Mounted at
+      # /var/lib/postgresql the entrypoint never looks there — it checks PGDATA,
+      # two levels down. On PG<=17, where the mount goes AT the data directory,
+      # that same lost+found makes initdb refuse with "directory not empty".
+      - pgdata:/var/lib/postgresql
     command:
       - postgres
       # ── sized for 1 CPU / 256M. The inline ${...:-} fallbacks ARE the
@@ -168,7 +240,35 @@ services:
     logging: *logs
 
 volumes:
-  pgdata:                # local-dev fallback ONLY; production binds the 10G mount
+  # ── THE 10 GB CEILING, DECLARED RATHER THAN PROVISIONED ───────────────────
+  #
+  # Docker cannot size-limit a volume: there is no `--storage-opt size=` for
+  # volumes, and the one that exists applies to a container's writable layer and
+  # needs an xfs+pquota backend. So "10 GB for PostgreSQL" written as an ordinary
+  # volume or a bind onto the root filesystem is not a limit at all, it is a
+  # hope — and this box also holds Nova Flow's production Redis, so a runaway
+  # table here would be an outage over there.
+  #
+  # A filesystem in a FILE is a real ceiling with no repartitioning. Docker's
+  # local driver hands these options straight to mount(8), so `o: loop` sets up
+  # and tears down the loop device automatically with the volume's lifecycle —
+  # no losetup, no fstab, nothing to remember. Postgres hits ENOSPC at exactly
+  # PGDATA_SIZE, which is loud, local and survivable.
+  #
+  # The `bootstrap` service above creates and formats the image before anything
+  # mounts it. Mounting a device that does not exist yet is the failure this
+  # ordering prevents.
+  #
+  # NOTE: an overlay file CANNOT remove these driver_opts — compose MERGES a
+  # named volume's definition rather than replacing it (measured). That is why
+  # docker-compose.dev.yml points at a different volume entirely instead of
+  # trying to override this one.
+  pgdata:
+    driver: local
+    driver_opts:
+      type: ext4
+      o: loop
+      device: ${PGDATA_IMAGE:-/srv/skillswap/pgdata.img}
   skillswap-redis-data:
 
 networks:
