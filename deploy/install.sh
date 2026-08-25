@@ -41,7 +41,7 @@ die()  { printf '\033[1;31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 read_env() { skillswap_dotenv_value "${ROOT}/.env" "$1" || true; }
 
 ROLE=""; ROLLBACK_ONLY=0; PULL=1; DEPLOY_BRANCH="${DEPLOY_BRANCH:-}"
-CEILING="${PGDATA_CEILING:-}"          # e.g. --ceiling=10G → a hard-capped filesystem
+CEILING=""                             # set by --ceiling, or PGDATA_SIZE in .env
 HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-150}"
 PG_HEALTH_TIMEOUT="${PG_HEALTH_TIMEOUT:-120}"
 KEEP_IMAGES="${KEEP_IMAGES:-5}"
@@ -109,6 +109,15 @@ docker info >/dev/null 2>&1 || die "Docker engine is not running"
 [ -f "${ROOT}/.env" ] || die ".env not found in ${ROOT} — copy .env.example and fill it in"
 
 WG_ADDR="$(read_env WG_ADDR)"; WG_ADDR="${WG_ADDR:-$WG_ADDR_DEFAULT}"
+
+# THE STORAGE CEILING COMES FROM .env, like everything else here. Setting
+# PGDATA_SIZE opts in: the data install then builds a filesystem of that size
+# and mounts it at PGDATA_HOST_PATH, so Postgres hits ENOSPC there rather than
+# filling a box that also holds Nova Flow's production Redis. Leave it unset and
+# the path is an ordinary directory — Nova's own shape, where the number is an
+# allocation you size the box for. `--ceiling` on the command line wins, for a
+# one-off without editing the file.
+[ -n "$CEILING" ] || CEILING="$(read_env PGDATA_SIZE)"
 
 tcp_open() { timeout "${3:-5}" bash -c "exec 3<>/dev/tcp/$1/$2" 2>/dev/null; }
 url_host() { printf '%s' "$1" | sed -E 's#^[a-z+]+://##I; s#^.*@##; s#[:/?].*$##'; }
