@@ -47,13 +47,25 @@ services:
     # host networking so it can SEE wg0. It opens no ports of its own.
     network_mode: host
     privileged: true
+    # pid: host so /proc/1/mountinfo is the HOST's mount table — the only way to
+    # check whether the mount below actually became visible outside this
+    # container. Without it we would be reading our own namespace and learning
+    # nothing.
+    pid: host
     volumes:
-      # The parent of the image file, not the file — it may not exist yet.
-      - ${PGDATA_IMAGE_DIR:-/srv/skillswap}:/host-data
+      # rshared IS LOAD-BEARING. A mount made inside a container is private to
+      # that container's namespace by default, so mounting the image here would
+      # look like it worked and the host — and therefore the pgdata bind below —
+      # would still see a bare, uncapped directory. rshared propagates it back.
+      # It requires the host's own mount to be shared, which systemd does by
+      # default; the verification step below is what turns "usually" into
+      # "checked".
+      - ${PGDATA_IMAGE_DIR:-/srv/skillswap}:/host-data:rshared
     environment:
       WG_ADDR: ${WG_ADDR:-10.77.0.1}
       PGDATA_SIZE: ${PGDATA_SIZE:-10G}
       WAIT_SECONDS: ${WG_WAIT_SECONDS:-120}
+      HOST_MOUNT: ${PGDATA_MOUNT:-/srv/skillswap/pgdata}
     command:
       - sh
       - -c
@@ -98,6 +110,39 @@ services:
           mkfs.ext4 -q -m 1 -F "$$IMG"
           echo "bootstrap: mkfs.ext4 done (1% reserve, not the 5% default)"
         fi
+
+        # ── the loop mount, in USERSPACE ──────────────────────────────────
+        # This is the step Docker cannot do: its local driver calls the mount
+        # syscall, and `loop` is a feature of the mount COMMAND (which runs
+        # losetup first). So mount(8) runs here, and Docker binds the result.
+        mkdir -p /host-data/pgdata
+        if mountpoint -q /host-data/pgdata; then
+          echo "bootstrap: already mounted"
+        else
+          mount -o loop "$$IMG" /host-data/pgdata
+          echo "bootstrap: mounted $$IMG on $${HOST_MOUNT}"
+        fi
+
+        # ── PROVE THE HOST SEES IT ────────────────────────────────────────
+        # A mount inside a container is invisible outside it unless propagation
+        # is rshared. If that failed, the pgdata bind resolves to a bare
+        # directory on the ROOT filesystem: Postgres starts, everything looks
+        # healthy, and the 10 GB ceiling silently does not exist — on a box that
+        # also holds Nova Flow's production Redis. Assert it instead.
+        if grep -q " $${HOST_MOUNT} " /proc/1/mountinfo; then
+          echo "bootstrap: host sees the mount at $${HOST_MOUNT}"
+        else
+          echo "bootstrap: FAILED — mounted, but the HOST cannot see it." >&2
+          echo "  Mount propagation did not reach the host, so the ceiling would" >&2
+          echo "  not exist. Do it from the host instead, once:" >&2
+          echo "    mkdir -p $${HOST_MOUNT}" >&2
+          echo "    mount -o loop $${HOST_MOUNT%/*}/pgdata.img $${HOST_MOUNT}" >&2
+          echo "    echo '$${HOST_MOUNT%/*}/pgdata.img $${HOST_MOUNT} ext4 loop,nofail,noatime 0 2' >> /etc/fstab" >&2
+          exit 1
+        fi
+
+        # NOTE: this mount does NOT survive a reboot. deploy/setup-data-vps.sh
+        # writes the fstab entry; until it is run, re-running compose remounts.
         echo "bootstrap: ready"
 
   postgres:
@@ -249,15 +294,28 @@ volumes:
   # hope — and this box also holds Nova Flow's production Redis, so a runaway
   # table here would be an outage over there.
   #
-  # A filesystem in a FILE is a real ceiling with no repartitioning. Docker's
-  # local driver hands these options straight to mount(8), so `o: loop` sets up
-  # and tears down the loop device automatically with the volume's lifecycle —
-  # no losetup, no fstab, nothing to remember. Postgres hits ENOSPC at exactly
-  # PGDATA_SIZE, which is loud, local and survivable.
+  # A filesystem in a FILE is a real ceiling with no repartitioning. Postgres
+  # hits ENOSPC at exactly PGDATA_SIZE, which is loud, local and survivable.
   #
-  # The `bootstrap` service above creates and formats the image before anything
-  # mounts it. Mounting a device that does not exist yet is the failure this
-  # ordering prevents.
+  # THIS IS A BIND, AND THE EARLIER `type: ext4, o: loop` WAS WRONG. MEASURED,
+  # on a real daemon:
+  #
+  #   failed to mount local volume: mount /srv/skillswap/pgdata.img:...,
+  #   data: loop: invalid argument
+  #
+  # Docker's local driver does NOT shell out to mount(8) — it calls the mount
+  # SYSCALL, and `loop` is a userspace feature of the mount COMMAND (which runs
+  # losetup for you), not a kernel option. So the kernel gets handed the string
+  # "loop" as filesystem-specific data and rejects it. `docker compose config`
+  # validates this happily, which is exactly why it shipped: the file parsed,
+  # and parsing is not mounting.
+  #
+  # So the loop setup happens in userspace, in the `bootstrap` service above,
+  # and Docker binds the resulting MOUNTPOINT. Bootstrap's mount is made with
+  # rshared propagation so the host sees it, and it verifies that against the
+  # host's own mount table rather than assuming — an unpropagated mount would
+  # leave this bind pointing at a bare directory on the root filesystem, with
+  # no ceiling at all and nothing to say so.
   #
   # NOTE: an overlay file CANNOT remove these driver_opts — compose MERGES a
   # named volume's definition rather than replacing it (measured). That is why
@@ -266,9 +324,9 @@ volumes:
   pgdata:
     driver: local
     driver_opts:
-      type: ext4
-      o: loop
-      device: ${PGDATA_IMAGE:-/srv/skillswap/pgdata.img}
+      type: none
+      o: bind
+      device: ${PGDATA_MOUNT:-/srv/skillswap/pgdata}
   skillswap-redis-data:
 
 networks:

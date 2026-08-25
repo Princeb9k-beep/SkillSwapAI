@@ -126,6 +126,7 @@ if [ "$DO_FILESYSTEM" = 1 ]; then
   # NEVER re-mkfs an image that already carries a filesystem. That single guard
   # is the difference between "re-running the setup script" and "erasing the
   # database", and re-running a setup script is exactly what people do.
+  MNT="${PGDATA_MOUNT:-${BASE}/pgdata}"
   if blkid "$IMG" >/dev/null 2>&1; then
     ok "filesystem already present on ${IMG} — not touching it"
   else
@@ -135,6 +136,27 @@ if [ "$DO_FILESYSTEM" = 1 ]; then
     mkfs.ext4 -q -m 1 -F "$IMG"
     ok "mkfs.ext4 on ${IMG} (1% reserve, not the 5% default)"
   fi
+
+  # THE MOUNT IS THE POINT. Docker's local driver cannot loop-mount — it calls
+  # the mount syscall, and `loop` is a mount(8) userspace feature. So the image
+  # is mounted HERE, in userspace, and the compose volume binds this directory.
+  mkdir -p "$MNT"
+  # fstab before mount, so a reboot brings it back. `nofail` keeps a missing
+  # image out of emergency mode; `noatime` is one less write per read on a
+  # database volume.
+  if grep -qsF " ${MNT} " /etc/fstab; then
+    ok "fstab entry present"
+  else
+    printf '%s %s ext4 loop,nofail,noatime 0 2\n' "$IMG" "$MNT" >> /etc/fstab
+    ok "added fstab entry (survives reboot)"
+  fi
+  if mountpoint -q "$MNT"; then
+    ok "${MNT} already mounted"
+  else
+    mount "$MNT" || die "could not mount ${MNT} — check /etc/fstab and losetup -a"
+    ok "mounted ${MNT}"
+  fi
+  df -h "$MNT" | tail -1 | sed 's/^/    /'
 else
   ok "PGDATA filesystem: left to the compose `bootstrap` service (--filesystem to do it here)"
 fi
@@ -192,6 +214,7 @@ cat <<EOF
  Data VPS provisioned.
 
    PGDATA image : ${IMG}  (${SIZE}, enforced ceiling)
+   PGDATA mount : ${PGDATA_MOUNT:-${BASE}/pgdata}
    Postgres     : ${WG_ADDR}:${PG_PORT}   (tunnel only)
    Redis        : ${WG_ADDR}:${REDIS_PORT}   (tunnel only)
 
