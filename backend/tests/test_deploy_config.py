@@ -187,7 +187,7 @@ class TheStorageCeilingIsDeclaredNotHoped(unittest.TestCase):
     def setUp(self):
         self.data = yaml.safe_load((_ROOT / "docker-compose.data.yml").read_text())
 
-    def test_pgdata_binds_a_mountpoint_and_never_asks_docker_to_loop_mount(self):
+    def test_pgdata_binds_a_host_path_and_never_asks_docker_to_loop_mount(self):
         """`type: ext4, o: loop` DOES NOT WORK, and shipped because it parses.
 
         Measured on a real daemon:
@@ -204,58 +204,38 @@ class TheStorageCeilingIsDeclaredNotHoped(unittest.TestCase):
         So: userspace does the loop setup (the bootstrap service) and Docker
         binds the resulting mountpoint.
         """
-        opts = (self.data["volumes"]["pgdata"] or {}).get("driver_opts") or {}
-        self.assertEqual("none", opts.get("type"))
-        self.assertEqual("bind", opts.get("o"))
-        self.assertNotEqual("loop", opts.get("o"),
-                            "o: loop is rejected by the kernel — see the docstring")
-        device = _resolve(str(opts.get("device", "")))
-        self.assertFalse(device.endswith(".img"),
-                         f"a bind takes the MOUNTPOINT, not the image: {device!r}")
+        self.assertNotIn("pgdata", self.data.get("volumes") or {},
+                         "Postgres binds a host path; there is no pgdata volume")
+        mounts = self.data["services"]["postgres"]["volumes"]
+        self.assertTrue(any("PGDATA_HOST_PATH" in str(m) for m in mounts), mounts)
 
-    def test_bootstrap_mounts_it_and_proves_the_host_can_see_it(self):
-        """A mount inside a container is private to its namespace unless
-        propagation is rshared. Without the check, an unpropagated mount leaves
-        the bind pointing at a bare directory on the root filesystem: Postgres
-        starts, everything reports healthy, and the ceiling silently is not
-        there — on a box that also holds Nova Flow's production Redis."""
-        bootstrap = self.data["services"]["bootstrap"]
-        cmd = " ".join(str(x) for x in bootstrap["command"])
-        self.assertIn("mount -o loop", cmd)
-        self.assertIn("/proc/1/mountinfo", cmd)
-        self.assertEqual("host", bootstrap.get("pid"),
-                         "pid: host, or /proc/1/mountinfo is our own namespace")
-        self.assertTrue(any(str(v).endswith(":rshared") for v in bootstrap["volumes"]),
-                        "the host-data mount needs rshared or nothing propagates")
+    def test_no_container_tries_to_build_the_filesystem(self):
+        """Loop-mounting is a root-on-the-host operation. Two attempts to do it
+        from the compose file failed — the kernel rejects `o: loop`, and a
+        privileged container cannot verify that its mount escaped its own
+        namespace. deploy/install.sh --ceiling does it on the host."""
+        self.assertNotIn("bootstrap", self.data["services"])
+        script = (_ROOT / "deploy" / "install.sh").read_text()
+        self.assertIn("--ceiling", script)
 
-    def test_postgres_waits_for_the_image_to_exist(self):
-        """Mounting a device that does not exist yet is the failure this
-        ordering prevents — and `depends_on` alone is not enough: it must be
-        service_completed_successfully, or postgres starts alongside a
-        bootstrap that is still running mkfs."""
-        dep = self.data["services"]["postgres"]["depends_on"]["bootstrap"]
-        self.assertEqual("service_completed_successfully", dep["condition"])
-
-    def test_bootstrap_never_reformats_an_existing_filesystem(self):
-        """The difference between re-running this and erasing the database.
-        Re-running is exactly what people do."""
-        cmd = " ".join(str(x) for x in self.data["services"]["bootstrap"]["command"])
-        self.assertIn("blkid", cmd)
-        self.assertIn("not touching it", cmd)
-
-    def test_bootstrap_reserves_only_one_percent(self):
+    def test_nothing_in_the_stack_is_privileged(self):
+        """The bootstrap service needed `privileged` to run mkfs. It is gone,
+        and nothing should reacquire that by drift — the filesystem is built by
+        deploy/install.sh on the host, where root already is root."""
+        privileged = {n for n, b in self.data["services"].items() if (b or {}).get("privileged")}
+        self.assertEqual(set(), privileged)
+    def test_the_ceiling_script_never_reformats_an_existing_filesystem(self):
+        """The difference between re-running the installer and erasing the
+        database — and re-running an installer is exactly what people do."""
+        script = (_ROOT / "deploy" / "ensure-pgdata.sh").read_text()
+        self.assertIn("blkid", script)
+        self.assertIn("not touching it", script)
+    def test_the_ceiling_script_reserves_one_percent_not_five(self):
         """ext4 reserves 5% for root by default and Postgres is not root, so a
         10G volume would hand it 9.5G and refuse the rest with an ENOSPC while
         df still showed free space."""
-        cmd = " ".join(str(x) for x in self.data["services"]["bootstrap"]["command"])
-        self.assertIn("mkfs.ext4 -q -m 1 -F", cmd)
-
-    def test_bootstrap_is_the_only_privileged_service(self):
-        """It needs it (mkfs and loop devices are kernel-level). Nothing else
-        should acquire it by drift."""
-        privileged = {n for n, b in self.data["services"].items() if (b or {}).get("privileged")}
-        self.assertEqual({"bootstrap"}, privileged)
-
+        script = (_ROOT / "deploy" / "ensure-pgdata.sh").read_text()
+        self.assertIn("mkfs.ext4 -q -m 1 -F", script)
     def test_dev_uses_a_different_volume_rather_than_overriding_this_one(self):
         """MEASURED, and the reason the dev overlay looks redundant: compose
         MERGES a named volume's definition rather than replacing it. An overlay
@@ -320,14 +300,14 @@ class HealthGateReadsTheDatabase(unittest.TestCase):
         self.assertIn('grep -q \'"database":"up"\'', dockerfile)
 
     def test_deploy_gates_on_container_health(self):
-        deploy = (_ROOT / "deploy" / "deploy.sh").read_text()
+        deploy = (_ROOT / "deploy" / "install.sh").read_text()
         self.assertIn("{{.State.Health.Status}}", deploy)
         self.assertIn("Auto-rolling back", deploy)
 
     def test_deploy_asserts_the_schema_reached_head(self):
         """`alembic upgrade head` exits 0 when it had nothing to do — including
         against a database that is not the one you think it is."""
-        deploy = (_ROOT / "deploy" / "deploy.sh").read_text()
+        deploy = (_ROOT / "deploy" / "install.sh").read_text()
         self.assertIn("alembic current", deploy)
         self.assertIn("(head)", deploy)
 
@@ -366,7 +346,7 @@ class BranchGuardIsExecuted(unittest.TestCase):
 
     def _run(self, branch: str, requested: str = ""):
         env = dict(os.environ, PATH=f"{self.fake_bin}:{os.environ['PATH']}", FAKE_BRANCH=branch)
-        script = _ROOT / "deploy" / "deploy.sh"
+        script = _ROOT / "deploy" / "install.sh"
         return subprocess.run(
             ["bash", "-c", f'BRANCH_GUARD_LIB=1 . "{script}"; assert_deployable_branch "{requested}"'],
             env=env, capture_output=True, text=True,
@@ -410,7 +390,7 @@ class UrlParsingSurvivesRealPasswords(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        src = (_ROOT / "deploy" / "deploy.sh").read_text()
+        src = (_ROOT / "deploy" / "install.sh").read_text()
         cls.defs = [ln for ln in src.splitlines()
                     if ln.startswith("url_host()") or ln.startswith("url_port()")]
         if len(cls.defs) != 2:

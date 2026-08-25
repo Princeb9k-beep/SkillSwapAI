@@ -24,127 +24,6 @@
 # carries the ordering that survives a reboot.
 
 services:
-  # ── bootstrap: makes the 10 GB ceiling exist, in the YAML ────────────────
-  #
-  # This used to be a shell script you had to remember to run first. It is here
-  # instead so the whole data tier is one `docker compose up -d` over SSH.
-  #
-  # It does exactly two things, both idempotent:
-  #   1. waits for the WireGuard address to exist, because postgres and redis
-  #      PUBLISH on it and a container that cannot bind does not retry into
-  #      success — it is simply down. Failing here, loudly, with the reason, is
-  #      the difference between "the tunnel is down" and "the database is gone".
-  #   2. creates and formats the backing image for the pgdata volume, ONCE.
-  #
-  # It needs `privileged` because mkfs and the loop device are kernel-level
-  # operations no unprivileged container can perform. That is a real grant and
-  # worth knowing about: it runs for a few seconds at bring-up, exits, and
-  # nothing else in this stack is privileged. If you would rather not grant it,
-  # deploy/setup-data-vps.sh --filesystem does the same work from the host and
-  # this service then finds everything already in place and exits immediately.
-  bootstrap:
-    image: alpine:3.20
-    # host networking so it can SEE wg0. It opens no ports of its own.
-    network_mode: host
-    privileged: true
-    # pid: host so /proc/1/mountinfo is the HOST's mount table — the only way to
-    # check whether the mount below actually became visible outside this
-    # container. Without it we would be reading our own namespace and learning
-    # nothing.
-    pid: host
-    volumes:
-      # rshared IS LOAD-BEARING. A mount made inside a container is private to
-      # that container's namespace by default, so mounting the image here would
-      # look like it worked and the host — and therefore the pgdata bind below —
-      # would still see a bare, uncapped directory. rshared propagates it back.
-      # It requires the host's own mount to be shared, which systemd does by
-      # default; the verification step below is what turns "usually" into
-      # "checked".
-      - ${PGDATA_IMAGE_DIR:-/srv/skillswap}:/host-data:rshared
-    environment:
-      WG_ADDR: ${WG_ADDR:-10.77.0.1}
-      PGDATA_SIZE: ${PGDATA_SIZE:-10G}
-      WAIT_SECONDS: ${WG_WAIT_SECONDS:-120}
-      HOST_MOUNT: ${PGDATA_MOUNT:-/srv/skillswap/pgdata}
-    command:
-      - sh
-      - -c
-      - |
-        set -e
-        IMG=/host-data/pgdata.img
-
-        echo "bootstrap: waiting up to $${WAIT_SECONDS}s for $${WG_ADDR}"
-        waited=0
-        while ! ip -4 addr show 2>/dev/null | grep -q "inet $${WG_ADDR}/"; do
-          if [ "$$waited" -ge "$${WAIT_SECONDS}" ]; then
-            echo "bootstrap: FAILED — $${WG_ADDR} never appeared." >&2
-            echo "  postgres and redis publish on it and cannot start without it." >&2
-            echo "  On this box:  systemctl status wg-quick@wg0" >&2
-            exit 1
-          fi
-          sleep 2; waited=$$((waited + 2))
-        done
-        echo "bootstrap: $${WG_ADDR} is up (after $${waited}s)"
-
-        apk add --no-cache e2fsprogs util-linux >/dev/null 2>&1 \
-          || { echo "bootstrap: could not install e2fsprogs/util-linux (no egress?)" >&2; exit 1; }
-
-        if [ ! -f "$$IMG" ]; then
-          echo "bootstrap: creating $${PGDATA_SIZE} image"
-          fallocate -l "$${PGDATA_SIZE}" "$$IMG" 2>/dev/null \
-            || dd if=/dev/zero of="$$IMG" bs=1M \
-                 count=$$(( $$(echo "$${PGDATA_SIZE}" | tr -dc 0-9) * 1024 )) status=none
-        else
-          echo "bootstrap: image exists"
-        fi
-
-        # NEVER re-mkfs an image that already carries a filesystem. That single
-        # guard is the difference between re-running this and erasing the
-        # database — and re-running is exactly what people do.
-        if blkid "$$IMG" >/dev/null 2>&1; then
-          echo "bootstrap: filesystem already present — not touching it"
-        else
-          # -m 1: ext4 reserves 5% for root BY DEFAULT and postgres is not root,
-          # so a 10G volume would hand it 9.5G and refuse the rest with a
-          # confusing ENOSPC while df still showed free space.
-          mkfs.ext4 -q -m 1 -F "$$IMG"
-          echo "bootstrap: mkfs.ext4 done (1% reserve, not the 5% default)"
-        fi
-
-        # ── the loop mount, in USERSPACE ──────────────────────────────────
-        # This is the step Docker cannot do: its local driver calls the mount
-        # syscall, and `loop` is a feature of the mount COMMAND (which runs
-        # losetup first). So mount(8) runs here, and Docker binds the result.
-        mkdir -p /host-data/pgdata
-        if mountpoint -q /host-data/pgdata; then
-          echo "bootstrap: already mounted"
-        else
-          mount -o loop "$$IMG" /host-data/pgdata
-          echo "bootstrap: mounted $$IMG on $${HOST_MOUNT}"
-        fi
-
-        # ── PROVE THE HOST SEES IT ────────────────────────────────────────
-        # A mount inside a container is invisible outside it unless propagation
-        # is rshared. If that failed, the pgdata bind resolves to a bare
-        # directory on the ROOT filesystem: Postgres starts, everything looks
-        # healthy, and the 10 GB ceiling silently does not exist — on a box that
-        # also holds Nova Flow's production Redis. Assert it instead.
-        if grep -q " $${HOST_MOUNT} " /proc/1/mountinfo; then
-          echo "bootstrap: host sees the mount at $${HOST_MOUNT}"
-        else
-          echo "bootstrap: FAILED — mounted, but the HOST cannot see it." >&2
-          echo "  Mount propagation did not reach the host, so the ceiling would" >&2
-          echo "  not exist. Do it from the host instead, once:" >&2
-          echo "    mkdir -p $${HOST_MOUNT}" >&2
-          echo "    mount -o loop $${HOST_MOUNT%/*}/pgdata.img $${HOST_MOUNT}" >&2
-          echo "    echo '$${HOST_MOUNT%/*}/pgdata.img $${HOST_MOUNT} ext4 loop,nofail,noatime 0 2' >> /etc/fstab" >&2
-          exit 1
-        fi
-
-        # NOTE: this mount does NOT survive a reboot. deploy/setup-data-vps.sh
-        # writes the fstab entry; until it is run, re-running compose remounts.
-        echo "bootstrap: ready"
-
   postgres:
     # Plain postgres: this app's models.py has no vector columns, so the
     # pgvector image the sibling deployment needs would be dead weight here.
@@ -161,9 +40,6 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
       POSTGRES_DB: ${POSTGRES_DB:-skillswapaidb}
       POSTGRES_INITDB_ARGS: "--data-checksums"
-    depends_on:
-      bootstrap:
-        condition: service_completed_successfully
     volumes:
       # PG18 images keep data in a major-version subdir and REQUIRE the mount at
       # /var/lib/postgresql (not the legacy .../data), so pg_upgrade --link can
@@ -175,7 +51,7 @@ services:
       # /var/lib/postgresql the entrypoint never looks there — it checks PGDATA,
       # two levels down. On PG<=17, where the mount goes AT the data directory,
       # that same lost+found makes initdb refuse with "directory not empty".
-      - pgdata:/var/lib/postgresql
+      - ${PGDATA_HOST_PATH:-/var/lib/skillswap-postgres}:/var/lib/postgresql
     command:
       - postgres
       # ── sized for 1 CPU / 256M. The inline ${...:-} fallbacks ARE the
@@ -285,48 +161,30 @@ services:
     logging: *logs
 
 volumes:
-  # ── THE 10 GB CEILING, DECLARED RATHER THAN PROVISIONED ───────────────────
+  # NOTE: `pgdata` is gone. Postgres binds a HOST PATH
+  # (${PGDATA_HOST_PATH:-/var/lib/skillswap-postgres}), the same way Nova Flow's
+  # Redis binds /var/lib/nova-redis on this box.
   #
-  # Docker cannot size-limit a volume: there is no `--storage-opt size=` for
-  # volumes, and the one that exists applies to a container's writable layer and
-  # needs an xfs+pquota backend. So "10 GB for PostgreSQL" written as an ordinary
-  # volume or a bind onto the root filesystem is not a limit at all, it is a
-  # hope — and this box also holds Nova Flow's production Redis, so a runaway
-  # table here would be an outage over there.
+  # WHY NOT A DOCKER VOLUME WITH A SIZE LIMIT: there isn't one. Docker cannot
+  # size-limit a volume — `--storage-opt size=` applies to a container's
+  # writable layer and needs an xfs+pquota backend. Two attempts to fake it here
+  # both failed, and both are worth not repeating:
   #
-  # A filesystem in a FILE is a real ceiling with no repartitioning. Postgres
-  # hits ENOSPC at exactly PGDATA_SIZE, which is loud, local and survivable.
+  #   `driver_opts: {type: ext4, o: loop}` → the kernel rejects it.
+  #   `data: loop: invalid argument`. Docker's local driver calls the mount
+  #   SYSCALL; `loop` is a feature of the mount COMMAND, which runs losetup
+  #   first. `docker compose config` validates it happily — parsing is not
+  #   mounting, and that gap is how it shipped.
   #
-  # THIS IS A BIND, AND THE EARLIER `type: ext4, o: loop` WAS WRONG. MEASURED,
-  # on a real daemon:
+  #   Doing it from a privileged container instead needs the mount to escape its
+  #   namespace, and a container cannot honestly verify that it did: the check
+  #   read its own mount table and vouched for a mount only it could see.
   #
-  #   failed to mount local volume: mount /srv/skillswap/pgdata.img:...,
-  #   data: loop: invalid argument
-  #
-  # Docker's local driver does NOT shell out to mount(8) — it calls the mount
-  # SYSCALL, and `loop` is a userspace feature of the mount COMMAND (which runs
-  # losetup for you), not a kernel option. So the kernel gets handed the string
-  # "loop" as filesystem-specific data and rejects it. `docker compose config`
-  # validates this happily, which is exactly why it shipped: the file parsed,
-  # and parsing is not mounting.
-  #
-  # So the loop setup happens in userspace, in the `bootstrap` service above,
-  # and Docker binds the resulting MOUNTPOINT. Bootstrap's mount is made with
-  # rshared propagation so the host sees it, and it verifies that against the
-  # host's own mount table rather than assuming — an unpropagated mount would
-  # leave this bind pointing at a bare directory on the root filesystem, with
-  # no ceiling at all and nothing to say so.
-  #
-  # NOTE: an overlay file CANNOT remove these driver_opts — compose MERGES a
-  # named volume's definition rather than replacing it (measured). That is why
-  # docker-compose.dev.yml points at a different volume entirely instead of
-  # trying to override this one.
-  pgdata:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${PGDATA_MOUNT:-/srv/skillswap/pgdata}
+  # Loop-mounting is a root-on-the-host operation, so it is one:
+  # `deploy/install.sh --role=data --ceiling=10G` builds and mounts the
+  # filesystem, and this bind lands on it. WITHOUT --ceiling the path is an
+  # ordinary directory and ten gigabytes is an allocation you size the box for
+  # — which is what Nova Flow does, and what that phrase usually means.
   skillswap-redis-data:
 
 networks:

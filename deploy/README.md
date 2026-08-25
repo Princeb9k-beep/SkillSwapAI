@@ -1,192 +1,157 @@
-# SkillSwap AI — Docker deploy
+# SkillSwap AI — deploy
 
-Two VPSes, already in use by the sibling Nova Flow deployment, already linked by
-WireGuard. SkillSwap adds one container to each.
+**One command per box. Either box. Every time.**
+
+```sh
+deploy/install.sh          # auto-detects which VPS it is from the wg0 address
+```
+
+Modelled on Nova Flow's `deploy/install-app.sh`, which is the proven shape on
+these two machines: one script, a `--role` flag, idempotent, safe to re-run.
 
 ```
-app VPS 82.197.64.18                      data VPS 80.190.73.191
+app VPS  (wg 10.77.0.2)                   data VPS (wg 10.77.0.1)
 ┌────────────────────────────────┐  wg0   ┌──────────────────────────────┐
-│ nginx  :80 :443  (Nova Flow's) │10.77.0.2│ redis-server  (Nova's, apt)  │
-│   ├── nova-flow.pro ──► web    │◄───────►│   bind 127.0.0.1, 10.77.0.1  │
-│   └── skillswap    ──► ────────┼─┐:51820 │                              │
-│                                │ │  udp  │ docker:                      │
-│ docker `edge` network          │ │       │   skillswap-postgres  256M   │
-│   skillswap-web  1 CPU / 1g    │◄┘       │     └ 10.77.0.1:5432  10G    │
-│     gunicorn · 127.0.0.1:8001  │────────►│   skillswap-redis     512M   │
-└────────────────────────────────┘         │     └ 10.77.0.1:6380         │
-                                           └──────────────────────────────┘
+│ nginx :80 :443  (Nova Flow's)  │◄──────►│ redis-server  (Nova's, apt)  │
+│   └── skillswap vhost ─────────┼───────►│                              │
+│ skillswap-web  1 CPU / 1g      │        │ skillswap-postgres  256M     │
+│   gunicorn · 127.0.0.1:8001    │        │   └ 10.77.0.1:5432           │
+└────────────────────────────────┘        │ skillswap-redis     512M     │
+                                          │   └ 10.77.0.1:6380           │
+                                          └──────────────────────────────┘
 ```
 
-| | allocation | where it is set |
-|---|---|---|
-| app | 1.0 CPU, 1g, **2 gunicorn workers** | `docker-compose.yml`, `Dockerfile` |
-| Postgres | 1.0 CPU, 256M, **10G enforced** | `docker-compose.data.yml` (the `pgdata` volume + `bootstrap`), `deploy/postgres/pg-tuning.env` |
-| Redis | 512M maxmemory (640m container) | `docker-compose.data.yml` |
+## Everything comes from `.env`
 
-## Three things that are not obvious
+Nothing is baked into a generated file, nothing is prompted for, nothing is
+written to `/opt`. Both compose files interpolate straight out of the repo's
+`.env`, so it is the single place to look and the single place to change.
 
-**"2 threads" is 2 WORKERS.** `--threads` is a no-op under `UvicornWorker` — it
-applies to gthread/sync workers only. Passing it would change nothing while
-making the fleet read as if it had twice the lanes it has.
+**Data VPS** — four lines are all it needs:
 
-**Two workers currently break live messaging.** `backend/app/realtime.py`'s hub
-and `app/routers/rooms.py`'s room map are process-local dicts, and a WebSocket
-cannot be routed to a chosen worker — so a message written by worker A never
-reaches a socket held by worker B, silently. Until that fans out over Redis
-pub/sub (`realtime.py`'s own docstring names the fix), set `GUNICORN_WORKERS=1`
-in `.env` if live messaging matters more than the second lane.
+```sh
+POSTGRES_USER=skillswap
+POSTGRES_PASSWORD=<openssl rand -hex 32>
+POSTGRES_DB=skillswapaidb
+REDIS_PASSWORD=<openssl rand -hex 32>
+```
 
-**The bind address is the wall, not the firewall.** Docker publishes ports
-*around* ufw: a non-loopback publish gets a DNAT rule in `nat/PREROUTING`, which
-is traversed before `filter/INPUT`. So `"5432:5432"` puts the database on the
-internet while `ufw status` still reports the port closed, and nothing logs it.
-Every publish here names `10.77.0.1` or `127.0.0.1`. Guarded by
-`backend/tests/test_deploy_config.py`, and checked again at runtime by
-`data-deploy.sh` reading the actual listening sockets.
+**App VPS**:
+
+```sh
+DATABASE_URL=postgresql://skillswap:<same PG password>@10.77.0.1:5432/skillswapaidb
+REDIS_URL=redis://10.77.0.1:6380/0
+REDIS_PASSWORD=<same Redis password>
+GUNICORN_WORKERS=1
+APP_SECRET_KEY=<openssl rand -hex 32>
+GROQ_API_KEY=<your key>
+```
+
+Generate with **`openssl rand -hex 32`, not base64**: base64 emits `/`, and a
+`/` in a password inside a URL is a hard parse failure — the parser reads the
+text after it as the port. The symptom is "cannot reach Postgres", which points
+at the tunnel rather than the password.
+
+`POSTGRES_PASSWORD`, `POSTGRES_USER` and `POSTGRES_DB` are read **once**, during
+the first `initdb` on an empty data directory. Change one later and the
+container starts fine while the app gets "role does not exist". Pick them before
+the first run.
 
 ## Bring-up
 
-**1 — data VPS** (as root). Docker install aside, this is one compose command —
-the stack provisions its own 10 GB filesystem:
+**Data VPS first** — the app refuses to deploy against a database it cannot
+reach, deliberately, before touching anything:
 
 ```sh
-# Docker only if the box has none. It is the one step nothing in a compose
-# file can do for itself.
+git clone https://github.com/Princeb9k-beep/SkillSwapAI /srv/apps/SkillSwapAiApp/SkillSwapAI
+cd /srv/apps/SkillSwapAiApp/SkillSwapAI
 command -v docker || curl -fsSL https://get.docker.com | sh
+$EDITOR .env                        # the four lines above
+sudo deploy/install.sh              # detects --role=data from wg0
+```
 
-git clone https://github.com/Princeb9k-beep/SkillSwapAI /srv/apps/SkillSwapAiApp/SkillSwapAI
+**App VPS:**
+
+```sh
 cd /srv/apps/SkillSwapAiApp/SkillSwapAI
-cp .env.example .env && nano .env          # POSTGRES_PASSWORD, REDIS_PASSWORD
-                                           # openssl rand -hex 32  (NOT base64)
-docker compose -f docker-compose.data.yml up -d
+$EDITOR .env
+sudo deploy/install.sh              # detects --role=app
+curl -fsS localhost:8001/health | python3 -m json.tool
 ```
 
-The `bootstrap` service runs first: it waits for `10.77.0.1` to exist, then
-creates and formats the 10 GB image the `pgdata` volume mounts as a loop device.
-It never re-formats an image that already carries a filesystem. It needs
-`privileged` because mkfs and loop devices are kernel-level — it is the only
-privileged thing in the stack, it runs for a few seconds, and it exits.
-
-`deploy/data-deploy.sh` is the same bring-up with health gates, a `git pull`,
-the tuning file sourced, and a **runtime** check that the ceiling is really in
-effect (it reads `df` inside the container, because the way this breaks is
-someone deleting the `driver_opts` and Docker silently handing out an ordinary
-volume on the host root). Use it for redeploys.
-
-Two host-level things are deliberately still scripts, because no container can
-do them for the host it runs on:
+**Every deploy after that is the same command.** On the app box it pulls,
+builds, migrates as a one-shot, health-gates and rolls back on failure. On the
+data box it re-reads `.env`, restarts only what changed, and re-proves the
+tunnel endpoints.
 
 ```sh
-deploy/setup-data-vps.sh          # ufw rules + the boot-ordering systemd unit
-deploy/setup-data-vps.sh --filesystem   # ...if you would rather not grant
-                                        # `privileged` to bootstrap
+sudo deploy/install.sh --rollback     # app VPS: back to the previous image
+sudo deploy/install.sh --no-pull      # deploy the working tree
+sudo deploy/install.sh --branch X     # deploy a feature branch ON PURPOSE
 ```
 
-Neither is required to bring the stack up by hand. The ufw rules are defence in
-depth — **the bind address is the actual wall**, and it is in the YAML. The
-systemd unit matters only for reboots: Docker starts on its own schedule and
-would try to bind `10.77.0.1` before `wg-quick@wg0` has created it.
+## The 10 GB
 
-**2 — app VPS** (as root). Prove the tunnel *before* deploying — `deploy.sh`
-will refuse anyway, but finding out here is faster than reading its error:
+By default Postgres writes to `/var/lib/skillswap-postgres`, a plain directory
+— exactly like Nova Flow's `/var/lib/nova-redis`. Ten gigabytes is then an
+allocation you size the box for and watch.
+
+For a **hard ceiling** Postgres cannot exceed, run the data install once with:
 
 ```sh
-docker run --rm --network host postgres:18-alpine pg_isready -h 10.77.0.1 -p 5432
-docker run --rm --network host redis:7-alpine redis-cli -u "$REDIS_URL" ping   # PONG
-
-git clone https://github.com/Princeb9k-beep/SkillSwapAI /srv/apps/SkillSwapAiApp/SkillSwapAI
-cd /srv/apps/SkillSwapAiApp/SkillSwapAI
-cp .env.example .env && nano .env          # DATABASE_URL + REDIS_URL at 10.77.0.1
-deploy/deploy.sh
+sudo deploy/install.sh --role=data --ceiling=10G
 ```
 
-**`deploy.sh` refuses to run from a non-default branch, so merge before you
-deploy.** A fresh clone lands on `main`, which is what you want; if you checked
-out the feature branch to try it early, either merge it or say so explicitly:
+That builds a filesystem in a file and mounts it at that path, with an fstab
+entry so it survives a reboot. Postgres then hits ENOSPC at exactly 10G instead
+of filling a box that also holds Nova Flow's production Redis.
 
-```sh
-deploy/deploy.sh --branch claude/docker-yaml-deployment-swapai-n6a4ra
-```
+Docker cannot size-limit a volume, so this is the only way to make the number a
+guarantee. Two attempts to do it from the compose file failed and are worth not
+repeating: `driver_opts: {type: ext4, o: loop}` is rejected by the kernel
+(Docker calls the mount *syscall*; `loop` is a feature of the mount *command*),
+and doing it from a privileged container needs the mount to escape its
+namespace — which a container cannot honestly verify.
 
-That is not friction for its own sake. `git pull` fast-forwards *the current
-branch*, so a box left on a feature branch deploys forever while answering
-"Already up to date" — truthfully, about the wrong branch.
+## Things that are not obvious
 
-When it finishes, the app is reachable **from the box only**:
+**"2 threads" is 2 workers.** `--threads` is a no-op under `UvicornWorker`.
 
-```sh
-curl -fsS localhost:8001/health | python3 -m json.tool   # database: up, redis: up
-```
+**Two workers currently break live messaging.** `app/realtime.py`'s hub and
+`app/routers/rooms.py`'s room map are process-local dicts, and a WebSocket
+cannot be routed to a chosen worker — so a message written by one worker never
+reaches a socket held by the other, silently. Until that fans out over Redis
+pub/sub (`realtime.py`'s own docstring names the fix), keep
+`GUNICORN_WORKERS=1`.
 
-Public access needs step 3. Until then that loopback port is the only door, and
-it is deliberately the only one.
+**The bind is the wall, not the firewall.** Docker publishes ports *around* ufw:
+a non-loopback publish gets a DNAT rule in `nat/PREROUTING`, traversed before
+`filter/INPUT`. `"5432:5432"` would put the database on the internet while
+`ufw status` reports the port closed. Every publish names `10.77.0.1` or
+`127.0.0.1`, and the installer re-checks the actual listening sockets after it
+starts.
 
-**3 — the edge**, in the Nova Flow repo (`/var/www/app`):
+**The health gate asserts the value.** `/health` returns 200 with
+`"database":"down"`, so the container's healthcheck greps `"database":"up"`. The
+installer also re-checks `alembic current` reports `(head)`, because `upgrade
+head` exits 0 when it had nothing to do — including against the wrong database.
 
-```sh
-echo 'SKILLSWAP_DOMAIN=skillswap.example.com' >> .env
-deploy/deploy-docker.sh                    # rebuilds nginx with the new vhost
-```
+**`install.sh` refuses a non-default branch.** `git pull` fast-forwards the
+*current* branch, so a box left on a feature branch deploys forever while
+answering "Already up to date" — truthfully, about the wrong branch.
 
-Until a Cloudflare Origin CA cert for that hostname exists, the vhost serves
-**Nova's** cert and browsers show a name mismatch on the SkillSwap domain. That
-is deliberate: naming a cert file that does not exist yet makes nginx refuse to
-start, which would take `nova-flow.pro` down for a problem in the other app.
-Once the cert is installed:
+## The public URL
 
-```sh
-# deploy/install-origin-cert.sh, into /etc/nginx/ssl/skillswap/
-echo 'SKILLSWAP_SSL_DIR=/etc/nginx/ssl/skillswap' >> .env
-docker compose up -d --force-recreate nginx
-```
-
-## Day-to-day
-
-```sh
-deploy/deploy.sh                  # pull, build, migrate, health-gate, deploy
-deploy/deploy.sh --no-pull        # deploy the working tree
-deploy/deploy.sh --branch X       # deploy a feature branch ON PURPOSE
-deploy/deploy.sh --rollback       # back to the previous image
-
-deploy/data-deploy.sh --status    # data tier report, changes nothing
-```
-
-`deploy.sh` **refuses to run from a non-default branch**. `git pull`
-fast-forwards *the current branch*, so a checkout left on a feature branch
-deploys forever while answering "Already up to date" — truthfully, about the
-wrong branch. In the sibling deployment that cost five days and three bug
-reports whose fixes were merged, green and in `main` the whole time.
-
-The health gate reads the container's healthcheck, which greps `"database":"up"`
-out of `/health` rather than trusting the status code — `/health` answers **200
-with the database down**, so a status-code gate waves a database-less container
-straight through. A failed gate auto-rolls-back to the previous image.
-
-Migrations run as a **one-shot before the app starts**, never in the app's
-lifespan: two workers both running `alembic upgrade head` at boot is two
-processes racing the same DDL.
-
-## Local development
-
-```sh
-docker network create edge        # once; both stacks declare it external
-docker compose -f docker-compose.yml -f docker-compose.data.yml \
-               -f docker-compose.dev.yml up -d
-curl -fsS localhost:8000/health
-```
-
-The dev overlay runs **one** worker, publishes on loopback, and gives Postgres
-laptop-sized memory. It is not named `docker-compose.override.yml` on purpose:
-compose auto-loads that name, and this is the same repo the VPS deploys from.
+Needs the nginx vhost in the Nova Flow repo (only one container can hold
+80/443), plus DNS and an Origin CA cert. Until then `127.0.0.1:8001` is the only
+door, and deliberately so.
 
 ## When something is wrong
 
 | symptom | look at |
 |---|---|
-| deploy dies at "cannot reach Postgres" | `systemctl status wg-quick@wg0` **both ends**; `wg show` for a recent handshake |
-| container exits with "cannot assign requested address" | wg0 came up after Docker. `systemctl status skillswap-data` — that unit exists to order them |
-| `curl localhost:8001/health` works but the domain 502s | `docker network inspect edge` — is `skillswap-web` attached? |
-| nginx will not start at all | it is Nova's nginx. `docker compose logs nginx` there; check `SKILLSWAP_SSL_DIR` names files that exist |
-| Postgres OOM-killed | `deploy/postgres/pg-tuning.env`. `work_mem` is **per sort node**, not per connection — raising it is the usual cause |
-| `PGDATA is 9x% full` | the ceiling is real and working. `docker exec skillswap-postgres du -sh /var/lib/postgresql/18/docker/*` |
-| everything green, browser shows old code | the deploy prints `branch @ sha` on every run. Compare it to what you expect before debugging anything else |
+| "could not tell which VPS this is" | `wg show wg0` — the role is detected from the tunnel address. Or pass `--role=` |
+| "cannot reach Postgres … NOTHING was changed" | the data box: `sudo deploy/install.sh --role=data` |
+| health gate failed | it already rolled back. `docker compose logs --tail=80 web` |
+| `address already in use` on the data box | a port collides with Nova's. `POSTGRES_HOST_PORT` / `REDIS_HOST_PORT` in `.env` |
+| everything green, browser shows old code | the installer prints `branch @ sha` every run. Read it before debugging anything else |
