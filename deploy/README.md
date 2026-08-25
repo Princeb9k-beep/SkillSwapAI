@@ -12,7 +12,7 @@ app VPS 82.197.64.18                      data VPS 80.190.73.191
 │                                │ │  udp  │ docker:                      │
 │ docker `edge` network          │ │       │   skillswap-postgres  256M   │
 │   skillswap-web  1 CPU / 1g    │◄┘       │     └ 10.77.0.1:5432  10G    │
-│     gunicorn, 2 workers        │────────►│   skillswap-redis     512M   │
+│     gunicorn · 127.0.0.1:8001  │────────►│   skillswap-redis     512M   │
 └────────────────────────────────┘         │     └ 10.77.0.1:6380         │
                                            └──────────────────────────────┘
 ```
@@ -54,7 +54,8 @@ the stack provisions its own 10 GB filesystem:
 # file can do for itself.
 command -v docker || curl -fsSL https://get.docker.com | sh
 
-git clone <repo> /srv/apps/SkillSwapAI && cd /srv/apps/SkillSwapAI
+git clone https://github.com/Princeb9k-beep/SkillSwapAI /srv/apps/SkillSwapAiApp/SkillSwapAI
+cd /srv/apps/SkillSwapAiApp/SkillSwapAI
 cp .env.example .env && nano .env          # POSTGRES_PASSWORD, REDIS_PASSWORD
                                            # openssl rand -hex 32  (NOT base64)
 docker compose -f docker-compose.data.yml up -d
@@ -86,16 +87,39 @@ depth — **the bind address is the actual wall**, and it is in the YAML. The
 systemd unit matters only for reboots: Docker starts on its own schedule and
 would try to bind `10.77.0.1` before `wg-quick@wg0` has created it.
 
-**2 — app VPS** (as root). Prove the tunnel *before* deploying:
+**2 — app VPS** (as root). Prove the tunnel *before* deploying — `deploy.sh`
+will refuse anyway, but finding out here is faster than reading its error:
 
 ```sh
 docker run --rm --network host postgres:18-alpine pg_isready -h 10.77.0.1 -p 5432
 docker run --rm --network host redis:7-alpine redis-cli -u "$REDIS_URL" ping   # PONG
 
-git clone <repo> /var/www/skillswap && cd /var/www/skillswap
+git clone https://github.com/Princeb9k-beep/SkillSwapAI /srv/apps/SkillSwapAiApp/SkillSwapAI
+cd /srv/apps/SkillSwapAiApp/SkillSwapAI
 cp .env.example .env && nano .env          # DATABASE_URL + REDIS_URL at 10.77.0.1
 deploy/deploy.sh
 ```
+
+**`deploy.sh` refuses to run from a non-default branch, so merge before you
+deploy.** A fresh clone lands on `main`, which is what you want; if you checked
+out the feature branch to try it early, either merge it or say so explicitly:
+
+```sh
+deploy/deploy.sh --branch claude/docker-yaml-deployment-swapai-n6a4ra
+```
+
+That is not friction for its own sake. `git pull` fast-forwards *the current
+branch*, so a box left on a feature branch deploys forever while answering
+"Already up to date" — truthfully, about the wrong branch.
+
+When it finishes, the app is reachable **from the box only**:
+
+```sh
+curl -fsS localhost:8001/health | python3 -m json.tool   # database: up, redis: up
+```
+
+Public access needs step 3. Until then that loopback port is the only door, and
+it is deliberately the only one.
 
 **3 — the edge**, in the Nova Flow repo (`/var/www/app`):
 
@@ -161,7 +185,7 @@ compose auto-loads that name, and this is the same repo the VPS deploys from.
 |---|---|
 | deploy dies at "cannot reach Postgres" | `systemctl status wg-quick@wg0` **both ends**; `wg show` for a recent handshake |
 | container exits with "cannot assign requested address" | wg0 came up after Docker. `systemctl status skillswap-data` — that unit exists to order them |
-| nginx 502 on the SkillSwap domain only | `docker network inspect edge` — is `skillswap-web` attached? |
+| `curl localhost:8001/health` works but the domain 502s | `docker network inspect edge` — is `skillswap-web` attached? |
 | nginx will not start at all | it is Nova's nginx. `docker compose logs nginx` there; check `SKILLSWAP_SSL_DIR` names files that exist |
 | Postgres OOM-killed | `deploy/postgres/pg-tuning.env`. `work_mem` is **per sort node**, not per connection — raising it is the usual cause |
 | `PGDATA is 9x% full` | the ceiling is real and working. `docker exec skillswap-postgres du -sh /var/lib/postgresql/18/docker/*` |

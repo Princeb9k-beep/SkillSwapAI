@@ -44,11 +44,19 @@ services:
       # GUNICORN_WORKERS=1 in .env if live messaging matters more than the
       # second lane.
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
-    # NO `ports:`. Nothing on this host needs to reach the app except nginx,
-    # which reaches it over `edge`. A publish here would be a second door with
-    # no doorman — and on a non-loopback bind Docker DNATs in nat/PREROUTING,
-    # which is traversed BEFORE ufw's filter/INPUT, so the firewall would
-    # report the port closed while it was open to the internet.
+    # ── LOOPBACK ONLY, AND THE `127.0.0.1:` IS THE WHOLE POINT ───────────
+    # Public traffic arrives through nginx over `edge`; this publish exists so
+    # the box itself can curl /health, which is the only local way to see the
+    # app before the nginx vhost is live. Port 8001 because Nova Flow's web
+    # already holds 127.0.0.1:8000 on this host.
+    #
+    # Writing "8001:8000" instead does not merely "also listen publicly": for a
+    # non-loopback publish Docker inserts its own DNAT rule into the nat table's
+    # DOCKER chain, which is traversed BEFORE ufw's filter rules. The firewall
+    # would report the port closed while it was open to the internet, and
+    # nothing would log it. Guarded by backend/tests/test_deploy_config.py.
+    ports:
+      - "127.0.0.1:${APP_HOST_PORT:-8001}:8000"
     networks:
       skillswap:
       edge:
