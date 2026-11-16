@@ -1,10 +1,11 @@
 /* SkillSwap AI — design tokens + base styles.
    Palette/spacing tokens follow ui-ux-pro-max conventions and support light & dark. */
 
-/* "Graphite + Serif · Ink": a monochrome, professional base with editorial
-   serif headings and one quiet ink-blue accent reserved for primary actions,
-   links, and active states. Colors flow from these tokens; components never
-   hard-code palette values. */
+/* "Glass · Serif · Ink": glassmorphism surfaces — translucent, backdrop-blurred
+   panels floating over a soft ambient gradient — while keeping the editorial
+   serif headings and the single ink-blue accent. Colors flow from these tokens;
+   components never hard-code palette values. `--app-bg` is the fixed ambient
+   backdrop the glass refracts; `--blur` is the shared backdrop-filter strength. */
 :root {
   /* Type: serif display for headings, system sans for everything read at length. */
   --font-head: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
@@ -12,71 +13,123 @@
   --font-body: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
     sans-serif;
 
-  /* Light — graphite neutrals + ink accent. */
-  --bg: #fafafa;
-  --surface: #ffffff;
-  --surface-2: #f3f3f4;
+  /* Light — bright ambient wash + white glass. */
+  --bg: #eef1f6;
+  --app-bg:
+    radial-gradient(60rem 42rem at 12% -8%, rgba(74, 106, 165, 0.18), transparent 62%),
+    radial-gradient(46rem 34rem at 96% 14%, rgba(129, 140, 178, 0.15), transparent 60%),
+    radial-gradient(52rem 40rem at 50% 110%, rgba(46, 74, 118, 0.11), transparent 65%),
+    linear-gradient(#eef1f6, #eef1f6);
+  --surface: rgba(255, 255, 255, 0.58);
+  --surface-2: rgba(255, 255, 255, 0.5);
   --text: #161618;
-  --muted: #6f7178;
+  --muted: #5e616a;
   --primary: #2e4a76;
   --primary-600: #24395d;
   --primary-contrast: #ffffff;
-  --chip: #eef1f7;
-  --border: #e5e5e8;
+  --chip: rgba(46, 74, 118, 0.1);
+  --border: rgba(84, 98, 126, 0.18);
   --success: #16794a;
   --error: #b3261e;
-  --radius: 10px;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.05);
+  --radius: 16px;
+  --blur: 16px;
+  --shadow: 0 1px 2px rgba(31, 38, 61, 0.06), 0 10px 32px rgba(31, 38, 61, 0.12);
 }
 
 /* Dark tokens shared by "system dark" and an explicit dark choice. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #09090a;
-    --surface: #131315;
-    --surface-2: #1b1b1e;
+    --bg: #0a0b10;
+    --app-bg:
+      radial-gradient(56rem 40rem at 14% -8%, rgba(74, 106, 165, 0.26), transparent 60%),
+      radial-gradient(46rem 32rem at 94% 10%, rgba(107, 95, 170, 0.16), transparent 60%),
+      radial-gradient(56rem 42rem at 50% 112%, rgba(61, 88, 144, 0.18), transparent 65%),
+      linear-gradient(#0a0b10, #0a0b10);
+    --surface: rgba(25, 27, 35, 0.55);
+    --surface-2: rgba(255, 255, 255, 0.055);
     --text: #ededee;
-    --muted: #a1a1aa;
+    --muted: #a4a8b2;
     --primary: #4a6aa5;
     --primary-600: #3d5890;
     --primary-contrast: #ffffff;
-    --chip: #171f2e;
-    --border: #282829;
+    --chip: rgba(122, 155, 212, 0.14);
+    --border: rgba(255, 255, 255, 0.1);
     --success: #37b27f;
     --error: #e5675f;
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 36px rgba(0, 0, 0, 0.5);
   }
 }
 /* Explicit choice from Settings wins over the OS preference. */
 :root[data-theme="dark"] {
-  --bg: #09090a;
-  --surface: #131315;
-  --surface-2: #1b1b1e;
+  --bg: #0a0b10;
+  --app-bg:
+    radial-gradient(56rem 40rem at 14% -8%, rgba(74, 106, 165, 0.26), transparent 60%),
+    radial-gradient(46rem 32rem at 94% 10%, rgba(107, 95, 170, 0.16), transparent 60%),
+    radial-gradient(56rem 42rem at 50% 112%, rgba(61, 88, 144, 0.18), transparent 65%),
+    linear-gradient(#0a0b10, #0a0b10);
+  --surface: rgba(25, 27, 35, 0.55);
+  --surface-2: rgba(255, 255, 255, 0.055);
   --text: #ededee;
-  --muted: #a1a1aa;
+  --muted: #a4a8b2;
   --primary: #4a6aa5;
   --primary-600: #3d5890;
   --primary-contrast: #ffffff;
-  --chip: #171f2e;
-  --border: #282829;
+  --chip: rgba(122, 155, 212, 0.14);
+  --border: rgba(255, 255, 255, 0.1);
   --success: #37b27f;
   --error: #e5675f;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 36px rgba(0, 0, 0, 0.5);
 }
 :root[data-theme="light"] {
-  --bg: #fafafa;
-  --surface: #ffffff;
-  --surface-2: #f3f3f4;
+  --bg: #eef1f6;
+  --app-bg:
+    radial-gradient(60rem 42rem at 12% -8%, rgba(74, 106, 165, 0.18), transparent 62%),
+    radial-gradient(46rem 34rem at 96% 14%, rgba(129, 140, 178, 0.15), transparent 60%),
+    radial-gradient(52rem 40rem at 50% 110%, rgba(46, 74, 118, 0.11), transparent 65%),
+    linear-gradient(#eef1f6, #eef1f6);
+  --surface: rgba(255, 255, 255, 0.58);
+  --surface-2: rgba(255, 255, 255, 0.5);
   --text: #161618;
-  --muted: #6f7178;
+  --muted: #5e616a;
   --primary: #2e4a76;
   --primary-600: #24395d;
   --primary-contrast: #ffffff;
-  --chip: #eef1f7;
-  --border: #e5e5e8;
+  --chip: rgba(46, 74, 118, 0.1);
+  --border: rgba(84, 98, 126, 0.18);
   --success: #16794a;
   --error: #b3261e;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 2px rgba(31, 38, 61, 0.06), 0 10px 32px rgba(31, 38, 61, 0.12);
+}
+
+/* Browsers without backdrop-filter (and users who prefer reduced transparency)
+   fall back to near-opaque surfaces so text never sits on an unblurred wash. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root,
+  :root[data-theme="light"] {
+    --surface: #ffffff;
+    --surface-2: #f3f3f4;
+  }
+  :root[data-theme="dark"] {
+    --surface: #15161b;
+    --surface-2: #1d1e24;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --surface: #15161b;
+      --surface-2: #1d1e24;
+    }
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root,
+  :root[data-theme="light"] {
+    --surface: #ffffff;
+    --surface-2: #f3f3f4;
+  }
+  :root[data-theme="dark"] {
+    --surface: #15161b;
+    --surface-2: #1d1e24;
+  }
 }
 
 * {
@@ -88,6 +141,34 @@ body {
   background: var(--bg);
   color: var(--text);
   line-height: 1.55;
+}
+/* The ambient backdrop the glass panels refract — a fixed layer so it doesn't
+   stretch or repaint with scroll (more reliable than background-attachment). */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--app-bg);
+  pointer-events: none;
+}
+/* The shared frosted treatment: every major panel blurs what's behind it. */
+.nav,
+.card,
+.bottomnav,
+.bottomnav-sheet,
+.dock-sheet,
+.install-banner,
+.bell-panel,
+.onboarding-card,
+.landing-step,
+.hub-card,
+.lhv-card,
+.lhv-chip,
+.coach-thread,
+.toast {
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(1.5);
+  backdrop-filter: blur(var(--blur)) saturate(1.5);
 }
 /* Editorial serif headings carry the character; body stays sans for legibility. */
 h1,
@@ -289,7 +370,7 @@ select {
   padding: 0.65rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--bg);
+  background: var(--surface-2);
   color: var(--text);
   font: inherit;
 }
